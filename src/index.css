@@ -1,0 +1,1037 @@
+/* ==========================================================================
+   Traction Escuela de Negocios — Corporate Design System
+   Enfoque Corporativo: Simple, Funcional, Sin Degradados
+   Soporte: Modo Claro (Fondo Blanco y Celeste) & Modo Oscuro con Alto Contraste
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Design Tokens: Modo Claro (Fondo Blanco y Celeste Corporativo)
+   -------------------------------------------------------------------------- */
+:root,
+[data-theme="light"] {
+  /* Fondos y Superficies Sólidas: Página en Blanco y Celeste Corporativo */
+  --bg-deep: #F8FAFC;
+  --bg-main: #FFFFFF;                /* Fondo general en blanco */
+  --bg-surface: #FFFFFF;             /* Tarjetas en blanco limpio */
+  --bg-surface-elevated: #F8FAFC;
+  --bg-surface-hover: #F1F5F9;
+  --bg-glass: rgba(255, 255, 255, 0.98);
+  --bg-glass-heavy: #FFFFFF;
+
+  /* Celeste Corporativo & Acentos */
+  --brand-celeste: #0284C7;          /* Sky 600 - Máximo contraste sobre blanco */
+  --brand-celeste-light: #0EA5E9;    /* Sky 500 */
+  --brand-celeste-hover: #0369A1;    /* Sky 700 */
+  --brand-celeste-dark: #075985;     /* Sky 800 */
+  --brand-celeste-deep: #E0F2FE;     /* Sky 100 */
+  --brand-celeste-subtle: #F0F9FF;   /* Sky 50 */
+  --brand-celeste-border: #BAE6FD;   /* Sky 200 */
+  --brand-celeste-pill: #0284C7;
+
+  /* Compatibilidad de variables de acento */
+  --emerald-400: #0284C7;
+  --emerald-500: #0284C7;
+  --emerald-600: #0369A1;
+  --emerald-900: #E0F2FE;
+  --cyan-400: #0284C7;
+  --cyan-500: #0284C7;
+  --gold-300: #D97706;
+  --gold-400: #B45309;
+  --gold-500: #92400E;
+  --rose-500: #DC2626;
+  --indigo-500: #0284C7;
+  --purple-500: #0369A1;
+
+  /* Tipografía de Alto Contraste Corporativo */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --text-main: #0F172A;              /* Slate 900 - Contraste perfecto para lectura */
+  --text-muted: #475569;             /* Slate 600 */
+  --text-dim: #64748B;               /* Slate 500 */
+  --text-inverse: #FFFFFF;
+
+  /* Bordes Corporativos Nítidos (Sin difuminados) */
+  --border-subtle: #E2E8F0;          /* Slate 200 */
+  --border-medium: #CBD5E1;          /* Slate 300 */
+  --border-active: #0284C7;          /* Celeste corporativo */
+  --border-gold: #E2E8F0;
+
+  /* Sombras Funcionales y Limpias (Sin glows de colores) */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --glow-emerald: none;
+  --glow-gold: none;
+  --brand-celeste-glow: none;
+
+  /* Botones Primarios y Secundarios */
+  --btn-primary-bg: #0284C7;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #0369A1;
+  --btn-secondary-bg: #FFFFFF;
+  --btn-secondary-border: #CBD5E1;
+  --btn-secondary-text: #0F172A;
+  --btn-secondary-hover: #F1F5F9;
+}
+
+/* --------------------------------------------------------------------------
+   2. Design Tokens: Modo Oscuro con Alto Contraste
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  /* Fondos y Superficies con Contraste Marcado */
+  --bg-deep: #070A10;                /* Negro pizarra profundo */
+  --bg-main: #0C101A;                /* Fondo principal oscuro */
+  --bg-surface: #131926;             /* Tarjetas con separación nítida */
+  --bg-surface-elevated: #1B2436;    /* Elementos elevados */
+  --bg-surface-hover: #243048;       /* Hover con respuesta clara */
+  --bg-glass: rgba(19, 25, 38, 0.98);
+  --bg-glass-heavy: rgba(12, 16, 26, 0.98);
+
+  /* Celeste Corporativo Brillante para Modo Oscuro */
+  --brand-celeste: #38BDF8;          /* Sky 400 - Contraste nítido sobre oscuro */
+  --brand-celeste-light: #7DD3FC;    /* Sky 300 */
+  --brand-celeste-hover: #0EA5E9;    /* Sky 500 */
+  --brand-celeste-dark: #0284C7;     /* Sky 600 */
+  --brand-celeste-deep: #082F49;     /* Sky 900 */
+  --brand-celeste-subtle: rgba(56, 189, 248, 0.12);
+  --brand-celeste-border: rgba(56, 189, 248, 0.35);
+  --brand-celeste-pill: #38BDF8;
+
+  /* Compatibilidad de variables */
+  --emerald-400: #38BDF8;
+  --emerald-500: #38BDF8;
+  --emerald-600: #0EA5E9;
+  --emerald-900: #082F49;
+  --cyan-400: #38BDF8;
+  --cyan-500: #38BDF8;
+  --gold-300: #FCD34D;
+  --gold-400: #F59E0B;
+  --gold-500: #D97706;
+  --rose-500: #F87171;
+  --indigo-500: #38BDF8;
+  --purple-500: #7DD3FC;
+
+  /* Tipografía de Alto Contraste */
+  --text-main: #FFFFFF;              /* Blanco puro de alto contraste */
+  --text-muted: #CBD5E1;             /* Slate 300 - Fácil lectura */
+  --text-dim: #94A3B8;               /* Slate 400 */
+  --text-inverse: #070A10;
+
+  /* Bordes Definidos */
+  --border-subtle: #1E293B;          /* Slate 800 */
+  --border-medium: #334155;          /* Slate 700 */
+  --border-active: #38BDF8;          /* Celeste activo */
+  --border-gold: rgba(255, 255, 255, 0.2);
+
+  /* Sombras y Elevaciones Limpias */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 14px 28px rgba(0, 0, 0, 0.6);
+  --glow-emerald: none;
+  --glow-gold: none;
+  --brand-celeste-glow: none;
+
+  /* Botones en Modo Oscuro */
+  --btn-primary-bg: #38BDF8;
+  --btn-primary-text: #070A10;
+  --btn-primary-hover: #0EA5E9;
+  --btn-secondary-bg: #1B2436;
+  --btn-secondary-border: #334155;
+  --btn-secondary-text: #FFFFFF;
+  --btn-secondary-hover: #243048;
+}
+
+/* --------------------------------------------------------------------------
+   3. Estructura y Medidas Generales
+   -------------------------------------------------------------------------- */
+:root {
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 80px;
+  --header-height: 70px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.2s ease;
+  --transition-smooth: 0.3s ease;
+}
+
+/* Reset y Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* Tipografía Corporativa Jerárquica */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-main);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Scrollbar Sencillo y Funcional */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-medium);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-celeste);
+}
+
+/* Contenedor Principal de la App (Sin degradados de fondo) */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+}
+
+.main-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: var(--bg-main);
+}
+
+.main-content-wrapper.sidebar-collapsed {
+  margin-left: 0;
+}
+
+.sidebar-mobile-backdrop {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .main-content-wrapper {
+    margin-left: 0 !important;
+  }
+  .sidebar-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    z-index: 45;
+    animation: fadeIn 0.2s ease;
+  }
+}
+
+.content-body {
+  flex: 1;
+  padding: 28px 36px 60px;
+  max-width: 1440px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .content-body {
+    padding: 18px 16px 40px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. Header Corporativo
+   -------------------------------------------------------------------------- */
+.header-bar {
+  height: var(--header-height);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 36px;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+@media (max-width: 768px) {
+  .header-bar {
+    padding: 0 16px;
+  }
+}
+
+.header-search {
+  position: relative;
+  width: 360px;
+}
+
+@media (max-width: 900px) {
+  .header-search {
+    display: none;
+  }
+}
+
+.header-search input {
+  width: 100%;
+  padding: 9px 16px 9px 40px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.header-search input:focus {
+  border-color: var(--brand-celeste);
+  background-color: var(--bg-surface);
+}
+
+.header-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Conmutador de Rol (Estudiante vs Admin) */
+.role-switcher {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 3px;
+}
+
+.role-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.role-btn.active {
+  background-color: var(--brand-celeste);
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .role-btn.active {
+  color: #070A10;
+}
+
+.role-btn.active.admin-role {
+  background-color: var(--text-main);
+  color: var(--bg-surface);
+}
+
+/* Botón Conmutador de Modo Claro / Modo Oscuro */
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--brand-celeste-border);
+}
+
+.theme-toggle-btn svg {
+  color: var(--brand-celeste);
+}
+
+/* Badge de Membresía */
+.badge-membership {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  background-color: var(--brand-celeste-subtle);
+  color: var(--brand-celeste);
+  border: 1px solid var(--brand-celeste-border);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.badge-membership:hover {
+  background-color: var(--brand-celeste-deep);
+}
+
+/* User Pill */
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px 5px 6px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.user-pill:hover {
+  background-color: var(--bg-surface-hover);
+  border-color: var(--border-medium);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--brand-celeste);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.user-plan-tag {
+  font-size: 11px;
+  color: var(--brand-celeste);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   5. Sidebar Corporativo
+   -------------------------------------------------------------------------- */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
+}
+
+.sidebar.collapsed {
+  transform: translateX(-100%);
+  box-shadow: none;
+}
+
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-brand-wrapper {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justifyContent: space-between;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-collapse-btn:hover {
+  background-color: var(--bg-surface-elevated) !important;
+  color: var(--brand-celeste) !important;
+}
+
+.sidebar-toggle-btn:hover {
+  border-color: var(--brand-celeste) !important;
+  color: var(--brand-celeste) !important;
+}
+
+.sidebar-brand {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.brand-icon {
+  width: 38px;
+  height: 38px;
+  background-color: #0F172A;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #1E293B;
+  overflow: hidden;
+  padding: 4px;
+}
+
+.brand-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.brand-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.brand-subtitle {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--brand-celeste);
+  font-weight: 700;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  font-weight: 700;
+  padding: 14px 12px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover {
+  color: var(--text-main);
+  background-color: var(--bg-surface-hover);
+}
+
+/* Ítem activo: Sólido, plano y corporativo (Sin degradados) */
+.nav-item.active {
+  color: var(--brand-celeste);
+  background-color: var(--brand-celeste-subtle);
+  border-left: 3px solid var(--brand-celeste);
+  border-color: var(--brand-celeste-border);
+  font-weight: 700;
+}
+
+.nav-item.active .nav-icon {
+  color: var(--brand-celeste);
+}
+
+.nav-badge {
+  margin-left: auto;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.badge-live {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+[data-theme="dark"] .badge-live {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #F87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+}
+
+.sidebar-membership-card {
+  padding: 14px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--brand-celeste-border);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.membership-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.membership-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.membership-pill {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  background-color: var(--brand-celeste);
+  color: #FFFFFF;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+[data-theme="dark"] .membership-pill {
+  color: #070A10;
+}
+
+.membership-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   6. Tarjetas & Superficies (Sólidas, Sin Degradados)
+   -------------------------------------------------------------------------- */
+.card {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.card:hover {
+  border-color: var(--border-medium);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-interactive {
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  border-color: var(--brand-celeste);
+  box-shadow: var(--shadow-md);
+}
+
+/* --------------------------------------------------------------------------
+   7. Botones Corporativos
+   -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  outline: none;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background-color: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  background-color: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background-color: var(--btn-secondary-bg);
+  border-color: var(--btn-secondary-border);
+  color: var(--btn-secondary-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+  background-color: var(--btn-secondary-hover);
+  border-color: var(--border-medium);
+  color: var(--text-main);
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12.5px;
+  border-radius: var(--radius-sm);
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 14.5px;
+  border-radius: var(--radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   8. Badges e Indicadores Corporativos
+   -------------------------------------------------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.badge-emerald {
+  background-color: var(--brand-celeste-subtle);
+  color: var(--brand-celeste);
+  border: 1px solid var(--brand-celeste-border);
+}
+
+.badge-amber {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+[data-theme="dark"] .badge-amber {
+  background-color: rgba(245, 158, 11, 0.18);
+  color: #FCD34D;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.badge-purple {
+  background-color: var(--bg-surface-elevated);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Barra de Progreso (Sólida, sin degradado) */
+.progress-bar-container {
+  width: 100%;
+  height: 7px;
+  background-color: var(--border-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: var(--brand-celeste);
+  border-radius: var(--radius-full);
+  transition: width var(--transition-smooth);
+}
+
+/* Tarjeta de Estadísticas */
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.stat-icon-wrapper {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--brand-celeste-subtle);
+  color: var(--brand-celeste);
+  border: 1px solid var(--brand-celeste-border);
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Banner de Sesión en Vivo (Sólido corporativo con acento celeste superior) */
+.live-banner {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--brand-celeste-border);
+  border-top: 3px solid var(--brand-celeste);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  position: relative;
+  box-shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   9. Modales y Superposiciones
+   -------------------------------------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-dialog {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+/* --------------------------------------------------------------------------
+   10. Reproductor de Cursos
+   -------------------------------------------------------------------------- */
+.player-container {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 24px;
+  height: calc(100vh - var(--header-height) - 70px);
+}
+
+@media (max-width: 1200px) {
+  .player-container {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+}
+
+.video-screen-wrapper {
+  background-color: #000000;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  position: relative;
+  aspect-ratio: 16 / 9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-screen-wrapper video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modules-sidebar {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.modules-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.module-group {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background-color: var(--bg-main);
+}
+
+.module-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  background-color: var(--bg-surface-elevated);
+  transition: background-color var(--transition-fast);
+}
+
+.module-header:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.lesson-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  border-top: 1px solid var(--border-subtle);
+  transition: background-color var(--transition-fast);
+  background-color: var(--bg-surface);
+}
+
+.lesson-row:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+.lesson-row.active {
+  background-color: var(--brand-celeste-subtle);
+  border-left: 3px solid var(--brand-celeste);
+}
+
+.lesson-row.active .lesson-title {
+  color: var(--brand-celeste);
+  font-weight: 700;
+}
+
+.lesson-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--text-dim);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.lesson-check.completed {
+  background-color: var(--brand-celeste);
+  border-color: var(--brand-celeste);
+  color: #FFFFFF;
+}
+
+[data-theme="dark"] .lesson-check.completed {
+  color: #070A10;
+}
+
+/* --------------------------------------------------------------------------
+   11. Pestañas Corporativas
+   -------------------------------------------------------------------------- */
+.tabs-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 24px;
+}
+
+.tab-btn {
+  padding: 12px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  color: var(--brand-celeste);
+  border-bottom-color: var(--brand-celeste);
+}
