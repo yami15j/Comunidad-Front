@@ -50,7 +50,11 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    if (response.status === 401 && token && localStorage.getItem(ACCESS_TOKEN_KEY) === token) {
+    if (
+      response.status === 401 &&
+      token &&
+      localStorage.getItem(ACCESS_TOKEN_KEY) === token
+    ) {
       clearSession();
       window.dispatchEvent(new Event("traction:session-expired"));
     }
@@ -82,24 +86,99 @@ export function hasSession() {
 }
 
 export const api = {
+  administration: {
+    curriculum: (id, options) =>
+      request("/admin/courses/" + id + "/curriculum", options),
+    updateCourse: (id, input) =>
+      request("/admin/courses/" + id, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+    saveModule: (courseId, input, id) =>
+      request(
+        "/admin/courses/" + courseId + "/modules" + (id ? "/" + id : ""),
+        { method: id ? "PATCH" : "POST", body: JSON.stringify(input) },
+      ),
+    saveLesson: (moduleId, input, id) =>
+      request(
+        "/admin/modules/" + moduleId + "/lessons" + (id ? "/" + id : ""),
+        { method: id ? "PATCH" : "POST", body: JSON.stringify(input) },
+      ),
+    resourceLink: (lessonId, input) =>
+      request("/admin/lessons/" + lessonId + "/resources/link", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    resourceUpload: (lessonId, file, title) => {
+      const body = new FormData();
+      body.append("file", file);
+      body.append("title", title);
+      return request("/admin/lessons/" + lessonId + "/resources/upload", {
+        method: "POST",
+        body,
+      });
+    },
+    resourceState: (id, isPublished) =>
+      request("/admin/resources/" + id, {
+        method: "PATCH",
+        body: JSON.stringify({ isPublished }),
+      }),
+    access: (filters, options) =>
+      request(
+        "/admin/access?" +
+          new URLSearchParams(
+            Object.entries(filters).filter(
+              ([, value]) => value !== "" && value !== undefined,
+            ),
+          ),
+        options,
+      ),
+    grantAccess: (input) =>
+      request("/admin/access", { method: "POST", body: JSON.stringify(input) }),
+    updateAccess: (id, input) =>
+      request("/admin/access/" + id, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+      }),
+  },
+  notifications: {
+    list: (options) => request("/notifications", options),
+    markRead: (ids) =>
+      request("/notifications/read", {
+        method: "PATCH",
+        body: JSON.stringify({ ids }),
+      }),
+    publish: (input) =>
+      request("/notifications", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+  },
   tickets: {
     list: (options) => request("/tickets", options),
-    create: (input, options) => request("/tickets", { ...options, method: "POST", body: JSON.stringify(input) }),
+    create: (input, options) =>
+      request("/tickets", {
+        ...options,
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
     messages: (id, options) => request(`/tickets/${id}/messages`, options),
-    send: (id, body, options) => request(`/tickets/${id}/messages`, { ...options, method: "POST", body: JSON.stringify({ body }) }),
-    claim: (id, options) => request(`/tickets/${id}/claim`, { ...options, method: "POST" }),
-    close: (id, options) => request(`/tickets/${id}/close`, { ...options, method: "POST" }),
+    send: (id, body, options) =>
+      request(`/tickets/${id}/messages`, {
+        ...options,
+        method: "POST",
+        body: JSON.stringify({ body }),
+      }),
+    claim: (id, options) =>
+      request(`/tickets/${id}/claim`, { ...options, method: "POST" }),
+    close: (id, options) =>
+      request(`/tickets/${id}/close`, { ...options, method: "POST" }),
   },
   health: () => request("/health/db"),
   login: (email, password) =>
     request("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
-    }),
-  register: (fullName, email, password) =>
-    request("/auth/register", {
-      method: "POST",
-      body: JSON.stringify({ fullName, email, password }),
     }),
   me: () => request("/auth/me"),
   profile: {
@@ -112,6 +191,11 @@ export const api = {
     },
   },
   courses: {
+    enrollByEmail: (courseId, email) =>
+      request("/courses/" + courseId + "/enrollments/by-email", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      }),
     list: (options) => request("/courses", options),
     create: (input) =>
       request("/courses", { method: "POST", body: JSON.stringify(input) }),
@@ -127,6 +211,11 @@ export const api = {
       }),
   },
   liveSessions: {
+    updateLink: (id, joinUrl) =>
+      request("/live-sessions/" + id + "/link", {
+        method: "PATCH",
+        body: JSON.stringify({ joinUrl }),
+      }),
     list: (options) => request("/live-sessions", options),
     create: (input) =>
       request("/live-sessions", {
@@ -136,10 +225,26 @@ export const api = {
     end: (id) => request(`/live-sessions/${id}/end`, { method: "POST" }),
   },
   videos: {
+    create: (input) =>
+      request("/videos", { method: "POST", body: JSON.stringify(input) }),
+    complete: (id, input) =>
+      request("/videos/" + id + "/complete", {
+        method: "POST",
+        body: JSON.stringify(input),
+      }),
+    remove: (id) => request("/videos/" + id, { method: "DELETE" }),
     list: (options) => request("/videos", options),
     playback: (id) => request(`/videos/${id}/playback`),
   },
   dashboard: {
+    resume: (courseId) =>
+      request("/dashboard/student/courses/" + courseId + "/resume"),
+    saveResume: (courseId, lessonId, positionSeconds) =>
+      request("/dashboard/student/courses/" + courseId + "/resume", {
+        method: "PUT",
+        keepalive: true,
+        body: JSON.stringify({ lessonId, positionSeconds }),
+      }),
     student: (options) => request("/dashboard/student", options),
     mentor: (options) => request("/dashboard/mentor", options),
     admin: (options) => request("/dashboard/admin", options),

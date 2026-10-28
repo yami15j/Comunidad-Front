@@ -17,6 +17,7 @@ export function AdminView({
   courses,
   liveClasses,
   onAddCourse,
+  onEditCurriculum,
   onAddLiveClass,
   mentors,
   users = [],
@@ -52,6 +53,8 @@ export function AdminView({
   const [userActionSuccess, setUserActionSuccess] = useState("");
   const [assignmentSelections, setAssignmentSelections] = useState({});
   const [savingUserId, setSavingUserId] = useState(null);
+  const [academicSaving, setAcademicSaving] = useState(false);
+  const [academicError, setAcademicError] = useState("");
 
   const handleTabChange = (tab) => {
     if (onNavigate) {
@@ -68,8 +71,8 @@ export function AdminView({
     tagline: "",
     category: "Ventas Estratégicas",
     level: "Avanzado",
-    mentorName: mentors[0]?.name || "",
-    estimatedHours: "6.5 horas",
+    docenteId: "",
+    mentorName: "",
   });
 
   // Form states for new Live Class
@@ -77,10 +80,11 @@ export function AdminView({
     courseId: "",
     title: "",
     subtitle: "",
-    mentorName: mentors[0]?.name || "",
+    docenteId: "",
+    mentorName: "",
     scheduledAt: defaultSchedule(),
     durationMinutes: 75,
-    joinUrl: "https://zoom.us/j/traction-live-new",
+    joinUrl: "",
     category: "Ventas & Crecimiento",
   }));
 
@@ -111,68 +115,46 @@ export function AdminView({
     password: "",
   });
 
-  const handleCreateCourseSubmit = async (e) => {
-    e.preventDefault();
-    if (!courseForm.title.trim()) return;
-
-    const newCourseObj = {
-      id: `course_${Date.now()}`,
-      title: courseForm.title,
-      tagline: courseForm.tagline,
-      category: courseForm.category,
-      level: courseForm.level,
-      mentorName: courseForm.mentorName,
-      mentorRole: "Mentor Oficial",
-      mentorAvatar:
-        "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=200&q=80",
-      thumbnail:
-        "https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=800&q=80",
-      progressPercent: 0,
-      completedLessonsCount: 0,
-      totalLessonsCount: 8,
-      estimatedHours: courseForm.estimatedHours,
-      isEnrolled: true,
-      rating: 5.0,
-      modules: [],
-    };
-
-    await onAddCourse(newCourseObj);
-    setShowCreateCourseModal(false);
-    setCourseForm({
-      title: "",
-      tagline: "",
-      category: "Ventas Estratégicas",
-      level: "Avanzado",
-      mentorName: mentors[0]?.name || "",
-      estimatedHours: "6.5 horas",
-    });
+  const handleCreateCourseSubmit = async (event) => {
+    event.preventDefault();
+    if (academicSaving) return;
+    setAcademicSaving(true);
+    setAcademicError("");
+    try {
+      await onAddCourse({
+        title: courseForm.title.trim(),
+        tagline: courseForm.tagline,
+        category: courseForm.category,
+        level: courseForm.level,
+        contentType: courseForm.contentType || "course",
+        docenteId: courseForm.docenteId || undefined,
+      });
+      setShowCreateCourseModal(false);
+      setCourseForm((current) => ({ ...current, title: "", tagline: "" }));
+    } catch (error) {
+      setAcademicError(error.message);
+    } finally {
+      setAcademicSaving(false);
+    }
   };
-
-  const handleScheduleLiveSubmit = async (e) => {
-    e.preventDefault();
-    if (!liveForm.title.trim()) return;
-
-    const newLiveObj = {
-      id: `live_${Date.now()}`,
-      courseId: liveForm.courseId,
-      title: liveForm.title,
-      subtitle: liveForm.subtitle,
-      mentorName: liveForm.mentorName,
-      mentorAvatar:
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80",
-      date: liveForm.date,
-      scheduledAt: new Date(liveForm.scheduledAt).toISOString(),
-      durationMinutes: Number(liveForm.durationMinutes),
-      isToday: false,
-      isLiveNow: false,
-      joinUrl: liveForm.joinUrl,
-      attendeesCount: 0,
-      category: liveForm.category,
-      badge: "Programada",
-    };
-
-    await onAddLiveClass(newLiveObj);
-    setShowScheduleLiveModal(false);
+  const handleScheduleLiveSubmit = async (event) => {
+    event.preventDefault();
+    if (academicSaving) return;
+    setAcademicSaving(true);
+    setAcademicError("");
+    try {
+      await onAddLiveClass({
+        ...liveForm,
+        title: liveForm.title.trim(),
+        scheduledAt: new Date(liveForm.scheduledAt).toISOString(),
+        durationMinutes: Number(liveForm.durationMinutes),
+      });
+      setShowScheduleLiveModal(false);
+    } catch (error) {
+      setAcademicError(error.message);
+    } finally {
+      setAcademicSaving(false);
+    }
   };
 
   const handleUpdateStudentPlan = async (studentId, newRole) => {
@@ -249,47 +231,20 @@ export function AdminView({
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div className="flex flex-col gap-7">
       {/* Header del CMS */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          flexWrap: "wrap",
-          gap: "16px",
-        }}
-      >
+      <div className="flex justify-between items-start flex-wrap gap-4">
         <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              marginBottom: "6px",
-            }}
-          >
+          <div className="flex items-center gap-2 [margin-bottom:6px]">
             <span className="badge badge-amber">
               <Shield size={14} />
               <span>Panel de Control Administrativo (CMS)</span>
             </span>
           </div>
-          <h1
-            style={{
-              fontSize: "28px",
-              fontWeight: 800,
-              color: "var(--text-main)",
-            }}
-          >
+          <h1 className="text-2xl sm:text-[28px] font-extrabold text-ink">
             Gestión Integral de Traction
           </h1>
-          <p
-            style={{
-              color: "var(--text-muted)",
-              fontSize: "14px",
-              marginTop: "4px",
-            }}
-          >
+          <p className="text-muted text-[14px] mt-1">
             Control central de programas, clases en vivo, profesores, alumnos y
             niveles de suscripción.
           </p>
@@ -297,21 +252,9 @@ export function AdminView({
       </div>
 
       {/* Métricas Globales del Negocio */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: "16px",
-        }}
-      >
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="stat-card">
-          <div
-            className="stat-icon-wrapper"
-            style={{
-              background: "rgba(6, 171, 235, 0.14)",
-              color: "var(--brand-celeste)",
-            }}
-          >
+          <div className="stat-icon-wrapper">
             <Users size={22} />
           </div>
           <div>
@@ -321,13 +264,7 @@ export function AdminView({
         </div>
 
         <div className="stat-card">
-          <div
-            className="stat-icon-wrapper"
-            style={{
-              background: "var(--bg-surface-elevated)",
-              color: "var(--text-main)",
-            }}
-          >
+          <div className="stat-icon-wrapper">
             <Crown size={22} />
           </div>
           <div>
@@ -337,13 +274,7 @@ export function AdminView({
         </div>
 
         <div className="stat-card">
-          <div
-            className="stat-icon-wrapper"
-            style={{
-              background: "rgba(6, 171, 235, 0.10)",
-              color: "var(--brand-celeste-light)",
-            }}
-          >
+          <div className="stat-icon-wrapper">
             <Radio size={22} />
           </div>
           <div>
@@ -356,10 +287,7 @@ export function AdminView({
         </div>
 
         <div className="stat-card">
-          <div
-            className="stat-icon-wrapper"
-            style={{ background: "rgba(139, 92, 246, 0.15)", color: "#A78BFA" }}
-          >
+          <div className="stat-icon-wrapper">
             <TrendingUp size={22} />
           </div>
           <div>
@@ -403,84 +331,38 @@ export function AdminView({
       {/* VISTA 1: PANEL GENERAL (OVERVIEW)                               */}
       {/* ============================================================== */}
       {activeTab === "overview" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <div className="flex flex-col gap-6">
           {/* Accesos Rápidos para Administrador */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "16px",
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-4">
             <div
-              className="card card-interactive"
+              className="card card-interactive cursor-pointer [background:var(--bg-surface)]"
               onClick={() => handleTabChange("courses")}
-              style={{ cursor: "pointer", background: "var(--bg-surface)" }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "10px",
-                }}
-              >
+              <div className="flex justify-between items-center [margin-bottom:10px]">
                 <span className="badge badge-emerald">Cursos</span>
                 <ChevronRight size={16} />
               </div>
-              <h4
-                style={{
-                  fontSize: "16px",
-                  fontWeight: 700,
-                  color: "var(--text-main)",
-                }}
-              >
+              <h4 className="text-[16px] font-bold text-ink">
                 Publicar o Modificar Cursos
               </h4>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "var(--text-muted)",
-                  marginTop: "4px",
-                }}
-              >
+              <p className="text-[13px] text-muted mt-1">
                 {stats.totalCourses ?? courses.length} programas registrados en
                 la plataforma.
               </p>
             </div>
 
             <div
-              className="card card-interactive"
+              className="card card-interactive cursor-pointer [background:var(--bg-surface)]"
               onClick={() => handleTabChange("live")}
-              style={{ cursor: "pointer", background: "var(--bg-surface)" }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "10px",
-                }}
-              >
+              <div className="flex justify-between items-center [margin-bottom:10px]">
                 <span className="badge badge-amber">Clases en Vivo</span>
                 <ChevronRight size={16} />
               </div>
-              <h4
-                style={{
-                  fontSize: "16px",
-                  fontWeight: 700,
-                  color: "var(--text-main)",
-                }}
-              >
+              <h4 className="text-[16px] font-bold text-ink">
                 Agendar Nueva Clase en Vivo
               </h4>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "var(--text-muted)",
-                  marginTop: "4px",
-                }}
-              >
+              <p className="text-[13px] text-muted mt-1">
                 {(stats.scheduledLiveSessions || 0) +
                   (stats.activeLiveSessions || 0)}{" "}
                 sesiones próximas o activas.
@@ -488,37 +370,17 @@ export function AdminView({
             </div>
 
             <div
-              className="card card-interactive"
+              className="card card-interactive cursor-pointer [background:var(--bg-surface)]"
               onClick={() => handleTabChange("users")}
-              style={{ cursor: "pointer", background: "var(--bg-surface)" }}
             >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "10px",
-                }}
-              >
+              <div className="flex justify-between items-center [margin-bottom:10px]">
                 <span className="badge badge-purple">Accesos</span>
                 <ChevronRight size={16} />
               </div>
-              <h4
-                style={{
-                  fontSize: "16px",
-                  fontWeight: 700,
-                  color: "var(--text-main)",
-                }}
-              >
-                Gestionar Membresías de Alumnos
+              <h4 className="text-[16px] font-bold text-ink">
+                Gestionar usuarios y accesos
               </h4>
-              <p
-                style={{
-                  fontSize: "13px",
-                  color: "var(--text-muted)",
-                  marginTop: "4px",
-                }}
-              >
+              <p className="text-[13px] text-muted mt-1">
                 {stats.totalUsers ?? students.length} cuentas registradas en la
                 plataforma.
               </p>
@@ -527,51 +389,25 @@ export function AdminView({
 
           {/* Actividad Reciente de la Escuela */}
           <div className="card">
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginBottom: "16px",
-              }}
-            >
-              <Activity size={18} style={{ color: "var(--emerald-400)" }} />
-              <h3 style={{ fontSize: "17px", fontWeight: 800 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Activity size={18} className="[color:var(--emerald-400)]" />
+              <h3 className="text-[17px] font-extrabold">
                 Actividad Reciente del Negocio
               </h3>
             </div>
 
-            <div
-              style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-            >
+            <div className="flex flex-col gap-3">
               {recentActivity.length ? (
                 recentActivity.map((activity) => (
                   <div
                     key={activity.id}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "12px 14px",
-                      background: "var(--bg-deep)",
-                      borderRadius: "var(--radius-md)",
-                      border: "1px solid var(--border-subtle)",
-                      gap: "12px",
-                    }}
+                    className="flex justify-between items-center [padding:12px_14px] [background:var(--bg-deep)] [border-radius:var(--radius-md)] [border:1px_solid_var(--border-subtle)] gap-3"
                   >
                     <div>
-                      <div
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: 600,
-                          color: "var(--text-main)",
-                        }}
-                      >
+                      <div className="text-[13px] font-semibold text-ink">
                         {activity.studentName} completó “{activity.lessonTitle}”
                       </div>
-                      <div
-                        style={{ fontSize: "11px", color: "var(--text-dim)" }}
-                      >
+                      <div className="text-[11px] text-subtle">
                         {activity.courseTitle} •{" "}
                         {new Date(activity.occurredAt).toLocaleString("es-EC", {
                           dateStyle: "medium",
@@ -579,25 +415,13 @@ export function AdminView({
                         })}
                       </div>
                     </div>
-                    <span
-                      className="badge badge-emerald"
-                      style={{ fontSize: "11px" }}
-                    >
+                    <span className="badge badge-emerald text-[11px]">
                       Progreso
                     </span>
                   </div>
                 ))
               ) : (
-                <div
-                  style={{
-                    padding: "22px",
-                    textAlign: "center",
-                    color: "var(--text-muted)",
-                    border: "1px dashed var(--border-medium)",
-                    borderRadius: "var(--radius-md)",
-                    fontSize: "13px",
-                  }}
-                >
+                <div className="[padding:22px] text-center text-muted [border:1px_dashed_var(--border-medium)] [border-radius:var(--radius-md)] text-[13px]">
                   Aún no existen lecciones completadas para mostrar actividad.
                 </div>
               )}
@@ -610,99 +434,59 @@ export function AdminView({
       {/* VISTA 2: GESTOR DE CURSOS & MÓDULOS                             */}
       {/* ============================================================== */}
       {activeTab === "courses" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
+        <div className="flex flex-col gap-5">
+          <div className="flex justify-between items-center flex-wrap gap-3">
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+              <h3 className="text-[18px] font-extrabold">
                 Programas y Módulos Curriculares
               </h3>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+              <p className="text-[13px] text-muted">
                 Crea y gestiona la estructura de cursos, módulos y lecciones de
                 video.
               </p>
             </div>
             <button
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm [gap:6px]"
               onClick={() => setShowCreateCourseModal(true)}
-              style={{ gap: "6px" }}
             >
               <Plus size={16} />
-              <span>Publicar Nuevo Curso</span>
+              <span>Crear nuevo curso</span>
             </button>
           </div>
 
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
-          >
+          <div className="flex flex-col gap-3">
             {courses.map((course) => (
               <div
                 key={course.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "16px 20px",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                  flexWrap: "wrap",
-                  gap: "16px",
-                }}
+                className="flex items-center justify-between [padding:16px_20px] [background:var(--bg-surface)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)] flex-wrap gap-4"
               >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "14px" }}
-                >
+                <div className="flex items-center [gap:14px]">
                   <img
                     src={course.thumbnail}
                     alt={course.title}
-                    style={{
-                      width: "60px",
-                      height: "45px",
-                      borderRadius: "var(--radius-sm)",
-                      objectFit: "cover",
-                    }}
+                    className="[width:60px] [height:45px] [border-radius:var(--radius-sm)] object-cover"
                   />
                   <div>
-                    <h4
-                      style={{
-                        fontSize: "15px",
-                        fontWeight: 700,
-                        color: "var(--text-main)",
-                      }}
-                    >
+                    <h4 className="text-[15px] font-bold text-ink">
                       {course.title}
                     </h4>
-                    <div
-                      style={{ fontSize: "12px", color: "var(--text-muted)" }}
-                    >
+                    <div className="text-[12px] text-muted">
                       Mentor:{" "}
-                      <strong style={{ color: "var(--text-main)" }}>
-                        {course.mentorName}
-                      </strong>{" "}
+                      <strong className="text-ink">{course.mentorName}</strong>{" "}
                       • {course.category} • {course.estimatedHours}
                     </div>
                   </div>
                 </div>
 
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                >
+                <div className="flex items-center [gap:10px]">
                   <span className="badge badge-emerald">Registrado</span>
                   <button
                     className="btn btn-secondary btn-sm"
-                    disabled
-                    title="El editor curricular se conectará en la siguiente fase"
+                    onClick={() => onEditCurriculum(course)}
+                    title="Crear y editar modulos, lecciones y recursos"
                   >
                     <Edit size={14} />
-                    <span>Editor curricular pendiente</span>
+                    <span>Abrir editor curricular</span>
                   </button>
                 </div>
               </div>
@@ -715,96 +499,57 @@ export function AdminView({
       {/* VISTA 3: GESTIÓN DE CLASES EN VIVO & REPLAYS                    */}
       {/* ============================================================== */}
       {activeTab === "live" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
+        <div className="flex flex-col gap-5">
+          <div className="flex justify-between items-center flex-wrap gap-3">
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+              <h3 className="text-[18px] font-extrabold">
                 Agenda de Clases en Vivo & Videoteca
               </h3>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+              <p className="text-[13px] text-muted">
                 Programa nuevas transmisiones o conviértelas en grabaciones
                 disponibles.
               </p>
             </div>
             <button
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm [gap:6px]"
               onClick={() => setShowScheduleLiveModal(true)}
-              style={{ gap: "6px" }}
             >
               <Plus size={16} />
               <span>Agendar Nueva Sesión en Vivo</span>
             </button>
           </div>
 
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-          >
+          <div className="flex flex-col [gap:14px]">
             {liveClasses.map((item) => (
               <div
                 key={item.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "16px 20px",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                  flexWrap: "wrap",
-                  gap: "16px",
-                }}
+                className="flex items-center justify-between [padding:16px_20px] [background:var(--bg-surface)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)] flex-wrap gap-4"
               >
                 <div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      marginBottom: "4px",
-                    }}
-                  >
-                    <span
-                      className="badge badge-live"
-                      style={{ fontSize: "11px" }}
-                    >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="badge badge-live text-[11px]">
                       {item.badge}
                     </span>
-                    <span
-                      style={{ fontSize: "12px", color: "var(--text-muted)" }}
-                    >
+                    <span className="text-[12px] text-muted">
                       {item.date} • {item.time}
                     </span>
                   </div>
-                  <h4
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 700,
-                      color: "var(--text-main)",
-                    }}
-                  >
+                  <h4 className="text-[15px] font-bold text-ink">
                     {item.title}
                   </h4>
-                  <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
-                    Mentor: {item.mentorName} • Sala privada de LiveKit
+                  <div className="text-[12px] text-subtle">
+                    Mentor: {item.mentorName} • Reunion por Zoom
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: "10px" }}>
+                <div className="flex [gap:10px]">
                   <button
                     className="btn btn-secondary btn-sm"
                     disabled
-                    title="La grabación automática se conectará en la fase de LiveKit Egress"
+                    title="Sube el archivo de Zoom desde Publicar grabacion"
                   >
                     <Radio size={14} />
-                    <span>Grabación no configurada</span>
+                    <span>Carga manual desde Zoom</span>
                   </button>
                 </div>
               </div>
@@ -817,29 +562,20 @@ export function AdminView({
       {/* VISTA 4: ESTUDIANTES & GESTIÓN DE ACCESOS POR MEMBRESÍA         */}
       {/* ============================================================== */}
       {activeTab === "users" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "14px",
-            }}
-          >
+        <div className="flex flex-col gap-5">
+          <div className="flex justify-between items-center flex-wrap [gap:14px]">
             <div>
-              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+              <h3 className="text-[18px] font-extrabold">
                 Usuarios, roles y acceso a cursos
               </h3>
-              <p style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+              <p className="text-[13px] text-muted">
                 Administra estudiantes, mentores y administradores. Los cambios
                 se guardan directamente en la base de datos.
               </p>
             </div>
             <button
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm [gap:6px]"
               onClick={() => setShowAddStudentModal(true)}
-              style={{ gap: "6px" }}
             >
               <UserPlus size={16} />
               <span>Registrar / Invitar Usuario</span>
@@ -847,16 +583,8 @@ export function AdminView({
           </div>
 
           {/* Filtros y Buscador de Estudiantes */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "12px",
-            }}
-          >
-            <div style={{ display: "flex", gap: "8px" }}>
+          <div className="flex justify-between items-center flex-wrap gap-3">
+            <div className="flex gap-2">
               {[
                 ["all", "Todos"],
                 ["estudiante", "Estudiantes"],
@@ -867,8 +595,6 @@ export function AdminView({
                   key={plan}
                   onClick={() => setStudentPlanFilter(plan)}
                   style={{
-                    padding: "6px 14px",
-                    borderRadius: "var(--radius-full)",
                     border:
                       studentPlanFilter === plan
                         ? "1px solid var(--brand-celeste)"
@@ -881,42 +607,25 @@ export function AdminView({
                       studentPlanFilter === plan
                         ? "var(--brand-celeste)"
                         : "var(--text-muted)",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    cursor: "pointer",
                   }}
+                  className="[padding:6px_14px] [border-radius:var(--radius-full)] text-[12px] font-semibold cursor-pointer"
                 >
                   {label}
                 </button>
               ))}
             </div>
 
-            <div style={{ position: "relative", width: "280px" }}>
+            <div className="relative w-full sm:w-[280px] max-w-full">
               <Search
                 size={15}
-                style={{
-                  position: "absolute",
-                  left: "12px",
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  color: "var(--text-dim)",
-                }}
+                className="absolute [left:12px] [top:50%] [transform:translateY(-50%)] text-subtle"
               />
               <input
                 type="text"
                 placeholder="Buscar por nombre, empresa o email..."
                 value={studentSearch}
                 onChange={(e) => setStudentSearch(e.target.value)}
-                style={{
-                  width: "100%",
-                  padding: "8px 12px 8px 36px",
-                  borderRadius: "var(--radius-sm)",
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  color: "var(--text-main)",
-                  fontSize: "12px",
-                  outline: "none",
-                }}
+                className="w-full [padding:8px_12px_8px_36px] [border-radius:var(--radius-sm)] [background:var(--bg-surface)] [border:1px_solid_var(--border-subtle)] text-ink text-[12px] outline-none"
               />
             </div>
           </div>
@@ -924,14 +633,7 @@ export function AdminView({
           {userActionError && (
             <div
               role="alert"
-              style={{
-                padding: "12px 14px",
-                borderRadius: "10px",
-                background: "#FEF2F2",
-                border: "1px solid #FCA5A5",
-                color: "#991B1B",
-                fontSize: "13px",
-              }}
+              className="[padding:12px_14px] rounded-2xl bg-danger-soft border border-danger-line text-danger text-[13px]"
             >
               {userActionError}
             </div>
@@ -939,188 +641,128 @@ export function AdminView({
           {userActionSuccess && (
             <div
               role="status"
-              style={{
-                padding: "12px 14px",
-                borderRadius: "10px",
-                background: "#ECFDF5",
-                border: "1px solid #6EE7B7",
-                color: "#065F46",
-                fontSize: "13px",
-              }}
+              className="[padding:12px_14px] rounded-2xl bg-success-soft border border-success-line text-success text-[13px]"
             >
               {userActionSuccess}
             </div>
           )}
 
           {/* Tabla de Estudiantes */}
-          <div
-            style={{
-              overflowX: "auto",
-              background: "var(--bg-surface)",
-              borderRadius: "var(--radius-md)",
-              border: "1px solid var(--border-subtle)",
-            }}
-          >
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                textAlign: "left",
-                fontSize: "13px",
-              }}
+          <div className="overflow-x-auto [background:var(--bg-surface)] [border-radius:var(--radius-md)] [border:1px_solid_var(--border-subtle)]">
+            <div
+              className="table-scroll"
+              role="region"
+              aria-label="Tabla de datos"
+              tabIndex={0}
             >
-              <thead>
-                <tr
-                  style={{
-                    borderBottom: "1px solid var(--border-subtle)",
-                    background: "var(--bg-deep)",
-                    color: "var(--text-dim)",
-                  }}
-                >
-                  <th style={{ padding: "14px 18px", fontWeight: 700 }}>
-                    Usuario
-                  </th>
-                  <th style={{ padding: "14px 18px", fontWeight: 700 }}>
-                    Datos
-                  </th>
-                  <th style={{ padding: "14px 18px", fontWeight: 700 }}>
-                    Rol y permisos
-                  </th>
-                  <th style={{ padding: "14px 18px", fontWeight: 700 }}>
-                    Asignación a curso
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredStudents.map((student) => (
-                  <tr
-                    key={student.id}
-                    style={{ borderBottom: "1px solid var(--border-subtle)" }}
-                  >
-                    <td
-                      style={{
-                        padding: "14px 18px",
-                        fontWeight: 600,
-                        color: "var(--text-main)",
-                      }}
-                    >
-                      {student.name}
-                      <div
-                        style={{ fontSize: "11px", color: "var(--text-dim)" }}
-                      >
-                        {student.email} • Registrado: {student.joined}
-                      </div>
-                    </td>
-                    <td style={{ padding: "14px 18px" }}>
-                      <div style={{ color: "var(--text-muted)" }}>
-                        {student.company}
-                      </div>
-                      {student.phone && (
-                        <div
-                          style={{ fontSize: "11px", color: "var(--text-dim)" }}
-                        >
-                          {student.phone}
-                        </div>
-                      )}
-                      {student.location && (
-                        <div
-                          style={{ fontSize: "11px", color: "var(--text-dim)" }}
-                        >
-                          {student.location}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "14px 18px" }}>
-                      <select
-                        value={student.role}
-                        onChange={(e) =>
-                          handleUpdateStudentPlan(student.id, e.target.value)
-                        }
-                        disabled={
-                          student.id === currentUserId ||
-                          savingUserId === student.id
-                        }
-                        style={{
-                          background: "var(--bg-deep)",
-                          border: "1px solid var(--border-subtle)",
-                          borderRadius: "var(--radius-sm)",
-                          color: "var(--text-main)",
-                          padding: "6px 12px",
-                          fontSize: "12px",
-                          cursor: "pointer",
-                        }}
-                      >
-                        <option value="estudiante">Estudiante</option>
-                        <option value="mentor">Mentor</option>
-                        <option value="admin">Administrador</option>
-                      </select>
-                      {student.id === currentUserId && (
-                        <div
-                          style={{
-                            marginTop: 5,
-                            fontSize: 10,
-                            color: "var(--text-dim)",
-                          }}
-                        >
-                          Tu cuenta administrativa
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "14px 18px" }}>
-                      {student.role === "admin" ? (
-                        <span
-                          style={{ color: "var(--text-dim)", fontSize: 12 }}
-                        >
-                          Acceso global
-                        </span>
-                      ) : (
-                        <div style={{ display: "flex", gap: 8, minWidth: 280 }}>
-                          <select
-                            value={assignmentSelections[student.id] || ""}
-                            onChange={(e) =>
-                              setAssignmentSelections((current) => ({
-                                ...current,
-                                [student.id]: e.target.value,
-                              }))
-                            }
-                            style={{
-                              flex: 1,
-                              background: "var(--bg-deep)",
-                              border: "1px solid var(--border-subtle)",
-                              borderRadius: "var(--radius-sm)",
-                              color: "var(--text-main)",
-                              padding: "6px 8px",
-                              fontSize: 12,
-                            }}
-                          >
-                            <option value="">Seleccionar curso</option>
-                            {courses.map((course) => (
-                              <option key={course.id} value={course.id}>
-                                {course.title}
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            type="button"
-                            className="btn btn-primary btn-sm"
-                            disabled={
-                              !assignmentSelections[student.id] ||
-                              savingUserId === student.id
-                            }
-                            onClick={() => handleAssignCourse(student)}
-                          >
-                            {student.role === "mentor" ||
-                            student.role === "docente"
-                              ? "Asignar"
-                              : "Matricular"}
-                          </button>
-                        </div>
-                      )}
-                    </td>
+              <table className="w-full border-collapse text-left text-[13px]">
+                <thead>
+                  <tr className="[border-bottom:1px_solid_var(--border-subtle)] [background:var(--bg-deep)] text-subtle">
+                    <th className="[padding:14px_18px] font-bold">Usuario</th>
+                    <th className="[padding:14px_18px] font-bold">Datos</th>
+                    <th className="[padding:14px_18px] font-bold">
+                      Rol y permisos
+                    </th>
+                    <th className="[padding:14px_18px] font-bold">
+                      Asignación a curso
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filteredStudents.map((student) => (
+                    <tr
+                      key={student.id}
+                      className="[border-bottom:1px_solid_var(--border-subtle)]"
+                    >
+                      <td className="[padding:14px_18px] font-semibold text-ink">
+                        {student.name}
+                        <div className="text-[11px] text-subtle">
+                          {student.email} • Registrado: {student.joined}
+                        </div>
+                      </td>
+                      <td className="[padding:14px_18px]">
+                        <div className="text-muted">{student.company}</div>
+                        {student.phone && (
+                          <div className="text-[11px] text-subtle">
+                            {student.phone}
+                          </div>
+                        )}
+                        {student.location && (
+                          <div className="text-[11px] text-subtle">
+                            {student.location}
+                          </div>
+                        )}
+                      </td>
+                      <td className="[padding:14px_18px]">
+                        <select
+                          value={student.role}
+                          onChange={(e) =>
+                            handleUpdateStudentPlan(student.id, e.target.value)
+                          }
+                          disabled={
+                            student.id === currentUserId ||
+                            savingUserId === student.id
+                          }
+                          className="[background:var(--bg-deep)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-sm)] text-ink [padding:6px_12px] text-[12px] cursor-pointer"
+                        >
+                          <option value="estudiante">Estudiante</option>
+                          <option value="mentor">Mentor</option>
+                          <option value="admin">Administrador</option>
+                        </select>
+                        {student.id === currentUserId && (
+                          <div className="[margin-top:5px] text-[11px] text-subtle">
+                            Tu cuenta administrativa
+                          </div>
+                        )}
+                      </td>
+                      <td className="[padding:14px_18px]">
+                        {["admin", "soporte"].includes(student.role) ? (
+                          <span className="text-subtle text-[12px]">
+                            {student.role === "admin"
+                              ? "Acceso global"
+                              : "Mesa de soporte"}
+                          </span>
+                        ) : (
+                          <div className="flex gap-2 min-w-0 sm:min-w-[280px]">
+                            <select
+                              value={assignmentSelections[student.id] || ""}
+                              onChange={(e) =>
+                                setAssignmentSelections((current) => ({
+                                  ...current,
+                                  [student.id]: e.target.value,
+                                }))
+                              }
+                              className="[flex:1] [background:var(--bg-deep)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-sm)] text-ink [padding:6px_8px] text-[12px]"
+                            >
+                              <option value="">Seleccionar curso</option>
+                              {courses.map((course) => (
+                                <option key={course.id} value={course.id}>
+                                  {course.title}
+                                </option>
+                              ))}
+                            </select>
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm"
+                              disabled={
+                                !assignmentSelections[student.id] ||
+                                savingUserId === student.id
+                              }
+                              onClick={() => handleAssignCourse(student)}
+                            >
+                              {student.role === "mentor" ||
+                              student.role === "docente"
+                                ? "Asignar"
+                                : "Matricular"}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -1132,44 +774,24 @@ export function AdminView({
           onClick={() => setShowAddStudentModal(false)}
         >
           <div
-            className="modal-dialog"
+            className="modal-dialog [max-width:520px]"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "520px" }}
           >
-            <div
-              style={{
-                padding: "20px 24px",
-                borderBottom: "1px solid var(--border-subtle)",
-              }}
-            >
-              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+            <div className="[padding:20px_24px] [border-bottom:1px_solid_var(--border-subtle)]">
+              <h3 className="text-[18px] font-extrabold">
                 Registrar Nuevo Usuario
               </h3>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              <p className="text-[12px] text-muted">
                 Crea una cuenta y asigna su rol inicial.
               </p>
             </div>
 
             <form
               onSubmit={handleAddStudentSubmit}
-              style={{
-                padding: "24px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-              }}
+              className="p-6 flex flex-col gap-4"
             >
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Nombre Completo
                 </label>
                 <input
@@ -1182,30 +804,13 @@ export function AdminView({
                       name: e.target.value,
                     })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Empresa / Negocio
                 </label>
                 <input
@@ -1218,29 +823,12 @@ export function AdminView({
                       company: e.target.value,
                     })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Correo Corporativo
                 </label>
                 <input
@@ -1253,30 +841,13 @@ export function AdminView({
                       email: e.target.value,
                     })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Rol asignado
                 </label>
                 <select
@@ -1287,15 +858,7 @@ export function AdminView({
                       role: e.target.value,
                     })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                 >
                   <option value="estudiante">Estudiante</option>
                   <option value="mentor">Mentor</option>
@@ -1304,16 +867,7 @@ export function AdminView({
               </div>
 
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Contraseña temporal
                 </label>
                 <input
@@ -1328,26 +882,11 @@ export function AdminView({
                       password: e.target.value,
                     })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                 />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "10px",
-                  marginTop: "10px",
-                }}
-              >
+              <div className="flex justify-end [gap:10px] [margin-top:10px]">
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1375,41 +914,44 @@ export function AdminView({
           onClick={() => setShowCreateCourseModal(false)}
         >
           <div
-            className="modal-dialog"
+            className="modal-dialog [max-width:600px]"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "600px" }}
           >
-            <div
-              style={{
-                padding: "20px 24px",
-                borderBottom: "1px solid var(--border-subtle)",
-              }}
-            >
-              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+            <div className="[padding:20px_24px] [border-bottom:1px_solid_var(--border-subtle)]">
+              <h3 className="text-[18px] font-extrabold">
                 Publicar Nuevo Programa Curricular
               </h3>
             </div>
 
             <form
+              aria-busy={academicSaving}
               onSubmit={handleCreateCourseSubmit}
-              style={{
-                padding: "24px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-              }}
+              className="p-6 flex flex-col gap-4"
             >
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
+              {academicError && (
+                <p role="alert" className="text-danger">
+                  {academicError}
+                </p>
+              )}
+
+              <label>
+                Tipo de contenido
+                <select
+                  value={courseForm.contentType || "course"}
+                  onChange={(e) =>
+                    setCourseForm({
+                      ...courseForm,
+                      contentType: e.target.value,
+                    })
+                  }
                 >
+                  <option value="course">Curso</option>
+                  <option value="masterclass">Masterclass</option>
+                  <option value="workshop">Taller</option>
+                </select>
+              </label>
+              <div>
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Título del Programa
                 </label>
                 <input
@@ -1419,30 +961,13 @@ export function AdminView({
                   onChange={(e) =>
                     setCourseForm({ ...courseForm, title: e.target.value })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   required
                 />
               </div>
 
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Tagline / Promesa de Valor
                 </label>
                 <input
@@ -1452,36 +977,13 @@ export function AdminView({
                   onChange={(e) =>
                     setCourseForm({ ...courseForm, tagline: e.target.value })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                 />
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "14px",
-                }}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 [gap:14px]">
                 <div>
-                  <label
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: "var(--text-dim)",
-                      textTransform: "uppercase",
-                      display: "block",
-                      marginBottom: "6px",
-                    }}
-                  >
+                  <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                     Categoría
                   </label>
                   <select
@@ -1489,15 +991,7 @@ export function AdminView({
                     onChange={(e) =>
                       setCourseForm({ ...courseForm, category: e.target.value })
                     }
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--bg-deep)",
-                      border: "1px solid var(--border-medium)",
-                      color: "var(--text-main)",
-                      fontSize: "13px",
-                    }}
+                    className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   >
                     <option value="Ventas Estratégicas">
                       Ventas Estratégicas
@@ -1511,38 +1005,22 @@ export function AdminView({
                 </div>
 
                 <div>
-                  <label
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: "var(--text-dim)",
-                      textTransform: "uppercase",
-                      display: "block",
-                      marginBottom: "6px",
-                    }}
-                  >
+                  <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                     Mentor Asignado
                   </label>
                   <select
-                    value={courseForm.mentorName}
+                    value={courseForm.docenteId || ""}
                     onChange={(e) =>
                       setCourseForm({
                         ...courseForm,
-                        mentorName: e.target.value,
+                        docenteId: e.target.value,
                       })
                     }
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--bg-deep)",
-                      border: "1px solid var(--border-medium)",
-                      color: "var(--text-main)",
-                      fontSize: "13px",
-                    }}
+                    className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   >
+                    <option value="">Asignar mentor despues</option>
                     {mentors.map((m) => (
-                      <option key={m.id} value={m.name}>
+                      <option key={m.id} value={m.id}>
                         {m.name}
                       </option>
                     ))}
@@ -1550,14 +1028,7 @@ export function AdminView({
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "10px",
-                  marginTop: "10px",
-                }}
-              >
+              <div className="flex justify-end [gap:10px] [margin-top:10px]">
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1565,7 +1036,11 @@ export function AdminView({
                 >
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary btn-sm">
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={academicSaving}
+                >
                   Crear Programa
                 </button>
               </div>
@@ -1581,41 +1056,28 @@ export function AdminView({
           onClick={() => setShowScheduleLiveModal(false)}
         >
           <div
-            className="modal-dialog"
+            className="modal-dialog [max-width:600px]"
             onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "600px" }}
           >
-            <div
-              style={{
-                padding: "20px 24px",
-                borderBottom: "1px solid var(--border-subtle)",
-              }}
-            >
-              <h3 style={{ fontSize: "18px", fontWeight: 800 }}>
+            <div className="[padding:20px_24px] [border-bottom:1px_solid_var(--border-subtle)]">
+              <h3 className="text-[18px] font-extrabold">
                 Agendar Nueva Clase en Vivo
               </h3>
             </div>
 
             <form
+              aria-busy={academicSaving}
               onSubmit={handleScheduleLiveSubmit}
-              style={{
-                padding: "24px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-              }}
+              className="p-6 flex flex-col gap-4"
             >
+              {academicError && (
+                <p role="alert" className="text-danger">
+                  {academicError}
+                </p>
+              )}
+
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Curso
                 </label>
                 <select
@@ -1623,15 +1085,7 @@ export function AdminView({
                   onChange={(e) =>
                     setLiveForm({ ...liveForm, courseId: e.target.value })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   required
                 >
                   <option value="">Selecciona un curso</option>
@@ -1642,22 +1096,11 @@ export function AdminView({
                   ))}
                 </select>
                 {courses.length === 0 && (
-                  <div
-                    style={{
-                      marginTop: "10px",
-                      padding: "12px 14px",
-                      borderRadius: "10px",
-                      background: "#FFF7ED",
-                      border: "1px solid #FED7AA",
-                      color: "#9A3412",
-                      fontSize: "12px",
-                      lineHeight: 1.5,
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, marginBottom: "8px" }}>
+                  <div className="[margin-top:10px] [padding:12px_14px] rounded-2xl bg-warning-soft border border-warning-line text-warning text-[12px] [line-height:1.5]">
+                    <div className="font-bold mb-2">
                       Primero necesitas crear un curso.
                     </div>
-                    <div style={{ marginBottom: "10px" }}>
+                    <div className="[margin-bottom:10px]">
                       Cada clase en vivo debe estar vinculada a un curso para
                       poder asignarla a estudiantes y mentores.
                     </div>
@@ -1675,16 +1118,7 @@ export function AdminView({
                 )}
               </div>
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Tema de la Sesión
                 </label>
                 <input
@@ -1694,37 +1128,14 @@ export function AdminView({
                   onChange={(e) =>
                     setLiveForm({ ...liveForm, title: e.target.value })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   required
                 />
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "14px",
-                }}
-              >
+              <div className="grid grid-cols-1 md:grid-cols-2 [gap:14px]">
                 <div>
-                  <label
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: "var(--text-dim)",
-                      textTransform: "uppercase",
-                      display: "block",
-                      marginBottom: "6px",
-                    }}
-                  >
+                  <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                     Fecha y Horario
                   </label>
                   <input
@@ -1733,66 +1144,21 @@ export function AdminView({
                     onChange={(e) =>
                       setLiveForm({ ...liveForm, scheduledAt: e.target.value })
                     }
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--bg-deep)",
-                      border: "1px solid var(--border-medium)",
-                      color: "var(--text-main)",
-                      fontSize: "13px",
-                    }}
+                    className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                     required
                   />
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontSize: "12px",
-                      fontWeight: 700,
-                      color: "var(--text-dim)",
-                      textTransform: "uppercase",
-                      display: "block",
-                      marginBottom: "6px",
-                    }}
-                  >
-                    Mentor
-                  </label>
-                  <select
-                    value={liveForm.mentorName}
-                    onChange={(e) =>
-                      setLiveForm({ ...liveForm, mentorName: e.target.value })
-                    }
-                    style={{
-                      width: "100%",
-                      padding: "10px 12px",
-                      borderRadius: "var(--radius-sm)",
-                      background: "var(--bg-deep)",
-                      border: "1px solid var(--border-medium)",
-                      color: "var(--text-main)",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {mentors.map((m) => (
-                      <option key={m.id} value={m.name}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
+                  <p>Profesor del curso</p>
+                  <p>
+                    {courses.find((course) => course.id === liveForm.courseId)
+                      ?.mentorName || "Selecciona un curso con mentor asignado"}
+                  </p>
                 </div>
               </div>
 
               <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
+                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
                   Duración (minutos)
                 </label>
                 <input
@@ -1807,27 +1173,24 @@ export function AdminView({
                       durationMinutes: e.target.value,
                     })
                   }
-                  style={{
-                    width: "100%",
-                    padding: "10px 12px",
-                    borderRadius: "var(--radius-sm)",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                  }}
+                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                   required
                 />
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  gap: "10px",
-                  marginTop: "10px",
-                }}
-              >
+              <label>
+                Enlace de Zoom (opcional)
+                <input
+                  type="url"
+                  placeholder="https://zoom.us/j/..."
+                  value={liveForm.joinUrl || ""}
+                  onChange={(e) =>
+                    setLiveForm({ ...liveForm, joinUrl: e.target.value })
+                  }
+                  className="w-full p-3"
+                />
+              </label>
+              <div className="flex justify-end [gap:10px] [margin-top:10px]">
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -1838,7 +1201,7 @@ export function AdminView({
                 <button
                   type="submit"
                   className="btn btn-primary btn-sm"
-                  disabled={courses.length === 0}
+                  disabled={academicSaving || courses.length === 0}
                 >
                   Agendar Sesión
                 </button>

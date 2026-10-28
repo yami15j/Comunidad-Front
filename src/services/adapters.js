@@ -49,42 +49,53 @@ export function adaptUser(user) {
     name: user.fullName || user.email,
     title:
       user.title ||
-      (role === "soporte" ? "Equipo de soporte" : role === "admin"
-        ? "Administrador del Sistema"
-        : role === "mentor"
-          ? "Mentor"
-          : "Miembro de la Comunidad"),
+      (role === "soporte"
+        ? "Equipo de soporte"
+        : role === "admin"
+          ? "Administrador del Sistema"
+          : role === "mentor"
+            ? "Mentor"
+            : "Miembro de la Comunidad"),
     avatar: user.avatarUrl || avatar,
     plan:
-      role === "soporte" ? "Soporte" : role === "admin"
-        ? "Administrador"
-        : role === "mentor"
-          ? "Mentor Oficial"
-          : "Miembro activo",
+      role === "soporte"
+        ? "Soporte"
+        : role === "admin"
+          ? "Administrador"
+          : role === "mentor"
+            ? "Mentor Oficial"
+            : "Miembro activo",
     planTier: role,
     stats:
-      role === "soporte" ? {} : role === "admin"
-        ? { totalStudents: 0, mrr: "—", totalCourses: 0, activeLiveSessions: 0 }
-        : role === "mentor"
+      role === "soporte"
+        ? {}
+        : role === "admin"
           ? {
-              assignedCourses: 0,
-              upcomingLiveClasses: 0,
-              activeStudents: 0,
-              averageRating: "—",
-              questionsPending: 0,
+              totalStudents: 0,
+              mrr: "—",
+              totalCourses: 0,
+              activeLiveSessions: 0,
             }
-          : {
-              enrolledCourses: 0,
-              coursesInProgress: 0,
-              completedCourses: 0,
-              completedLessons: 0,
-              totalLessons: 0,
-              totalHoursWatched: 0,
-              averageProgress: 0,
-              upcomingClasses: 0,
-              certificationsEarned: 0,
-              attendanceRate: "—",
-            },
+          : role === "mentor"
+            ? {
+                assignedCourses: 0,
+                upcomingLiveClasses: 0,
+                activeStudents: 0,
+                averageRating: "—",
+                questionsPending: 0,
+              }
+            : {
+                enrolledCourses: 0,
+                coursesInProgress: 0,
+                completedCourses: 0,
+                completedLessons: 0,
+                totalLessons: 0,
+                totalHoursWatched: 0,
+                averageProgress: 0,
+                upcomingClasses: 0,
+                certificationsEarned: 0,
+                attendanceRate: "—",
+              },
   };
 }
 
@@ -184,13 +195,15 @@ export function adaptLiveSession(session, courses = []) {
   };
 }
 
-export function adaptVideo(video) {
+export function adaptVideo(video, courses = []) {
+  const course = courses.find((item) => item.id === video.courseId);
   const created = new Date(video.createdAt);
   return {
     ...video,
-    thumbnail: courseImages[0],
-    category: video.status === "ready" ? "Disponible" : "Procesando",
-    mentor: "Comunidad del Intercambio",
+    thumbnail: course?.thumbnail || courseImages[0],
+    courseTitle: course?.title || "",
+    category: course?.category || "Grabaciones",
+    mentor: course?.mentorName || "Comunidad del Intercambio",
     date: Number.isNaN(created.getTime())
       ? "—"
       : created.toLocaleDateString("es-EC"),
@@ -209,6 +222,8 @@ export function adaptMentor(profile) {
     company: profile.company || "",
     avatar: profile.avatarUrl || profile.avatar || "",
     bio: profile.bio || "",
+    linkedin: profile.linkedin || "",
+    website: profile.website || "",
     specialties: profile.specialties || [],
     rating: profile.rating ?? null,
     studentsCount: profile.studentsCount ?? 0,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   CheckCircle2,
   ChevronLeft,
@@ -44,6 +44,7 @@ function ResourceIcon({ type }) {
 export function CoursePlayerView({
   course,
   initialLessonId,
+  onSaveResume,
   onBack,
   onToggleLessonCompletion,
   onLoadLessonVideo,
@@ -51,6 +52,59 @@ export function CoursePlayerView({
   onSaveLessonNote,
   onCreateLessonQuestion,
 }) {
+  const videoRef = useRef(null);
+  const celebrationTimer = useRef(null);
+  const saveQueue = useRef(Promise.resolve());
+  const savedAt = useRef(0);
+  const positions = useRef(
+    new Map(
+      course.resume
+        ? [[course.resume.lessonId, course.resume.positionSeconds]]
+        : [],
+    ),
+  );
+  const sessionToken = useRef(localStorage.getItem("traction_access_token"));
+  const mounted = useRef(true);
+  const [resumeError, setResumeError] = useState("");
+  const [completionBusy, setCompletionBusy] = useState(false);
+  const savePosition = useCallback(
+    (lessonId, position) => {
+      if (
+        !onSaveResume ||
+        !lessonId ||
+        sessionToken.current !== localStorage.getItem("traction_access_token")
+      )
+        return;
+      saveQueue.current = saveQueue.current
+        .catch(() => {})
+        .then(() =>
+          sessionToken.current === localStorage.getItem("traction_access_token")
+            ? onSaveResume(
+                course.id,
+                lessonId,
+                Math.max(0, Math.min(604800, Number(position) || 0)),
+              )
+            : undefined,
+        )
+        .then(() => {
+          if (mounted.current) setResumeError("");
+        })
+        .catch((error) => {
+          if (mounted.current)
+            setResumeError(
+              "No se pudo guardar el punto de avance: " + error.message,
+            );
+        });
+    },
+    [course.id, onSaveResume],
+  );
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      clearTimeout(celebrationTimer.current);
+    };
+  }, []);
   // Find initial lesson or default to first
   const allLessons = course.modules.flatMap((m) => m.lessons);
   const initialLesson =
@@ -144,6 +198,29 @@ export function CoursePlayerView({
     };
   }, [currentLessonKey, currentVideoId, currentVideoUrl, onLoadLessonVideo]);
 
+  useEffect(() => {
+    savePosition(
+      currentLessonKey,
+      positions.current.get(currentLessonKey) || 0,
+    );
+    const flush = () =>
+      savePosition(
+        currentLessonKey,
+        positions.current.get(currentLessonKey) || 0,
+      );
+    document.addEventListener("visibilitychange", flush);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", flush);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [currentLessonKey, savePosition]);
+
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = playbackSpeed;
+  }, [playbackSpeed, videoSource]);
+
   const handleSelectLesson = (lessonId) => {
     setCurrentLessonId(lessonId);
     const lesson = allLessons.find((item) => item.id === lessonId);
@@ -227,81 +304,77 @@ export function CoursePlayerView({
   const nextLesson =
     currentIndex < allLessons.length - 1 ? allLessons[currentIndex + 1] : null;
 
-  const handleMarkCompletedAndNext = () => {
-    if (!currentLesson.completed) {
-      onToggleLessonCompletion(course.id, currentLesson.id);
-      setShowCelebration(true);
-      setTimeout(() => setShowCelebration(false), 3000);
-    }
-    if (nextLesson) {
-      handleSelectLesson(nextLesson.id);
+  const handleMarkCompletedAndNext = async () => {
+    if (completionBusy) return;
+    setCompletionBusy(true);
+    try {
+      if (!currentLesson.completed) {
+        if (
+          (await onToggleLessonCompletion(course.id, currentLesson.id)) ===
+          false
+        )
+          return;
+        setShowCelebration(true);
+        clearTimeout(celebrationTimer.current);
+        celebrationTimer.current = setTimeout(
+          () => setShowCelebration(false),
+          3000,
+        );
+      }
+      if (nextLesson) {
+        handleSelectLesson(nextLesson.id);
+      }
+    } catch (error) {
+      setResumeError(error.message || "No se pudo guardar el progreso");
+    } finally {
+      setCompletionBusy(false);
     }
   };
 
+  if (!currentLesson)
+    return (
+      <section className="card">
+        <h2>Contenido por publicar</h2>
+        <p>Este curso todavia no tiene lecciones publicadas.</p>
+        <button className="btn btn-secondary" onClick={onBack}>
+          Volver a mis cursos
+        </button>
+      </section>
+    );
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+    <div className="flex flex-col gap-5">
+      {resumeError && <p role="alert">{resumeError}</p>}
       {/* Top Breadcrumb & Navigation */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          paddingBottom: "16px",
-          borderBottom: "1px solid var(--border-subtle)",
-          flexWrap: "wrap",
-          gap: "12px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      <div className="flex items-center justify-between pb-4 [border-bottom:1px_solid_var(--border-subtle)] flex-wrap gap-3">
+        <div className="flex items-center gap-3">
           <button
-            className="btn btn-secondary btn-sm"
+            className="btn btn-secondary btn-sm [padding:8px_12px]"
             onClick={onBack}
-            style={{ padding: "8px 12px" }}
           >
             <ArrowLeft size={16} />
             <span>Volver a Cursos</span>
           </button>
           <div>
-            <div
-              style={{
-                fontSize: "11px",
-                color: "var(--emerald-400)",
-                fontWeight: 700,
-                textTransform: "uppercase",
-              }}
-            >
+            <div className="text-[11px] [color:var(--emerald-400)] font-bold uppercase">
               {course.category} • {currentModule?.title.split(":")[0]}
             </div>
-            <h1
-              style={{
-                fontSize: "18px",
-                fontWeight: 800,
-                color: "var(--text-main)",
-              }}
-            >
+            <h1 className="text-[18px] font-extrabold text-ink">
               {course.title}
             </h1>
           </div>
         </div>
 
         {/* Course Global Progress Pill */}
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-              Progreso del Programa
-            </div>
-            <div
-              style={{
-                fontSize: "14px",
-                fontWeight: 800,
-                color: "var(--emerald-400)",
-              }}
-            >
+        <div className="flex items-center [gap:14px]">
+          <div className="text-right">
+            <div className="text-[12px] text-muted">Progreso del Programa</div>
+            <div className="text-[14px] font-extrabold [color:var(--emerald-400)]">
               {course.progressPercent}% Completado
             </div>
           </div>
-          <div style={{ width: "100px" }}>
-            <div className="progress-bar-container" style={{ height: "6px" }}>
+          <div className="[width:100px]">
+            <div className="progress-bar-container [height:6px]">
               <div
                 className="progress-bar-fill"
                 style={{ width: `${course.progressPercent}%` }}
@@ -314,72 +387,67 @@ export function CoursePlayerView({
       {/* Main Grid: Cinema Player + Modular Course Sidebar */}
       <div className="player-container">
         {/* Lado Izquierdo: Reproductor de Video y Contenido de la Lección */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "24px",
-            minWidth: 0,
-          }}
-        >
+        <div className="flex flex-col gap-6 [min-width:0px]">
           {/* Pantalla de Video */}
           <div className="video-screen-wrapper">
             {isVideoLoading ? (
-              <div
-                style={{
-                  minHeight: "360px",
-                  display: "grid",
-                  placeItems: "center",
-                  color: "var(--text-muted)",
-                }}
-              >
+              <div className="[min-height:360px] grid [place-items:center] text-muted">
                 Preparando video seguro…
               </div>
             ) : videoSource ? (
               <video
+                ref={videoRef}
+                onLoadedMetadata={(e) => {
+                  const position = positions.current.get(currentLessonKey) || 0;
+                  if (position > 0 && position < e.currentTarget.duration)
+                    e.currentTarget.currentTime = position;
+                  e.currentTarget.playbackRate = playbackSpeed;
+                }}
+                onTimeUpdate={(e) => {
+                  positions.current.set(
+                    currentLessonKey,
+                    e.currentTarget.currentTime,
+                  );
+                  if (Date.now() - savedAt.current > 15000) {
+                    savedAt.current = Date.now();
+                    savePosition(currentLessonKey, e.currentTarget.currentTime);
+                  }
+                }}
+                onPause={(e) => {
+                  positions.current.set(
+                    currentLessonKey,
+                    e.currentTarget.currentTime,
+                  );
+                  savePosition(currentLessonKey, e.currentTarget.currentTime);
+                }}
+                onEnded={(e) => {
+                  positions.current.set(
+                    currentLessonKey,
+                    e.currentTarget.currentTime,
+                  );
+                  savePosition(currentLessonKey, e.currentTarget.currentTime);
+                }}
                 key={videoSource}
                 src={videoSource}
                 controls
                 autoPlay
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                playbackRate={playbackSpeed}
+                className="w-full h-full object-contain"
               />
             ) : (
               <div
-                style={{
-                  minHeight: "360px",
-                  display: "grid",
-                  placeItems: "center",
-                  padding: "32px",
-                  textAlign: "center",
-                  color: videoError ? "#B91C1C" : "var(--text-muted)",
-                }}
+                style={{ color: videoError ? "var(--danger-text)" : "var(--text-muted)" }}
+                className="[min-height:360px] grid [place-items:center] p-8 text-center"
               >
                 {videoError ||
-                  "Esta lección todavía no tiene un video publicado."}
+                  (currentLesson.content
+                    ? "Leccion de lectura. Encuentra el texto y los materiales debajo."
+                    : "Esta leccion todavia no tiene un video publicado.")}
               </div>
             )}
 
             {/* Banner de Celebración si se marca completada */}
             {showCelebration && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "20px",
-                  right: "20px",
-                  background: "var(--brand-celeste)",
-                  color: "#000000",
-                  padding: "10px 18px",
-                  borderRadius: "var(--radius-full)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  fontWeight: 800,
-                  fontSize: "13px",
-                  boxShadow: "var(--shadow-lg)",
-                  animation: "fadeIn 0.3s ease-out",
-                }}
-              >
+              <div className="absolute [top:20px] [right:20px] [background:var(--brand-celeste)] text-black [padding:10px_18px] [border-radius:var(--radius-full)] flex items-center gap-2 font-extrabold text-[13px] shadow-panel [animation:fadeIn_0.3s_ease-out]">
                 <Sparkles size={16} />
                 <span>¡Lección completada! Progreso actualizado</span>
               </div>
@@ -387,24 +455,15 @@ export function CoursePlayerView({
           </div>
 
           {/* Barra de Controles y Avance de la Lección */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "16px 20px",
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-subtle)",
-              borderRadius: "var(--radius-md)",
-              flexWrap: "wrap",
-              gap: "14px",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div className="flex items-center justify-between [padding:16px_20px] [background:var(--bg-surface)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)] flex-wrap [gap:14px]">
+            <div className="flex items-center gap-3">
               <button
-                className={`btn btn-sm ${currentLesson?.completed ? "btn-secondary" : "btn-primary"}`}
+                className={
+                  `btn btn-sm ${currentLesson?.completed ? "btn-secondary" : "btn-primary"}` +
+                  " [padding:8px_16px]"
+                }
+                disabled={completionBusy}
                 onClick={handleMarkCompletedAndNext}
-                style={{ padding: "8px 16px" }}
               >
                 <CheckCircle2 size={16} />
                 <span>
@@ -415,24 +474,8 @@ export function CoursePlayerView({
               </button>
 
               {/* Selector de Velocidad */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  background: "var(--bg-deep)",
-                  padding: "4px 8px",
-                  borderRadius: "var(--radius-sm)",
-                  border: "1px solid var(--border-subtle)",
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 600,
-                  }}
-                >
+              <div className="flex items-center gap-1 [background:var(--bg-deep)] [padding:4px_8px] [border-radius:var(--radius-sm)] [border:1px_solid_var(--border-subtle)]">
+                <span className="text-[11px] text-subtle font-semibold">
                   Velocidad:
                 </span>
                 {[1, 1.25, 1.5, 2].map((spd) => (
@@ -446,13 +489,8 @@ export function CoursePlayerView({
                           : "transparent",
                       color:
                         playbackSpeed === spd ? "#000000" : "var(--text-muted)",
-                      border: "none",
-                      padding: "2px 6px",
-                      borderRadius: "4px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                      cursor: "pointer",
                     }}
+                    className="[border:none] [padding:2px_6px] rounded-xl text-[11px] font-bold cursor-pointer"
                   >
                     {spd}x
                   </button>
@@ -461,7 +499,7 @@ export function CoursePlayerView({
             </div>
 
             {/* Botones de Navegación Anterior / Siguiente */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div className="flex items-center gap-2">
               <button
                 className="btn btn-secondary btn-sm"
                 disabled={!prevLesson}
@@ -491,43 +529,18 @@ export function CoursePlayerView({
 
           {/* Información y Pestañas de la Lección */}
           <div className="card">
-            <h2
-              style={{
-                fontSize: "20px",
-                fontWeight: 800,
-                color: "var(--text-main)",
-                marginBottom: "6px",
-              }}
-            >
+            <h2 className="text-[20px] font-extrabold text-ink [margin-bottom:6px]">
               {currentLesson?.title}
             </h2>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "16px",
-                fontSize: "13px",
-                color: "var(--text-muted)",
-                marginBottom: "20px",
-              }}
-            >
+            <div className="flex items-center gap-4 text-[13px] text-muted mb-5">
               <span>
-                <Clock
-                  size={14}
-                  style={{
-                    display: "inline",
-                    verticalAlign: "middle",
-                    marginRight: "4px",
-                  }}
-                />{" "}
+                <Clock size={14} className="inline align-middle mr-1" />{" "}
                 {currentLesson?.duration}
               </span>
               <span>•</span>
               <span>
                 Instructor:{" "}
-                <strong style={{ color: "var(--text-main)" }}>
-                  {course.mentorName}
-                </strong>
+                <strong className="text-ink">{course.mentorName}</strong>
               </span>
             </div>
 
@@ -561,61 +574,22 @@ export function CoursePlayerView({
 
             {/* Contenido de texto de la lección */}
             {activeTab === "content" && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "20px",
-                }}
-              >
+              <div className="flex flex-col gap-5">
                 <div>
-                  <h4
-                    style={{
-                      fontSize: "14px",
-                      fontWeight: 700,
-                      color: "var(--text-main)",
-                      marginBottom: "6px",
-                    }}
-                  >
+                  <h4 className="text-[14px] font-bold text-ink [margin-bottom:6px]">
                     Objetivo de la lección
                   </h4>
-                  <p
-                    style={{
-                      color: "var(--text-muted)",
-                      fontSize: "14px",
-                      lineHeight: "1.6",
-                    }}
-                  >
+                  <p className="text-muted text-[14px] [line-height:1.6]">
                     {currentLesson?.summary}
                   </p>
                 </div>
 
                 {currentLesson?.content ? (
-                  <div
-                    style={{
-                      padding: "20px",
-                      borderRadius: "var(--radius-md)",
-                      background: "var(--bg-surface-elevated)",
-                      border: "1px solid var(--border-subtle)",
-                      color: "var(--text-main)",
-                      fontSize: "14px",
-                      lineHeight: 1.8,
-                      whiteSpace: "pre-wrap",
-                    }}
-                  >
+                  <div className="p-5 [border-radius:var(--radius-md)] [background:var(--bg-surface-elevated)] [border:1px_solid_var(--border-subtle)] text-ink text-[14px] [line-height:1.8] whitespace-pre-wrap">
                     {currentLesson.content}
                   </div>
                 ) : (
-                  <div
-                    style={{
-                      padding: "24px",
-                      textAlign: "center",
-                      color: "var(--text-dim)",
-                      fontSize: "13px",
-                      border: "1px dashed var(--border-medium)",
-                      borderRadius: "var(--radius-md)",
-                    }}
-                  >
+                  <div className="p-6 text-center text-subtle text-[13px] [border:1px_dashed_var(--border-medium)] [border-radius:var(--radius-md)]">
                     Esta lección todavía no tiene contenido de lectura
                     publicado.
                   </div>
@@ -625,24 +599,11 @@ export function CoursePlayerView({
 
             {/* Contenido de Pestaña: Recursos */}
             {activeTab === "resources" && (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                }}
-              >
+              <div className="flex flex-col gap-3">
                 {resourceError && (
                   <div
                     role="alert"
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: "var(--radius-sm)",
-                      background: "#FEF2F2",
-                      border: "1px solid #FECACA",
-                      color: "#B91C1C",
-                      fontSize: "12px",
-                    }}
+                    className="[padding:10px_12px] [border-radius:var(--radius-sm)] bg-danger-soft border border-danger-line text-danger text-[12px]"
                   >
                     {resourceError}
                   </div>
@@ -652,84 +613,29 @@ export function CoursePlayerView({
                   currentLesson.resources.map((resource) => (
                     <div
                       key={resource.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        padding: "14px 18px",
-                        background: "var(--bg-deep)",
-                        border: "1px solid var(--border-subtle)",
-                        borderRadius: "var(--radius-md)",
-                      }}
+                      className="flex items-center justify-between [padding:14px_18px] [background:var(--bg-deep)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)]"
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                          minWidth: 0,
-                        }}
-                      >
-                        <div
-                          style={{
-                            width: "38px",
-                            height: "38px",
-                            borderRadius: "var(--radius-sm)",
-                            background: "rgba(6, 171, 235, 0.12)",
-                            color: "var(--brand-celeste)",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                        >
+                      <div className="flex items-center gap-3 [min-width:0px]">
+                        <div className="[width:38px] [height:38px] [border-radius:var(--radius-sm)] [background:rgba(6,_171,_235,_0.12)] text-brand flex items-center justify-center">
                           <ResourceIcon type={resource.resourceType} />
                         </div>
-                        <div style={{ minWidth: 0 }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: "7px",
-                              flexWrap: "wrap",
-                            }}
-                          >
-                            <span
-                              style={{
-                                fontSize: "14px",
-                                fontWeight: 600,
-                                color: "var(--text-main)",
-                              }}
-                            >
+                        <div className="[min-width:0px]">
+                          <div className="flex items-center [gap:7px] flex-wrap">
+                            <span className="text-[14px] font-semibold text-ink">
                               {resource.title}
                             </span>
-                            <span
-                              className="badge badge-emerald"
-                              style={{ fontSize: "9px", padding: "2px 6px" }}
-                            >
+                            <span className="badge badge-emerald text-[11px] [padding:2px_6px]">
                               {resource.kind === "complementary"
                                 ? "Complementario"
                                 : "Descargable"}
                             </span>
                           </div>
                           {resource.description && (
-                            <div
-                              style={{
-                                fontSize: "12px",
-                                color: "var(--text-muted)",
-                                marginTop: "3px",
-                                lineHeight: 1.4,
-                              }}
-                            >
+                            <div className="text-[12px] text-muted [margin-top:3px] [line-height:1.4]">
                               {resource.description}
                             </div>
                           )}
-                          <div
-                            style={{
-                              fontSize: "11px",
-                              color: "var(--text-dim)",
-                              marginTop: "3px",
-                            }}
-                          >
+                          <div className="text-[11px] text-subtle [margin-top:3px]">
                             {resource.sourceType === "external"
                               ? "Enlace externo"
                               : formatFileSize(resource.sizeBytes) ||
@@ -738,10 +644,9 @@ export function CoursePlayerView({
                         </div>
                       </div>
                       <button
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-primary btn-sm [flex-shrink:0]"
                         disabled={openingResourceId === resource.id}
                         onClick={() => handleOpenResource(resource)}
-                        style={{ flexShrink: 0 }}
                       >
                         {openingResourceId === resource.id ? (
                           <LoaderCircle size={14} className="spin" />
@@ -759,14 +664,7 @@ export function CoursePlayerView({
                     </div>
                   ))
                 ) : (
-                  <div
-                    style={{
-                      padding: "24px",
-                      textAlign: "center",
-                      color: "var(--text-dim)",
-                      fontSize: "13px",
-                    }}
-                  >
+                  <div className="p-6 text-center text-subtle text-[13px]">
                     Esta lección no tiene recursos o materiales complementarios
                     publicados.
                   </div>
@@ -777,34 +675,16 @@ export function CoursePlayerView({
             {/* Contenido de Pestaña: Notas privadas persistidas */}
             {activeTab === "notes" && (
               <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <span
-                    style={{ fontSize: "12px", color: "var(--text-muted)" }}
-                  >
+                <div className="flex justify-between items-center [margin-bottom:10px]">
+                  <span className="text-[12px] text-muted">
                     Tus notas se guardan de forma privada en tu cuenta para esta
                     lección.
                   </span>
-                  <span
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--emerald-400)",
-                      fontWeight: 600,
-                    }}
-                  >
+                  <span className="text-[11px] [color:var(--emerald-400)] font-semibold">
                     {noteState.saved ? (
                       <>
-                        <Check
-                          size={12}
-                          style={{ display: "inline", marginRight: "4px" }}
-                        />{" "}
-                        Guardado en Supabase
+                        <Check size={12} className="inline mr-1" /> Guardado en
+                        Supabase
                       </>
                     ) : (
                       "Guardado manual"
@@ -814,7 +694,7 @@ export function CoursePlayerView({
                 {noteState.error && (
                   <div
                     role="alert"
-                    style={{ marginBottom: 10, color: "#B91C1C", fontSize: 12 }}
+                    className="[margin-bottom:10px] text-danger text-[12px]"
                   >
                     {noteState.error}
                   </div>
@@ -827,25 +707,12 @@ export function CoursePlayerView({
                   }}
                   placeholder="Escribe tus notas ejecutivas, aprendizajes clave y aplicaciones directas para tu empresa..."
                   rows={6}
-                  style={{
-                    width: "100%",
-                    background: "var(--bg-deep)",
-                    border: "1px solid var(--border-medium)",
-                    borderRadius: "var(--radius-md)",
-                    padding: "14px",
-                    color: "var(--text-main)",
-                    fontFamily: "inherit",
-                    fontSize: "14px",
-                    lineHeight: "1.6",
-                    outline: "none",
-                    resize: "vertical",
-                  }}
+                  className="w-full [background:var(--bg-deep)] [border:1px_solid_var(--border-medium)] [border-radius:var(--radius-md)] [padding:14px] text-ink [font-family:inherit] text-[14px] [line-height:1.6] outline-none [resize:vertical]"
                 />
                 <button
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-primary btn-sm [margin-top:10px]"
                   disabled={noteState.saving}
                   onClick={handleSaveNote}
-                  style={{ marginTop: 10 }}
                 >
                   <Save size={14} />
                   <span>
@@ -856,31 +723,14 @@ export function CoursePlayerView({
             )}
 
             {activeTab === "questions" && (
-              <div
-                style={{ display: "flex", flexDirection: "column", gap: 14 }}
-              >
+              <div className="flex flex-col [gap:14px]">
                 <form
                   onSubmit={handleCreateQuestion}
-                  style={{
-                    padding: 16,
-                    border: "1px solid var(--border-subtle)",
-                    borderRadius: "var(--radius-md)",
-                    background: "var(--bg-deep)",
-                  }}
+                  className="p-4 [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)] [background:var(--bg-deep)]"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <MessageSquare
-                      size={16}
-                      style={{ color: "var(--brand-celeste)" }}
-                    />
-                    <strong style={{ fontSize: 14, color: "var(--text-main)" }}>
+                  <div className="flex items-center gap-2 [margin-bottom:10px]">
+                    <MessageSquare size={16} className="text-brand" />
+                    <strong className="text-[14px] text-ink">
                       Consultar al mentor
                     </strong>
                   </div>
@@ -890,21 +740,12 @@ export function CoursePlayerView({
                     rows={3}
                     maxLength={2000}
                     placeholder="Escribe una pregunta relacionada con esta lección..."
-                    style={{
-                      width: "100%",
-                      background: "var(--bg-surface)",
-                      border: "1px solid var(--border-medium)",
-                      borderRadius: "var(--radius-sm)",
-                      padding: 12,
-                      color: "var(--text-main)",
-                      fontFamily: "inherit",
-                      resize: "vertical",
-                    }}
+                    className="w-full [background:var(--bg-surface)] [border:1px_solid_var(--border-medium)] [border-radius:var(--radius-sm)] p-3 text-ink [font-family:inherit] [resize:vertical]"
                   />
                   {questionState.error && (
                     <div
                       role="alert"
-                      style={{ marginTop: 8, color: "#B91C1C", fontSize: 12 }}
+                      className="mt-2 text-danger text-[12px]"
                     >
                       {questionState.error}
                     </div>
@@ -912,22 +753,17 @@ export function CoursePlayerView({
                   {questionState.success && (
                     <div
                       role="status"
-                      style={{
-                        marginTop: 8,
-                        color: "var(--emerald-400)",
-                        fontSize: 12,
-                      }}
+                      className="mt-2 [color:var(--emerald-400)] text-[12px]"
                     >
                       {questionState.success}
                     </div>
                   )}
                   <button
                     type="submit"
-                    className="btn btn-primary btn-sm"
+                    className="btn btn-primary btn-sm [margin-top:10px]"
                     disabled={
                       questionState.saving || questionText.trim().length < 3
                     }
-                    style={{ marginTop: 10 }}
                   >
                     <Send size={14} />
                     <span>
@@ -940,36 +776,19 @@ export function CoursePlayerView({
                   currentLesson.questions.map((question) => (
                     <article
                       key={question.id}
-                      style={{
-                        padding: 14,
-                        border: "1px solid var(--border-subtle)",
-                        borderRadius: "var(--radius-md)",
-                        background: "var(--bg-surface-elevated)",
-                      }}
+                      className="[padding:14px] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)] [background:var(--bg-surface-elevated)]"
                     >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: 10,
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: 13,
-                            color: "var(--text-main)",
-                            lineHeight: 1.5,
-                          }}
-                        >
+                      <div className="flex justify-between [gap:10px]">
+                        <div className="text-[13px] text-ink [line-height:1.5]">
                           {question.question}
                         </div>
                         <span
                           className={
-                            question.status === "answered"
+                            (question.status === "answered"
                               ? "badge badge-emerald"
-                              : "badge badge-amber"
+                              : "badge badge-amber") +
+                            " text-[11px] whitespace-nowrap"
                           }
-                          style={{ fontSize: 10, whiteSpace: "nowrap" }}
                         >
                           {question.status === "answered"
                             ? "Respondida"
@@ -977,18 +796,8 @@ export function CoursePlayerView({
                         </span>
                       </div>
                       {question.mentorReply && (
-                        <div
-                          style={{
-                            marginTop: 10,
-                            padding: 12,
-                            borderRadius: "var(--radius-sm)",
-                            background: "var(--brand-celeste-subtle)",
-                            color: "var(--text-main)",
-                            fontSize: 12,
-                            lineHeight: 1.5,
-                          }}
-                        >
-                          <strong style={{ color: "var(--brand-celeste)" }}>
+                        <div className="[margin-top:10px] p-3 [border-radius:var(--radius-sm)] [background:var(--brand-celeste-subtle)] text-ink text-[12px] [line-height:1.5]">
+                          <strong className="text-brand">
                             Respuesta del mentor:{" "}
                           </strong>
                           {question.mentorReply}
@@ -997,16 +806,7 @@ export function CoursePlayerView({
                     </article>
                   ))
                 ) : (
-                  <div
-                    style={{
-                      padding: 20,
-                      textAlign: "center",
-                      color: "var(--text-muted)",
-                      border: "1px dashed var(--border-medium)",
-                      borderRadius: "var(--radius-md)",
-                      fontSize: 13,
-                    }}
-                  >
+                  <div className="p-5 text-center text-muted [border:1px_dashed_var(--border-medium)] [border-radius:var(--radius-md)] text-[13px]">
                     Todavía no has enviado preguntas para esta lección.
                   </div>
                 )}
@@ -1018,24 +818,11 @@ export function CoursePlayerView({
         {/* Lado Derecho: Sidebar Modular de Cursos y Lecciones */}
         <div className="modules-sidebar">
           {/* Header del Sidebar Modular */}
-          <div
-            style={{
-              padding: "18px 20px",
-              borderBottom: "1px solid var(--border-subtle)",
-              background: "var(--bg-surface-elevated)",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "15px",
-                fontWeight: 700,
-                color: "var(--text-main)",
-                marginBottom: "4px",
-              }}
-            >
+          <div className="[padding:18px_20px] [border-bottom:1px_solid_var(--border-subtle)] [background:var(--bg-surface-elevated)]">
+            <h3 className="text-[15px] font-bold text-ink mb-1">
               Contenido del Programa
             </h3>
-            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+            <p className="text-[12px] text-muted">
               {allLessons.filter((l) => l.completed).length} de{" "}
               {allLessons.length} lecciones completadas
             </p>
@@ -1056,22 +843,10 @@ export function CoursePlayerView({
                     onClick={() => handleToggleModule(mod.id)}
                   >
                     <div>
-                      <div
-                        style={{
-                          fontSize: "13px",
-                          fontWeight: 700,
-                          color: "var(--text-main)",
-                        }}
-                      >
+                      <div className="text-[13px] font-bold text-ink">
                         {mod.title}
                       </div>
-                      <div
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-dim)",
-                          marginTop: "2px",
-                        }}
-                      >
+                      <div className="text-[11px] text-subtle [margin-top:2px]">
                         {moduleLessonsCompleted}/{mod.lessons.length}{" "}
                         completadas
                       </div>
@@ -1112,26 +887,18 @@ export function CoursePlayerView({
                               )}
                             </button>
 
-                            <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="[flex:1] [min-width:0px]">
                               <div
-                                className="lesson-title"
+                                className="lesson-title text-[12px] [line-height:1.4]"
                                 style={{
-                                  fontSize: "12px",
                                   color: isCurrent
                                     ? "var(--brand-celeste)"
                                     : "var(--text-muted)",
-                                  lineHeight: "1.4",
                                 }}
                               >
                                 {lesson.title}
                               </div>
-                              <div
-                                style={{
-                                  fontSize: "11px",
-                                  color: "var(--text-dim)",
-                                  marginTop: "2px",
-                                }}
-                              >
+                              <div className="text-[11px] text-subtle [margin-top:2px]">
                                 {lesson.duration}
                               </div>
                             </div>

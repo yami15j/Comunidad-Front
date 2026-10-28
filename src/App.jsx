@@ -1,10 +1,7 @@
+import { LoaderCircle } from "lucide-react";
+import { Brand } from "./components/ui";
 import React, { useState, useEffect, useRef } from "react";
-import {
-  libraryResources as initialResources,
-  notificationsList as initialNotifications,
-  membershipPlans,
-  communityThreads,
-} from "./data/mockData";
+import { communityThreads } from "./data/mockData";
 import { api, clearSession, hasSession, saveSession } from "./services/api";
 import {
   adaptCourse,
@@ -18,7 +15,6 @@ import {
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { NotificationsModal } from "./components/NotificationsModal";
-import { MembershipModal } from "./components/MembershipModal";
 import { LiveSessionModal } from "./components/LiveSessionModal";
 
 import { LoginView } from "./views/LoginView";
@@ -37,9 +33,22 @@ import { AdminView } from "./views/AdminView";
 import { ROLE_VIEWS, homeViewForRole } from "./services/access";
 import { authenticateWithResources } from "./services/asyncFlows";
 import { loadRoleResources } from "./services/applicationData";
+import { useNotifications } from "./hooks/useNotifications";
+import { useTheme } from "./hooks/useTheme";
+import { AdminCurriculumView } from "./views/AdminCurriculumView";
+import { AdminAccessView } from "./views/AdminAccessView";
+import { AnnouncementsView } from "./views/AnnouncementsView";
+import { MentorCoursesView } from "./views/MentorCoursesView";
+import { RecordingUpload } from "./components/RecordingUpload";
 import { TicketsView } from "./views/TicketsView";
 
 const VIEW_PATHS = {
+  "admin-curriculum": "/administrador/contenido",
+  "admin-access": "/administrador/accesos",
+  "admin-mentors": "/administrador/mentores",
+  "admin-notifications": "/administrador/avisos",
+  "mentor-courses": "/mentor/cursos",
+  "mentor-notifications": "/mentor/avisos",
   tickets: "/soporte",
   dashboard: "/panel",
   "mentor-dashboard": "/mentor",
@@ -120,11 +129,7 @@ function updateLessonDataInCourse(course, lessonId, updater) {
 }
 
 export function App() {
-  // Configuración de visualización: Modo Blanco Corporativo
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", "light");
-    localStorage.setItem("traction_theme", "light");
-  }, []);
+  const { theme, toggleTheme } = useTheme();
 
   const authGeneration = useRef(0);
   const resourceJob = useRef(null);
@@ -145,9 +150,12 @@ export function App() {
   const [liveClasses, setLiveClasses] = useState([]);
   const [users, setUsers] = useState([]);
   const [replays, setReplays] = useState([]);
-  const [resources] = useState(initialResources);
+
   const [mentors, setMentors] = useState([]);
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [adminCourseId, setAdminCourseId] = useState(
+    () => new URLSearchParams(window.location.search).get("curso") || "",
+  );
+
   const [announcements, setAnnouncements] = useState([]);
   const [adminDashboard, setAdminDashboard] = useState({
     stats: {},
@@ -168,18 +176,20 @@ export function App() {
     return homeViewForRole(savedRole);
   });
 
-  const currentView = ROLE_VIEWS[currentRole]?.includes(requestedCurrentView) ? requestedCurrentView : homeViewForRole(currentRole);
+  const currentView = ROLE_VIEWS[currentRole]?.includes(requestedCurrentView)
+    ? requestedCurrentView
+    : homeViewForRole(currentRole);
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
 
   // Modals State
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
   const [liveSessionModalData, setLiveSessionModalData] = useState(null);
 
   // Sidebar Open / Collapsed State ("guardar y abrir / desplazar")
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    if (!window.matchMedia("(min-width: 1024px)").matches) return false;
     const saved = localStorage.getItem("traction_sidebar_open");
     if (saved !== null) return saved === "true";
     return true;
@@ -198,6 +208,7 @@ export function App() {
 
   const applyAdminDashboardData = (dashboard) => {
     setAdminDashboard(dashboard || { stats: {}, recentActivity: [] });
+    if (dashboard?.courses) setCourses(dashboard.courses.map(adaptCourse));
     setMentors((dashboard?.mentors || []).map(adaptMentor));
     setUser((current) =>
       current?.role === "admin"
@@ -220,14 +231,19 @@ export function App() {
     }
   };
 
-  const loadApplicationData = async (profile, generation = authGeneration.current, options = {}) => {
+  const loadApplicationData = async (
+    profile,
+    generation = authGeneration.current,
+    options = {},
+  ) => {
     const payload = await loadRoleResources(profile.role, api, options);
     if (!payload) return adaptUser(profile);
     const isStudent =
       profile.role === "estudiante" || profile.role === "alumno";
     const isMentor = profile.role === "mentor" || profile.role === "docente";
     const isAdmin = profile.role === "admin";
-    const [coursePayload, sessionRows, videoRows, userRows, dashboard] = payload;
+    const [coursePayload, sessionRows, videoRows, userRows, dashboard] =
+      payload;
     const dashboardMentors = new Map(
       (dashboard?.mentors || []).map((mentor) => [String(mentor.id), mentor]),
     );
@@ -269,11 +285,12 @@ export function App() {
           ...(dashboard?.stats || {}),
         };
 
-    if (generation !== authGeneration.current || options.signal?.aborted) return adaptedUser;
+    if (generation !== authGeneration.current || options.signal?.aborted)
+      return adaptedUser;
     setUser(adaptedUser);
     setCourses(adaptedCourses);
     setLiveClasses(adaptedSessions);
-    setReplays(videoRows.map(adaptVideo));
+    setReplays(videoRows.map((video) => adaptVideo(video, adaptedCourses)));
     setUsers(userRows);
     setAnnouncements(dashboard?.announcements || []);
     setAdminDashboard(isAdmin ? dashboard : { stats: {}, recentActivity: [] });
@@ -306,7 +323,11 @@ export function App() {
           }),
         );
       }
-      setMentors([...mentorById.values()]);
+      setMentors(
+        dashboard.mentors?.length
+          ? dashboard.mentors.map(adaptMentor)
+          : [...mentorById.values()],
+      );
     } else {
       setMentors([]);
     }
@@ -320,7 +341,7 @@ export function App() {
     authenticateWithResources({
       authenticate: () => api.me(),
       isCurrent: () => active && generation === authGeneration.current,
-      onAuthenticated: profile => {
+      onAuthenticated: (profile) => {
         const account = adaptUser(profile);
         setUser(account);
         setCurrentRole(account.role);
@@ -329,14 +350,23 @@ export function App() {
         localStorage.setItem("traction_auth_role", account.role);
       },
       onSettled: () => setIsBootstrapping(false),
-      loadResources: (profile, options) => loadApplicationData(profile, generation, options),
-      onResourceError: error => setAppError(error.message),
-      onResourceJob: cancel => { resourceJob.current = cancel; },
-    }).catch(error => {
+      loadResources: (profile, options) =>
+        loadApplicationData(profile, generation, options),
+      onResourceError: (error) => setAppError(error.message),
+      onResourceJob: (cancel) => {
+        resourceJob.current = cancel;
+      },
+    }).catch((error) => {
       if (!active || generation !== authGeneration.current) return;
-      clearSession(); setIsAuthenticated(false); setUser(null); setAppError(error.message);
+      clearSession();
+      setIsAuthenticated(false);
+      setUser(null);
+      setAppError(error.message);
     });
-    return () => { active = false; resourceJob.current?.(); };
+    return () => {
+      active = false;
+      resourceJob.current?.();
+    };
   }, []);
 
   // Mantener la lista administrativa sincronizada con nuevos registros.
@@ -428,17 +458,34 @@ export function App() {
     const course = courses.find(
       (item) => String(item.id) === decodeURIComponent(match[1]),
     );
-    if (!course) return;
-    setSelectedCourse(course);
-    const lessons = course.modules?.flatMap((module) => module.lessons) || [];
-    setSelectedLessonId(
-      (current) =>
-        current ||
-        lessons.find((lesson) => !lesson.completed)?.id ||
-        lessons[0]?.id ||
-        null,
-    );
-  }, [courses]);
+    if (!course || selectedCourse?.id === course.id) return;
+    let active = true;
+    const generation = authGeneration.current;
+    const load = async () => {
+      let resume = null;
+      if (currentRole === "student") {
+        try {
+          resume = await api.dashboard.resume(course.id);
+        } catch (error) {
+          if (active)
+            setAppError("No se pudo recuperar tu avance: " + error.message);
+        }
+      }
+      if (!active || generation !== authGeneration.current) return;
+      const lessons = course.modules?.flatMap((module) => module.lessons) || [];
+      setSelectedLessonId(
+        lessons.find((lesson) => lesson.id === resume?.lessonId)?.id ||
+          lessons.find((lesson) => !lesson.completed)?.id ||
+          lessons[0]?.id ||
+          null,
+      );
+      setSelectedCourse({ ...course, resume });
+    };
+    load();
+    return () => {
+      active = false;
+    };
+  }, [courses, currentRole, selectedCourse?.id]);
 
   // Handle real API login
   const handleLogin = async ({ email, password }) => {
@@ -447,10 +494,13 @@ export function App() {
     await authenticateWithResources({
       authenticate: () => api.login(email, password),
       isCurrent: () => generation === authGeneration.current,
-      onAuthenticated: session => {
+      onAuthenticated: (session) => {
         saveSession(session);
         const account = adaptUser(session.user);
-        setAppError(""); setUser(account); setCurrentRole(account.role); setIsAuthenticated(true);
+        setAppError("");
+        setUser(account);
+        setCurrentRole(account.role);
+        setIsAuthenticated(true);
         localStorage.setItem("traction_authenticated", "true");
         localStorage.setItem("traction_auth_role", account.role);
         const homeView = homeViewForRole(account.role);
@@ -459,16 +509,15 @@ export function App() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       },
       onSettled: () => setIsBootstrapping(false),
-      loadResources: (session, options) => loadApplicationData(session.user, generation, options),
-      onResourceError: error => setAppError(error.message),
-      onResourceJob: cancel => { resourceJob.current = cancel; },
+      loadResources: (session, options) =>
+        loadApplicationData(session.user, generation, options),
+      onResourceError: (error) => setAppError(error.message),
+      onResourceJob: (cancel) => {
+        resourceJob.current = cancel;
+      },
     });
   };
 
-  const handleRegister = async ({ fullName, email, password }) => {
-    await api.register(fullName, email, password);
-    await handleLogin({ email, password });
-  };
 
   // Handle Logout
   const handleLogout = () => {
@@ -476,10 +525,13 @@ export function App() {
     ++authGeneration.current;
     clearSession();
     setIsBootstrapping(false);
-    setUsers([]); setReplays([]); setMentors([]);
-    setSelectedCourse(null); setSelectedLessonId(null);
+    setUsers([]);
+    setReplays([]);
+    setMentors([]);
+    setSelectedCourse(null);
+    setSelectedLessonId(null);
     setLiveSessionModalData(null);
-    setIsNotificationsOpen(false); setIsMembershipModalOpen(false);
+    setIsNotificationsOpen(false);
     setAppError("");
     setIsAuthenticated(false);
     setUser(null);
@@ -531,6 +583,7 @@ export function App() {
 
   // Handle Navigation
   const handleNavigate = (viewId) => {
+    if (window.innerWidth < 1024) setIsSidebarOpen(false);
     if (!ROLE_VIEWS[currentRole]?.includes(viewId)) return;
     setCurrentView(viewId);
     const nextPath = pathForView(viewId, selectedCourse?.id);
@@ -540,19 +593,45 @@ export function App() {
   };
 
   // Open Course in Player
-  const handleSelectCourse = (course) => {
+  const courseOpenGeneration = useRef(0);
+  const handleSelectCourse = async (course) => {
+    if (course.accessType === "live") {
+      handleNavigate("live");
+      return;
+    }
+    const requestId = ++courseOpenGeneration.current;
+    const generation = authGeneration.current;
     if (!course.modules?.length) {
       setAppError(
         "Este curso todavía no tiene módulos publicados en el backend.",
       );
       return;
     }
-    setSelectedCourse(course);
+    let resume = null;
+    if (currentRole === "student") {
+      try {
+        resume = await api.dashboard.resume(course.id);
+      } catch (error) {
+        setAppError(
+          "No se pudo recuperar el punto de avance: " + error.message,
+        );
+      }
+    }
+    if (
+      requestId !== courseOpenGeneration.current ||
+      generation !== authGeneration.current
+    )
+      return;
+    setSelectedCourse({ ...course, resume });
     // Select first lesson or first uncompleted
     const allLessons = course.modules.flatMap((m) => m.lessons);
     const firstUncompleted = allLessons.find((l) => !l.completed);
     setSelectedLessonId(
-      firstUncompleted ? firstUncompleted.id : allLessons[0]?.id || null,
+      allLessons.some((lesson) => lesson.id === resume?.lessonId)
+        ? resume.lessonId
+        : firstUncompleted
+          ? firstUncompleted.id
+          : allLessons[0]?.id || null,
     );
     setCurrentView("course-player");
     window.history.pushState({}, "", pathForView("course-player", course.id));
@@ -560,12 +639,19 @@ export function App() {
   };
 
   // Toggle Lesson Completion and Recalculate Course Progress Percentage
+  const pendingCompletions = useRef(new Set());
   const handleToggleLessonCompletion = async (courseId, lessonId) => {
+    if (pendingCompletions.current.has(lessonId)) return false;
+    pendingCompletions.current.add(lessonId);
+    const generation = authGeneration.current;
     const course = courses.find((item) => item.id === courseId);
     const lesson = course?.modules
       ?.flatMap((courseModule) => courseModule.lessons)
       .find((item) => item.id === lessonId);
-    if (!lesson) return;
+    if (!lesson) {
+      pendingCompletions.current.delete(lessonId);
+      return false;
+    }
 
     const nextCompleted = !lesson.completed;
     const applyCompletion = (completed) => {
@@ -593,16 +679,20 @@ export function App() {
       }));
     };
 
-    applyCompletion(nextCompleted);
     try {
       await api.dashboard.updateLessonProgress(lessonId, nextCompleted);
+      if (generation !== authGeneration.current) return false;
+      applyCompletion(nextCompleted);
       setAppError("");
     } catch (error) {
-      applyCompletion(!nextCompleted);
       setAppError(
         error.message || "No se pudo guardar el progreso de la lección.",
       );
+      return false;
+    } finally {
+      pendingCompletions.current.delete(lessonId);
     }
+    return true;
   };
 
   const handleSaveLessonNote = async (courseId, lessonId, content) => {
@@ -683,21 +773,70 @@ export function App() {
     return updated;
   };
 
-  // Membership tier change handler
-  const handleSelectTier = (tierId, tierName) => {
-    setUser((prev) => ({
-      ...prev,
-      plan: tierName,
-      planTier: tierId,
+  const {
+    notifications,
+    notificationError,
+    reloadNotifications,
+    markNotificationsRead,
+  } = useNotifications(user?.id, currentRole, isAuthenticated);
+
+  const refreshMentorDashboard = async () => {
+    const generation = authGeneration.current;
+    const data = await api.dashboard.mentor();
+    if (generation !== authGeneration.current) return;
+    setMentorDashboard({
+      ...data,
+      questions: (data.questions || []).map(adaptMentorQuestion),
+    });
+    setCourses(data.courses.map(adaptCourse));
+    setUser((current) => ({
+      ...current,
+      stats: { ...current.stats, ...data.stats },
     }));
+  };
+  const enrollFromMentor = async (courseId, email) => {
+    await api.courses.enrollByEmail(courseId, email);
+    await refreshMentorDashboard().catch((error) =>
+      setAppError(
+        "La matricula se guardo, pero el panel no se pudo actualizar: " +
+          error.message,
+      ),
+    );
   };
 
   // Notifications handlers
   const handleMarkAllNotificationsAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    markNotificationsRead(
+      notifications.filter((item) => !item.read).map((item) => item.id),
+    );
   };
 
   const handleNotificationClick = (notif) => {
+    markNotificationsRead([notif.id]);
+    const generation = authGeneration.current;
+    loadApplicationData(
+      { ...user, role: currentRole === "student" ? "estudiante" : currentRole },
+      generation,
+    ).catch((error) => {
+      if (generation === authGeneration.current) setAppError(error.message);
+    });
+    if (currentRole === "admin") {
+      handleNavigate(
+        notif.type === "live" || notif.type === "replay"
+          ? "admin-live"
+          : "admin-notifications",
+      );
+      setIsNotificationsOpen(false);
+      return;
+    }
+    if (
+      currentRole === "mentor" &&
+      ["content", "resource", "announcement", "event"].includes(notif.type)
+    ) {
+      handleNavigate("mentor-courses");
+      setIsNotificationsOpen(false);
+      return;
+    }
     if (notif.type === "live") {
       handleNavigate("live");
     } else if (notif.type === "resource") {
@@ -705,33 +844,65 @@ export function App() {
     } else if (notif.type === "replay") {
       handleNavigate("replays");
     }
+    if (["content", "announcement", "event"].includes(notif.type)) {
+      handleNavigate(notif.type === "content" ? "courses" : "dashboard");
+    }
     setIsNotificationsOpen(false);
   };
 
   // Admin add course
   const handleAddCourse = async (newCourse) => {
+    const generation = authGeneration.current;
     const created = await api.courses.create({
       title: newCourse.title,
       description: newCourse.tagline || "",
+      contentType: newCourse.contentType || "course",
+      docenteId: newCourse.docenteId || undefined,
+      category: newCourse.category || "",
+      level: newCourse.level || "",
     });
-    setCourses((current) => [adaptCourse(created, current.length), ...current]);
+    if (generation !== authGeneration.current) return;
+    const mentor = mentors.find((item) => item.id === created.docenteId);
+    setCourses((current) => [
+      adaptCourse(
+        {
+          ...created,
+          mentorName: mentor?.name,
+          mentorTitle: mentor?.role,
+          mentorAvatar: mentor?.avatar,
+        },
+        current.length,
+      ),
+      ...current,
+    ]);
     await refreshAdminDashboard();
   };
 
   // Admin schedule live class
   const handleAddLiveClass = async (newLive) => {
+    const generation = authGeneration.current;
     if (!newLive.courseId) throw new Error("Selecciona el curso de la sesión.");
     const created = await api.liveSessions.create({
       courseId: newLive.courseId,
       title: newLive.title,
       scheduledAt: newLive.scheduledAt,
       durationMinutes: newLive.durationMinutes,
+      joinUrl: newLive.joinUrl || undefined,
     });
+    if (generation !== authGeneration.current) return;
     setLiveClasses((current) => [
       adaptLiveSession(created, courses),
       ...current,
     ]);
-    await refreshAdminDashboard();
+    if (currentRole === "mentor")
+      await refreshMentorDashboard().catch((error) =>
+        setAppError(
+          "La clase se guardo, pero el panel no se pudo actualizar: " +
+            error.message,
+        ),
+      );
+    else await refreshAdminDashboard();
+    reloadNotifications();
   };
 
   const handleUpdateUserRole = async (userId, role) => {
@@ -776,28 +947,43 @@ export function App() {
     throw new Error("Los administradores no requieren asignación a cursos.");
   };
 
+  const refreshAdminCourses = async () => {
+    const generation = authGeneration.current;
+    const rows = await api.courses.list();
+    if (generation !== authGeneration.current) return;
+    setCourses(
+      rows.map((course, index) => {
+        const mentor = users.find((user) => user.id === course.docenteId);
+        return adaptCourse(
+          {
+            ...course,
+            mentorName: mentor?.fullName,
+            mentorTitle: mentor?.title,
+            mentorAvatar: mentor?.avatarUrl,
+          },
+          index,
+        );
+      }),
+    );
+    await refreshAdminDashboard();
+  };
+  const openCurriculum = (course) => {
+    setAdminCourseId(course.id);
+    handleNavigate("admin-curriculum");
+  };
+
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
 
   if (isBootstrapping) {
     return (
       <div
-        style={{
-          minHeight: "100vh",
-          display: "grid",
-          placeItems: "center",
-          background: "var(--bg-main)",
-          color: "var(--text-main)",
-        }}
+        className="flex min-h-dvh flex-col items-center justify-center gap-8 bg-canvas p-6"
+        role="status"
       >
-        <div style={{ textAlign: "center" }}>
-          <img
-            src="/logo.png"
-            alt="Comunidad del Intercambio"
-            style={{ width: 64, height: 64, objectFit: "contain" }}
-          />
-          <p style={{ marginTop: 14, color: "var(--text-muted)" }}>
-            Conectando con la plataforma…
-          </p>
+        <Brand />
+        <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface px-6 py-4 text-xs font-semibold text-subtle shadow-panel">
+          <LoaderCircle size={16} className="animate-spin text-brand" />
+          Preparando tu espacio...
         </div>
       </div>
     );
@@ -805,14 +991,19 @@ export function App() {
 
   // Si no está autenticado, renderizar el portal corporativo de Login
   if (!isAuthenticated) {
-    return <LoginView onLogin={handleLogin} onRegister={handleRegister} />;
+    return <LoginView onLogin={handleLogin} />;
   }
 
   return (
     <div
       className={`app-container ${isSidebarOpen ? "sidebar-open" : "sidebar-collapsed"}`}
-      data-theme="light"
     >
+      <a
+        href="#main-content"
+        className="sr-only fixed top-3 left-3 z-[200] rounded-xl bg-brand px-4 py-3 text-on-brand focus:not-sr-only"
+      >
+        Saltar al contenido
+      </a>
       {/* Backdrop para móviles al abrir la barra lateral */}
       {isSidebarOpen && (
         <div
@@ -841,9 +1032,19 @@ export function App() {
         <Header
           user={user}
           currentRole={currentRole}
+          currentView={currentView}
+          courses={courses}
+          onSelectCourse={(course) =>
+            currentRole === "admin"
+              ? openCurriculum(course)
+              : currentRole === "mentor"
+                ? handleNavigate("mentor-courses")
+                : handleSelectCourse(course)
+          }
           onOpenNotifications={() => setIsNotificationsOpen(true)}
           unreadCount={unreadNotificationsCount}
-          onOpenMembershipModal={() => setIsMembershipModalOpen(true)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           onNavigate={handleNavigate}
           searchTerm={searchTerm}
           onSearchChange={setSearchTerm}
@@ -852,39 +1053,30 @@ export function App() {
           onToggleSidebar={handleToggleSidebar}
         />
 
-        <main className="content-body">
+        <main
+          className="content-body view-enter"
+          id="main-content"
+          key={currentView}
+        >
           {appError && (
             <div
               role="alert"
-              style={{
-                marginBottom: 16,
-                padding: "12px 16px",
-                borderRadius: 10,
-                background: "#FFF7ED",
-                border: "1px solid #FED7AA",
-                color: "#9A3412",
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 16,
-              }}
+              className="mb-4 [padding:12px_16px] [border-radius:10px] bg-warning-soft border border-warning-line text-warning flex justify-between gap-4"
             >
               <span>{appError}</span>
               <button
                 type="button"
                 onClick={() => setAppError("")}
-                style={{
-                  border: 0,
-                  background: "transparent",
-                  color: "inherit",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                className="[border:0px] [background:transparent] [color:inherit] cursor-pointer font-bold"
               >
                 Cerrar
               </button>
             </div>
           )}
-          {currentView === "tickets" && (currentRole === "soporte" || currentRole === "student") && <TicketsView key={user.id} user={user} searchTerm={searchTerm} />}
+          {currentView === "tickets" &&
+            (currentRole === "soporte" || currentRole === "student") && (
+              <TicketsView key={user.id} user={user} searchTerm={searchTerm} />
+            )}
           {/* Vista: Dashboard de Estudiante */}
           {currentView === "dashboard" && (
             <DashboardView
@@ -922,6 +1114,10 @@ export function App() {
           {/* Vista: Reproductor de Cursos y Lecciones */}
           {currentView === "course-player" && selectedCourse && (
             <CoursePlayerView
+              key={selectedCourse.id}
+              onSaveResume={
+                currentRole === "student" ? api.dashboard.saveResume : undefined
+              }
               course={selectedCourse}
               initialLessonId={selectedLessonId}
               onBack={() => handleNavigate("courses")}
@@ -952,7 +1148,15 @@ export function App() {
           )}
 
           {/* Vista: Biblioteca de Recursos y Plantillas */}
-          {currentView === "library" && <LibraryView resources={resources} />}
+          {currentView === "library" && (
+            <LibraryView
+              courses={courses}
+              replays={replays}
+              onSelectCourse={handleSelectCourse}
+              onOpenResource={loadLessonResource}
+              onPlay={(video) => api.videos.playback(video.id)}
+            />
+          )}
 
           {/* Vista: Mentores de Élite */}
           {currentView === "mentors" && (
@@ -978,6 +1182,91 @@ export function App() {
             />
           )}
 
+          {currentRole === "admin" && currentView === "admin-live" && (
+            <RecordingUpload
+              onSessionUpdated={(updated) =>
+                setLiveClasses((current) =>
+                  current.map((session) =>
+                    session.id === updated.id
+                      ? adaptLiveSession(updated, courses)
+                      : session,
+                  ),
+                )
+              }
+              courses={courses}
+              liveClasses={liveClasses}
+              onUploaded={(video) =>
+                setReplays((current) => [
+                  adaptVideo(video, courses),
+                  ...current,
+                ])
+              }
+            />
+          )}
+          {currentView === "admin-mentors" && (
+            <MentorsView
+              mentors={users
+                .filter((account) => account.role === "mentor")
+                .map(adaptMentor)}
+              courses={courses}
+              onSelectCourse={() => handleNavigate("admin-courses")}
+            />
+          )}
+          {(currentView === "admin-notifications" ||
+            currentView === "mentor-notifications") && (
+            <AnnouncementsView
+              role={currentRole}
+              courses={courses}
+              onPublished={reloadNotifications}
+            />
+          )}
+          {currentView === "mentor-courses" && (
+            <>
+              <MentorCoursesView
+                onRefresh={refreshMentorDashboard}
+                courses={courses}
+                students={mentorDashboard.students || []}
+                liveClasses={liveClasses}
+                onEnroll={enrollFromMentor}
+                onSchedule={handleAddLiveClass}
+                onPlay={(videoId) => api.videos.playback(videoId)}
+              />
+              <RecordingUpload
+                courses={courses}
+                liveClasses={liveClasses}
+                onUploaded={(video) =>
+                  setReplays((current) => [
+                    adaptVideo(video, courses),
+                    ...current,
+                  ])
+                }
+                onSessionUpdated={(updated) =>
+                  setLiveClasses((current) =>
+                    current.map((session) =>
+                      session.id === updated.id
+                        ? adaptLiveSession(updated, courses)
+                        : session,
+                    ),
+                  )
+                }
+              />
+            </>
+          )}
+          {currentView === "admin-curriculum" && (
+            <AdminCurriculumView
+              courses={courses}
+              mentors={mentors}
+              initialCourseId={adminCourseId}
+              onCourseUpdated={refreshAdminCourses}
+            />
+          )}
+          {currentView === "admin-access" && (
+            <AdminAccessView
+              courses={courses}
+              users={users}
+              onChanged={refreshAdminDashboard}
+            />
+          )}
           {/* Vistas de Administración (CMS) */}
           {(currentView === "admin-overview" ||
             currentView === "admin-courses" ||
@@ -986,6 +1275,7 @@ export function App() {
             <AdminView
               courses={courses}
               liveClasses={liveClasses}
+              onEditCurriculum={openCurriculum}
               onAddCourse={handleAddCourse}
               onAddLiveClass={handleAddLiveClass}
               mentors={mentors}
@@ -1006,18 +1296,11 @@ export function App() {
       <NotificationsModal
         isOpen={isNotificationsOpen}
         onClose={() => setIsNotificationsOpen(false)}
+        error={notificationError}
+        onRetry={reloadNotifications}
         notifications={notifications}
         onMarkAllAsRead={handleMarkAllNotificationsAsRead}
         onNotificationClick={handleNotificationClick}
-      />
-
-      {/* Modal de Planes de Membresía */}
-      <MembershipModal
-        isOpen={isMembershipModalOpen}
-        onClose={() => setIsMembershipModalOpen(false)}
-        plans={membershipPlans}
-        currentTier={user.planTier}
-        onSelectTier={handleSelectTier}
       />
 
       {/* Modal de Sala de Clase en Vivo */}

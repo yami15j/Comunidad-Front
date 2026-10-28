@@ -1,151 +1,134 @@
-import React from 'react';
-import { Award, Download, Share2, ShieldCheck, CheckCircle2, Sparkles, ExternalLink } from 'lucide-react';
+import React from "react";
+import { Award, Download, Share2, ShieldCheck } from "lucide-react";
 
 export function CertificatesView({ user }) {
   const certificateData = {
     id: "TRX-CERT-2026-8941",
-    courseTitle: "Especialización en Machine de Ventas B2B & Prospección Outbound",
+    courseTitle:
+      "Especialización en Machine de Ventas B2B & Prospección Outbound",
     issueDate: "14 de Septiembre, 2026",
     recipient: user.name,
     company: "ScaleTech",
     hours: "18 Horas Académicas y Prácticas",
     grade: "Distinción de Honor",
     director: "Dirección Académica Traction",
-    mentor: "Sofía Valenzuela"
+    mentor: "Sofía Valenzuela",
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <div className="flex flex-col gap-7">
       {/* Header */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+        <div className="flex items-center gap-2 [margin-bottom:6px]">
           <span className="badge badge-amber">
             <Award size={14} />
             <span>Acreditaciones Oficiales</span>
           </span>
         </div>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-main)' }}>
+        <h1 className="text-2xl sm:text-[28px] font-extrabold text-ink">
           Certificaciones & Diplomas Ejecutivos
         </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-          Acreditaciones verificables que respaldan tus competencias operativas y de liderazgo comercial.
+        <p className="text-muted text-[14px] mt-1">
+          Acreditaciones verificables que respaldan tus competencias operativas
+          y de liderazgo comercial.
         </p>
       </div>
 
       {/* Diploma Ejecutivo en Formato Sólido y Corporativo (Sin Degradados) */}
-      <div style={{
-        backgroundColor: 'var(--bg-surface)',
-        border: '2px solid var(--brand-celeste-border)',
-        boxShadow: 'var(--shadow-lg)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '44px 36px',
-        position: 'relative'
-      }}>
+      <div className="bg-surface [border:2px_solid_var(--brand-celeste-border)] shadow-panel [border-radius:var(--radius-lg)] [padding:44px_36px] relative">
         {/* Encabezado del Certificado */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '10px',
-            backgroundColor: 'var(--brand-celeste-subtle)',
-            padding: '7px 18px',
-            borderRadius: 'var(--radius-full)',
-            border: '1px solid var(--brand-celeste-border)',
-            marginBottom: '16px'
-          }}>
-            <ShieldCheck size={18} style={{ color: 'var(--brand-celeste)' }} />
-            <span style={{ fontSize: '12px', fontWeight: 800, letterSpacing: '0.12em', color: 'var(--brand-celeste)', textTransform: 'uppercase' }}>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center [gap:10px] bg-brand-soft [padding:7px_18px] [border-radius:var(--radius-full)] [border:1px_solid_var(--brand-celeste-border)] mb-4">
+            <ShieldCheck size={18} className="text-brand" />
+            <span className="text-[12px] font-extrabold [letter-spacing:0.12em] text-brand uppercase">
               COMUNIDAD DEL INTERCAMBIO
             </span>
           </div>
 
-          <h2 style={{ fontSize: '20px', fontWeight: 500, color: 'var(--text-muted)', letterSpacing: '0.02em' }}>
+          <h2 className="text-[20px] font-medium text-muted [letter-spacing:0.02em]">
             Por cuanto se certifica que
           </h2>
 
-          <div style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-main)', margin: '10px 0 4px', letterSpacing: '-0.01em' }}>
+          <div className="text-2xl sm:text-[32px] font-extrabold text-ink [margin:10px_0_4px] [letter-spacing:-0.01em]">
             {certificateData.recipient}
           </div>
 
-          <div style={{ fontSize: '14px', color: 'var(--brand-celeste)', fontWeight: 600 }}>
+          <div className="text-[14px] text-brand font-semibold">
             {certificateData.company}
           </div>
         </div>
 
         {/* Cuerpo del Diploma */}
-        <div style={{ textAlign: 'center', maxWidth: '680px', margin: '0 auto 32px' }}>
-          <p style={{ fontSize: '14.5px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-            Ha completado satisfactoriamente los requisitos curriculares, evaluaciones prácticas y defensa de modelo comercial del programa:
+        <div className="text-center [max-width:680px] [margin:0_auto_32px]">
+          <p className="text-[14.5px] text-muted [line-height:1.6]">
+            Ha completado satisfactoriamente los requisitos curriculares,
+            evaluaciones prácticas y defensa de modelo comercial del programa:
           </p>
-          <div style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)', marginTop: '10px', lineHeight: '1.4' }}>
+          <div className="text-[20px] font-extrabold text-ink [margin-top:10px] [line-height:1.4]">
             {certificateData.courseTitle}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '8px' }}>
-            {certificateData.hours} • Calificación: <strong>{certificateData.grade}</strong>
+          <div className="text-[12px] text-subtle mt-2">
+            {certificateData.hours} • Calificación:{" "}
+            <strong>{certificateData.grade}</strong>
           </div>
         </div>
 
         {/* Firmas y Sello de Validación */}
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          paddingTop: '28px',
-          borderTop: '1px solid var(--border-subtle)',
-          flexWrap: 'wrap',
-          gap: '20px'
-        }}>
+        <div className="flex justify-between items-end pt-7 [border-top:1px_solid_var(--border-subtle)] flex-wrap gap-5">
           <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)' }}>{certificateData.mentor}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>Mentor Líder del Programa</div>
+            <div className="text-[14px] font-bold text-ink">
+              {certificateData.mentor}
+            </div>
+            <div className="text-[11px] text-subtle">
+              Mentor Líder del Programa
+            </div>
           </div>
 
           {/* Sello Corporativo Central */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '50%',
-              backgroundColor: 'var(--brand-celeste)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              boxShadow: 'var(--shadow-sm)',
-              margin: '0 auto 6px'
-            }}>
+          <div className="text-center">
+            <div className="[width:56px] [height:56px] rounded-full bg-brand flex items-center justify-center text-on-brand shadow-panel [margin:0_auto_6px]">
               <Award size={28} />
             </div>
-            <div style={{ fontSize: '10px', color: 'var(--brand-celeste)', fontWeight: 800, letterSpacing: '0.08em' }}>
+            <div className="text-[11px] text-brand font-extrabold [letter-spacing:0.08em]">
               SELLO DE EXCELENCIA
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ID de Verificación Oficial:</div>
-            <div style={{ fontSize: '12px', fontFamily: 'monospace', color: 'var(--brand-celeste)', fontWeight: 700 }}>
+          <div className="text-right">
+            <div className="text-[12px] text-muted">
+              ID de Verificación Oficial:
+            </div>
+            <div className="text-[12px] [font-family:monospace] text-brand font-bold">
               {certificateData.id}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{certificateData.issueDate}</div>
+            <div className="text-[11px] text-subtle">
+              {certificateData.issueDate}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Botones de Exportación */}
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-        <button 
-          className="btn btn-primary"
-          onClick={() => alert(`Generando e imprimiendo certificado PDF oficial (${certificateData.id})...`)}
-          style={{ gap: '8px' }}
+      <div className="flex justify-center gap-4 flex-wrap">
+        <button
+          className="btn btn-primary gap-2"
+          onClick={() =>
+            alert(
+              `Generando e imprimiendo certificado PDF oficial (${certificateData.id})...`,
+            )
+          }
         >
           <Download size={16} />
           <span>Descargar Diploma Oficial (PDF)</span>
         </button>
 
-        <button 
-          className="btn btn-secondary"
-          onClick={() => alert('Generando enlace para añadir insignia a tu perfil de LinkedIn...')}
-          style={{ gap: '8px' }}
+        <button
+          className="btn btn-secondary gap-2"
+          onClick={() =>
+            alert(
+              "Generando enlace para añadir insignia a tu perfil de LinkedIn...",
+            )
+          }
         >
           <Share2 size={16} />
           <span>Añadir a LinkedIn Profile</span>

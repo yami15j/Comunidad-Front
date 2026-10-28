@@ -1,195 +1,187 @@
-import React, { useState } from 'react';
-import { Users, Star, BookOpen, Radio, Sparkles, ArrowRight, ExternalLink, ShieldCheck } from 'lucide-react';
-
-export function MentorsView({ mentors, onSelectCourse, courses }) {
-  const [selectedMentor, setSelectedMentor] = useState(null);
-
+import React, { useState } from "react";
+import {
+  GraduationCap,
+  ArrowUpRight,
+  BookOpen,
+  Search,
+  Globe,
+  Link2,
+} from "lucide-react";
+import { Avatar, Dialog, EmptyState, PageHeading } from "../components/ui";
+function publicLink(value) {
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+export function MentorsView({ mentors = [], courses = [], onSelectCourse }) {
+  const [selected, setSelected] = useState(null);
+  const [search, setSearch] = useState("");
+  const visible = mentors.filter((mentor) =>
+    [mentor.name, mentor.role, mentor.company]
+      .join(" ")
+      .toLocaleLowerCase()
+      .includes(search.toLocaleLowerCase()),
+  );
+  const assigned = selected
+    ? courses.filter((course) => course.docenteId === selected.id)
+    : [];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Header */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-          <span className="badge badge-emerald">
-            <Users size={14} />
-            <span>Red de Mentores de Élite</span>
-          </span>
-        </div>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-main)' }}>
-          Mentores & Operadores de Negocios
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-          No te enseñan teóricos. Aprendes de fundadores, directores y ejecutivos que han escalado empresas reales.
-        </p>
+    <section className="space-y-7">
+      <PageHeading
+        eyebrow="PERSONAS QUE TE IMPULSAN"
+        title="Aprende de la experiencia."
+        description="Conoce a tus mentores, su trayectoria y los programas que comparten contigo."
+        icon={GraduationCap}
+      />
+      <div className="relative max-w-sm">
+        <Search
+          size={16}
+          className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle"
+        />
+        <input
+          type="search"
+          aria-label="Buscar mentores"
+          placeholder="Buscar por nombre o especialidad..."
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          className="w-full !pl-10 !text-xs"
+        />
       </div>
-
-      {/* Grid de Mentores */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px' }}>
-        {mentors.map((mentor) => (
-          <div 
-            key={mentor.id}
-            className="card card-interactive"
-            style={{ display: 'flex', flexDirection: 'column' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '16px' }}>
-              <img 
-                src={mentor.avatar} 
-                alt={mentor.name} 
-                style={{
-                  width: '68px',
-                  height: '68px',
-                  borderRadius: 'var(--radius-md)',
-                  objectFit: 'cover',
-                  border: '2px solid var(--brand-celeste)',
-                  boxShadow: 'var(--shadow-sm)'
-                }}
-              />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-main)' }}>{mentor.name}</h3>
-                  <ShieldCheck size={16} style={{ color: 'var(--brand-celeste)' }} title="Mentor Verificado" />
+      {!visible.length ? (
+        <EmptyState
+          icon={GraduationCap}
+          title="No hay mentores para esta búsqueda"
+          description="Los perfiles de los mentores de tus programas se mostrarán aquí."
+        />
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-3">
+          {visible.map((mentor) => (
+            <article
+              key={mentor.id}
+              className="group relative flex flex-col overflow-hidden rounded-[22px] border border-line bg-surface shadow-panel transition hover:-translate-y-1 hover:border-brand/25"
+            >
+              <div className="h-20 border-b border-brand-line/30 bg-linear-to-br from-brand-soft to-elevated" />
+              <div className="flex flex-1 flex-col p-5 pt-0">
+                <div className="relative -mt-8 mb-4 flex w-fit rounded-full bg-surface p-1.5">
+                  <Avatar
+                    name={mentor.name}
+                    src={mentor.avatar}
+                    className="size-16 !text-xl"
+                  />
                 </div>
-                <div style={{ fontSize: '13px', color: 'var(--brand-celeste)', fontWeight: 600, marginTop: '2px' }}>
+                <h2 className="text-lg font-bold">{mentor.name}</h2>
+                <p className="mt-1 text-[11px] font-semibold text-brand">
                   {mentor.role}
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
-                  {mentor.company}
-                </div>
-              </div>
-            </div>
-
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: '16px' }}>
-              {mentor.bio}
-            </p>
-
-            {/* Especialidades */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '18px' }}>
-              {mentor.specialties.map((spec, i) => (
-                <span 
-                  key={i} 
-                  style={{
-                    fontSize: '11px',
-                    padding: '3px 8px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-surface-elevated)',
-                    color: 'var(--text-muted)',
-                    border: '1px solid var(--border-subtle)'
-                  }}
-                >
-                  {spec}
-                </span>
-              ))}
-            </div>
-
-            {/* Footer con Stats y Acción */}
-            <div style={{
-              marginTop: 'auto',
-              paddingTop: '14px',
-              borderTop: '1px solid var(--border-subtle)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div style={{ display: 'flex', gap: '14px', fontSize: '12px', color: 'var(--text-dim)' }}>
-                <span>★ <strong style={{ color: 'var(--brand-celeste)' }}>{mentor.rating}</strong></span>
-                <span>•</span>
-                <span>{mentor.studentsCount} alumnos</span>
-              </div>
-              <button 
-                className="btn btn-secondary btn-sm"
-                onClick={() => setSelectedMentor(mentor)}
-              >
-                Ver Perfil Completo
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Modal Detalle de Mentor */}
-      {selectedMentor && (
-        <div className="modal-backdrop" onClick={() => setSelectedMentor(null)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div style={{
-              padding: '24px',
-              borderBottom: '1px solid var(--border-subtle)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <img 
-                src={selectedMentor.avatar} 
-                alt={selectedMentor.name}
-                style={{ width: '70px', height: '70px', borderRadius: '50%', border: '2px solid var(--brand-celeste)' }}
-              />
-              <div>
-                <h2 style={{ fontSize: '20px', fontWeight: 800 }}>{selectedMentor.name}</h2>
-                <div style={{ color: 'var(--brand-celeste)', fontWeight: 600, fontSize: '13px' }}>
-                  {selectedMentor.role} • {selectedMentor.company}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-dim)', marginTop: '4px' }}>
-                  ★ {selectedMentor.rating} valoración promedio • {selectedMentor.studentsCount} empresarios entrenados
-                </div>
-              </div>
-            </div>
-
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '8px' }}>
-                  Trayectoria y Filosofía
-                </h4>
-                <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: '1.6' }}>
-                  {selectedMentor.bio}
                 </p>
-              </div>
-
-              <div>
-                <h4 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: '8px' }}>
-                  Programas y Clases a su Cargo
-                </h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{
-                    padding: '12px 14px',
-                    borderRadius: 'var(--radius-md)',
-                    background: 'var(--bg-surface-elevated)',
-                    border: '1px solid var(--border-subtle)',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-main)' }}>
-                        Machine de Ventas B2B & Prospección Outbound
-                      </div>
-                      <div style={{ fontSize: '11px', color: 'var(--brand-celeste)' }}>12 Lecciones • Programa Activo</div>
-                    </div>
-                    <button 
-                      className="btn btn-primary btn-sm"
-                      onClick={() => {
-                        setSelectedMentor(null);
-                        onSelectCourse(courses[0]);
-                      }}
-                    >
-                      Ir al Curso
-                    </button>
-                  </div>
+                {mentor.company && (
+                  <p className="mt-1 text-[11px] text-subtle">
+                    {mentor.company}
+                  </p>
+                )}
+                <p className="mt-4 mb-5 line-clamp-3 text-xs leading-6 text-subtle">
+                  {mentor.bio ||
+                    "Este mentor aún no ha completado su biografía."}
+                </p>
+                <div className="mt-auto border-t border-line pt-4">
+                  <button
+                    className="flex w-full items-center justify-between text-xs font-bold text-brand"
+                    onClick={() => setSelected(mentor)}
+                  >
+                    Ver perfil y programas
+                    <ArrowUpRight size={15} />
+                  </button>
                 </div>
               </div>
-            </div>
-
-            <div style={{
-              padding: '16px 24px',
-              borderTop: '1px solid var(--border-subtle)',
-              background: 'var(--bg-surface-elevated)',
-              display: 'flex',
-              justifyContent: 'flex-end'
-            }}>
-              <button className="btn btn-secondary btn-sm" onClick={() => setSelectedMentor(null)}>
-                Cerrar
-              </button>
-            </div>
-          </div>
+            </article>
+          ))}
         </div>
       )}
-    </div>
+      <Dialog
+        open={!!selected}
+        onClose={() => setSelected(null)}
+        title="Perfil del mentor"
+      >
+        {selected && (
+          <>
+            <div className="flex items-center gap-4">
+              <Avatar
+                name={selected.name}
+                src={selected.avatar}
+                className="size-20 !text-xl"
+              />
+              <div>
+                <h2 className="text-xl">{selected.name}</h2>
+                <p className="mt-1 text-xs font-semibold text-brand">
+                  {selected.role}
+                </p>
+                <p className="mt-1 text-[11px] text-subtle">
+                  {selected.company}
+                </p>
+              </div>
+            </div>
+            <h3 className="mt-7 mb-3 text-sm">Su experiencia</h3>
+            <p className="whitespace-pre-wrap text-xs leading-7 text-muted">
+              {selected.bio || "Biografía pendiente."}
+            </p>
+            <div className="mt-4 flex gap-2">
+              {[
+                ["linkedin", "LinkedIn", Link2],
+                ["website", "Sitio web", Globe],
+              ].map(
+                ([key, label, Icon]) =>
+                  publicLink(selected[key]) && (
+                    <a
+                      key={key}
+                      className="btn btn-secondary btn-sm"
+                      href={publicLink(selected[key])}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Icon size={13} />
+                      {label}
+                      <ArrowUpRight size={11} />
+                    </a>
+                  ),
+              )}
+            </div>
+            <div className="mt-7 border-t border-line pt-6">
+              <h3 className="mb-4 text-sm">Programas que imparte</h3>
+              {assigned.length ? (
+                <div className="space-y-3">
+                  {assigned.map((course) => (
+                    <div
+                      key={course.id}
+                      className="flex items-center gap-3 rounded-xl border border-line bg-elevated/50 p-4"
+                    >
+                      <BookOpen size={18} className="shrink-0 text-brand" />
+                      <p className="flex-1 text-xs font-bold">{course.title}</p>
+                      <button
+                        aria-label={"Ver curso " + course.title}
+                        className="icon-button"
+                        disabled={!onSelectCourse}
+                        onClick={() => {
+                          setSelected(null);
+                          onSelectCourse(course);
+                        }}
+                      >
+                        <ArrowUpRight size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs leading-6 text-subtle">
+                  No tiene cursos asignados visibles para tu cuenta.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+      </Dialog>
+    </section>
   );
 }
+export default MentorsView;

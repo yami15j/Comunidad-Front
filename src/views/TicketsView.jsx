@@ -130,6 +130,10 @@ function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
     {loading && <p role="status">Cargando conversación…</p>}
     {error && <p role="alert">{error}</p>}
     {!loading && !error && !messages.length && <p>No hay mensajes.</p>}
-    {messages.map(message => <article key={message.id} className={message.sender_id === user.id ? "own-message" : ""}><strong>{message.sender_id === user.id ? "Tú" : "Equipo / estudiante"}</strong><p>{message.body}</p><small>{new Date(message.created_at).toLocaleString("es-EC")}</small></article>)}
+    {messages.map(message => {
+      const own = message.sender_id === user.id;
+      const sender = own ? "Tú" : user.role === "soporte" && message.sender_id === ticket.student_id ? message.sender_name?.trim() || "Estudiante" : "Soporte";
+      return <article key={message.id} className={own ? "own-message" : ""}><strong>{sender}</strong><p>{message.body}</p><small>{new Date(message.created_at).toLocaleString("es-EC")}</small></article>;
+    })}
   </div><form className="ticket-reply" onSubmit={async event => { event.preventDefault(); if (body.trim()) { if (await onSend(body.trim())) setBody(""); } }}><label>Respuesta<textarea value={body} onChange={event => setBody(event.target.value)} required maxLength={2000} rows={3} /></label><button className="btn btn-primary" disabled={busy || !body.trim()}>Enviar respuesta</button></form></>;
 }

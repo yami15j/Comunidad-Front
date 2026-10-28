@@ -1,137 +1,241 @@
-import React, { useState } from 'react';
-import { FolderDown, Search, FileSpreadsheet, FileText, Download, Star, Filter } from 'lucide-react';
-
-export function LibraryView({ resources }) {
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-
-  const categories = ['all', 'Ventas & Outbound', 'Finanzas & Métricas', 'Operaciones & Procesos', 'Liderazgo & Talento'];
-
-  const filteredResources = resources.filter(r => {
-    const matchesSearch = r.title.toLowerCase().includes(search.toLowerCase()) ||
-                          r.description.toLowerCase().includes(search.toLowerCase());
-    const matchesCat = selectedCategory === 'all' || r.category === selectedCategory;
-    return matchesSearch && matchesCat;
-  });
-
+import React, { useMemo, useState } from "react";
+import {
+  FileText,
+  Film,
+  ArrowUpRight,
+  Search,
+  Library,
+  LoaderCircle,
+  Download,
+  Play,
+} from "lucide-react";
+import { libraryItems } from "../services/studentContent";
+import { CourseCard, Dialog, EmptyState, PageHeading } from "../components/ui";
+export function LibraryView({
+  courses = [],
+  replays = [],
+  onSelectCourse,
+  onOpenResource,
+  onPlay,
+}) {
+  const [search, setSearch] = useState("");
+  const [type, setType] = useState("Todos");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(null);
+  const [playing, setPlaying] = useState(null);
+  const [videoError, setVideoError] = useState("");
+  const items = useMemo(
+    () => libraryItems(courses, replays),
+    [courses, replays],
+  );
+  const filtered = items.filter(
+    (item) =>
+      (type === "Todos" || item.type === type) &&
+      [item.title, item.courseTitle, item.lessonTitle, item.description]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase()
+        .includes(search.toLocaleLowerCase()),
+  );
+  async function open(item) {
+    if (busy) return;
+    setError("");
+    setBusy(item.key);
+    try {
+      if (item.course) await onSelectCourse(item.course);
+      else if (item.video) {
+        const result = await onPlay(item.video);
+        setVideoError("");
+        setPlaying({ title: item.title, url: result.url });
+      } else {
+        const result = await onOpenResource(item.resource);
+        const link = document.createElement("a");
+        link.href = result.url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        if (result.sourceType === "storage")
+          link.download = result.fileName || item.title;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    } catch (failure) {
+      setError(
+        failure.message || "No se pudo abrir el contenido. Intenta nuevamente.",
+      );
+    } finally {
+      setBusy(null);
+    }
+  }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-            <span className="badge badge-emerald">
-              <FolderDown size={14} />
-              <span>Caja de Herramientas Operativas</span>
-            </span>
-          </div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-main)' }}>
-            Biblioteca de Recursos & Plantillas Ejecutivas
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '4px' }}>
-            Modelos de Excel, Notion docs y marcos de trabajo listos para duplicar e implementar en tu negocio.
-          </p>
-        </div>
-
-        {/* Buscador */}
-        <div style={{ width: '300px' }}>
-          <input 
-            type="text"
-            placeholder="Buscar plantillas, modelos o guías..."
+    <section className="space-y-7">
+      <PageHeading
+        eyebrow="EXPLORA Y APRENDE"
+        title="Tu biblioteca de posibilidades."
+        description="Encuentra programas, masterclasses, talleres y materiales que acompañan tu aprendizaje."
+        icon={Library}
+      />
+      <div className="rounded-2xl border border-line bg-surface p-4 shadow-panel">
+        <div className="relative">
+          <Search
+            size={17}
+            className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle"
+          />
+          <input
+            aria-label="Buscar contenido"
+            type="search"
+            placeholder="Busca un tema, un programa o un recurso..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '9px 14px',
-              borderRadius: 'var(--radius-md)',
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              color: 'var(--text-main)',
-              fontSize: '13px',
-              outline: 'none'
-            }}
+            onChange={(event) => setSearch(event.target.value)}
+            className="w-full !border-transparent !bg-elevated !pl-11 !text-xs"
           />
         </div>
       </div>
-
-      {/* Categorías */}
-      <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            style={{
-              padding: '8px 16px',
-              borderRadius: 'var(--radius-full)',
-              border: selectedCategory === cat ? '1px solid var(--brand-celeste)' : '1px solid var(--border-subtle)',
-              backgroundColor: selectedCategory === cat ? 'var(--brand-celeste-subtle)' : 'var(--bg-surface)',
-              color: selectedCategory === cat ? 'var(--brand-celeste)' : 'var(--text-muted)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            {cat === 'all' ? 'Todos los Recursos' : cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Grid de Recursos */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-        {filteredResources.map((res) => {
-          const isExcel = res.fileType === 'xlsx' || res.fileType === 'sheets';
+      <div className="flex flex-wrap gap-2">
+        {[
+          "Todos",
+          "Cursos",
+          "Masterclasses",
+          "Talleres",
+          "Grabaciones",
+          "Recursos",
+        ].map((label) => {
+          const count =
+            label === "Todos"
+              ? items.length
+              : items.filter((item) => item.type === label).length;
           return (
-            <div 
-              key={res.id}
-              className="card card-interactive"
-              style={{ display: 'flex', flexDirection: 'column' }}
+            <button
+              key={label}
+              onClick={() => setType(label)}
+              aria-pressed={type === label}
+              className={
+                "inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-[11px] font-semibold transition " +
+                (type === label
+                  ? "border-brand bg-brand text-on-brand shadow-sm shadow-brand/10"
+                  : "border-line bg-surface text-subtle hover:border-brand/30 hover:text-brand")
+              }
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                <div style={{
-                  width: '42px',
-                  height: '42px',
-                  borderRadius: 'var(--radius-md)',
-                  backgroundColor: isExcel ? 'var(--brand-celeste-subtle)' : 'var(--bg-surface-elevated)',
-                  color: isExcel ? 'var(--brand-celeste)' : 'var(--text-main)',
-                  border: '1px solid var(--border-subtle)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {isExcel ? <FileSpreadsheet size={20} /> : <FileText size={20} />}
-                </div>
-
-                <span className="badge badge-emerald" style={{ fontSize: '11px' }}>
-                  {res.category}
-                </span>
-              </div>
-
-              <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-main)', marginBottom: '8px', lineHeight: '1.3' }}>
-                {res.title}
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.4', marginBottom: '18px' }}>
-                {res.description}
-              </p>
-
-              <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-                  {res.type} • {res.size} • ★ {res.rating}
-                </div>
-                <button 
-                  className="btn btn-primary btn-sm"
-                  onClick={() => alert(`Descargando recurso: ${res.title}`)}
-                >
-                  <Download size={14} />
-                  <span>Obtener</span>
-                </button>
-              </div>
-            </div>
+              {label}
+              <span
+                className={
+                  "rounded-md px-1.5 py-0.5 text-[9px] " +
+                  (type === label ? "bg-on-brand/15" : "bg-elevated")
+                }
+              >
+                {count}
+              </span>
+            </button>
           );
         })}
       </div>
-    </div>
+      {error && <p role="alert">{error}</p>}
+      {!filtered.length ? (
+        <EmptyState
+          icon={Library}
+          title="Sin contenido disponible"
+          description="Los materiales publicados de tus programas aparecerán aquí. Prueba otra categoría o búsqueda."
+        />
+      ) : (
+        <div className="grid items-stretch gap-5 sm:grid-cols-2 2xl:grid-cols-3">
+          {filtered.map((item) =>
+            item.course ? (
+              <CourseCard
+                key={item.key}
+                course={item.course}
+                onSelect={onSelectCourse}
+              />
+            ) : (
+              <article
+                key={item.key}
+                className="group flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-line bg-surface shadow-panel transition hover:border-brand/25"
+              >
+                {item.video ? (
+                  <div className="relative h-40 overflow-hidden bg-elevated">
+                    <img
+                      src={item.thumbnail}
+                      alt=""
+                      className="size-full object-cover transition duration-500 group-hover:scale-105"
+                    />
+                    <span className="absolute right-3 bottom-3 flex size-9 items-center justify-center rounded-full bg-surface/95 text-brand shadow-sm">
+                      <Play size={14} fill="currentColor" />
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex h-28 items-center justify-between border-b border-line bg-linear-to-br from-brand-soft to-elevated px-6">
+                    <span className="flex size-12 items-center justify-center rounded-2xl border border-brand-line/70 bg-surface text-brand">
+                      <FileText size={24} strokeWidth={1.4} />
+                    </span>
+                    <span className="rounded-lg border border-line bg-surface/70 px-2 py-1 text-[9px] font-bold uppercase text-subtle">
+                      {item.resourceType || "Material"}
+                    </span>
+                  </div>
+                )}
+                <div className="flex flex-1 flex-col p-5">
+                  <span className="mb-3 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-brand">
+                    {item.video ? <Film size={11} /> : <FileText size={11} />}{" "}
+                    {item.type}
+                  </span>
+                  <h3 className="text-sm leading-6">{item.title}</h3>
+                  <p className="mt-2 text-[11px] leading-5 text-subtle">
+                    {item.courseTitle || item.description}
+                  </p>
+                  {item.lessonTitle && (
+                    <p className="mt-1 text-[10px] text-subtle">
+                      Lección: {item.lessonTitle}
+                    </p>
+                  )}
+                  <button
+                    disabled={busy !== null}
+                    className="btn btn-secondary mt-auto pt-5 w-full"
+                    onClick={() => open(item)}
+                  >
+                    {busy === item.key ? (
+                      <LoaderCircle size={14} className="animate-spin" />
+                    ) : item.video ? (
+                      <Play size={13} />
+                    ) : (
+                      <Download size={14} />
+                    )}{" "}
+                    {busy === item.key
+                      ? "Abriendo..."
+                      : item.video
+                        ? "Ver grabación"
+                        : "Abrir recurso"}
+                    <ArrowUpRight size={13} />
+                  </button>
+                </div>
+              </article>
+            ),
+          )}
+        </div>
+      )}
+      <Dialog
+        open={!!playing}
+        onClose={() => setPlaying(null)}
+        title={playing?.title || "Grabación"}
+        className="max-w-4xl"
+      >
+        {playing && (
+          <video
+            controls
+            autoPlay
+            src={playing.url}
+            className="aspect-video w-full rounded-xl bg-slate-950"
+            onError={() =>
+              setVideoError(
+                "No se pudo reproducir la grabación. Vuelve a abrirla.",
+              )
+            }
+          />
+        )}{" "}
+        {videoError && (
+          <p role="alert" className="mt-4">
+            {videoError}
+          </p>
+        )}
+      </Dialog>
+    </section>
   );
 }
-
 export default LibraryView;

@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  Bell,
+  ArrowUpRight,
   BookOpen,
   CalendarDays,
   CheckCircle2,
@@ -10,416 +10,391 @@ import {
   Megaphone,
   Play,
   Radio,
-  Sparkles,
-  UserRound,
-} from 'lucide-react';
-
-const dateFormatter = new Intl.DateTimeFormat('es-EC', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-});
-
-const announcementDateFormatter = new Intl.DateTimeFormat('es-EC', {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
-
-function getCountdown(scheduledAt, currentTime) {
-  const target = new Date(scheduledAt).getTime();
-  const difference = target - currentTime;
-  if (!Number.isFinite(target) || difference <= 0) {
-    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
-  }
-
-  return {
-    days: Math.floor(difference / 86_400_000),
-    hours: Math.floor((difference % 86_400_000) / 3_600_000),
-    minutes: Math.floor((difference % 3_600_000) / 60_000),
-    seconds: Math.floor((difference % 60_000) / 1_000),
-  };
+} from "lucide-react";
+import {
+  Avatar,
+  CourseCard,
+  EmptyState,
+  Metric,
+  Progress,
+} from "../components/ui";
+function date(value, options) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? "Fecha por confirmar"
+    : parsed.toLocaleDateString("es-EC", options);
 }
-
-function MetricCard({ icon: Icon, value, label, accent = 'var(--brand-celeste)' }) {
-  return (
-    <div className="stat-card" style={{ minWidth: '170px', flex: '1 1 170px' }}>
-      <div className="stat-icon-wrapper" style={{ color: accent }}>
-        <Icon size={20} />
-      </div>
-      <div>
-        <div className="stat-value">{value}</div>
-        <div className="stat-label">{label}</div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({ icon: Icon, title, description }) {
-  return (
-    <div
-      style={{
-        padding: '34px 22px',
-        border: '1px dashed var(--border-medium)',
-        borderRadius: 'var(--radius-md)',
-        textAlign: 'center',
-        color: 'var(--text-muted)',
-      }}
-    >
-      <Icon size={28} style={{ marginBottom: '10px', color: 'var(--brand-celeste)' }} />
-      <div style={{ color: 'var(--text-main)', fontWeight: 700, marginBottom: '4px' }}>{title}</div>
-      <div style={{ fontSize: '13px', lineHeight: 1.5 }}>{description}</div>
-    </div>
-  );
-}
-
 export function DashboardView({
   user,
-  courses,
-  liveClasses,
+  courses = [],
+  liveClasses = [],
   announcements = [],
   onSelectCourse,
   onOpenLiveSession,
   onNavigate,
 }) {
-  const upcomingClasses = useMemo(() => {
-    return [...liveClasses]
-      .filter((liveClass) => liveClass.effectiveStatus !== 'ended')
-      .sort((left, right) => {
-        const leftDate = new Date(left.scheduledAt || left.createdAt).getTime();
-        const rightDate = new Date(right.scheduledAt || right.createdAt).getTime();
-        return leftDate - rightDate;
-      });
-  }, [liveClasses]);
-  const featuredLive = upcomingClasses[0];
-  const featuredStatus = featuredLive?.effectiveStatus;
-  const featuredScheduledAt = featuredLive?.scheduledAt;
-  const [currentTime, setCurrentTime] = useState(() => Date.now());
-  const countdown = getCountdown(featuredScheduledAt, currentTime);
-
+  const upcoming = useMemo(
+    () =>
+      [...liveClasses]
+        .filter((session) => session.effectiveStatus !== "ended")
+        .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt)),
+    [liveClasses],
+  );
+  const nextClass = upcoming[0];
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!featuredScheduledAt || featuredStatus === 'live') return undefined;
-    const timer = window.setInterval(() => {
-      setCurrentTime(Date.now());
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [featuredScheduledAt, featuredStatus]);
-
-  const activeCourse = courses.find((course) => (
-    course.totalLessonsCount > 0 && course.progressPercent > 0 && course.progressPercent < 100
-  )) || courses.find((course) => course.totalLessonsCount > 0);
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+  const activeCourse =
+    courses.find(
+      (course) =>
+        course.totalLessonsCount > 0 &&
+        course.progressPercent > 0 &&
+        course.progressPercent < 100,
+    ) ||
+    courses.find(
+      (course) => course.totalLessonsCount > 0 && course.progressPercent < 100,
+    ) ||
+    courses.find((course) => course.totalLessonsCount > 0);
   const nextLesson = activeCourse?.modules
-    .flatMap((courseModule) => courseModule.lessons)
+    ?.flatMap((module) => module.lessons)
     .find((lesson) => !lesson.completed);
-  const firstName = user?.name?.trim().split(/\s+/)[0] || 'estudiante';
-  const stats = user?.stats || {};
-  const hoursWatched = Number(stats.totalHoursWatched || 0);
-
+  const learning = courses.filter((course) => course.accessType !== "live");
+  const completed = courses.reduce(
+    (total, course) => total + (course.completedLessonsCount || 0),
+    0,
+  );
+  const average = learning.length
+    ? Math.round(
+        learning.reduce(
+          (total, course) => total + (course.progressPercent || 0),
+          0,
+        ) / learning.length,
+      )
+    : 0;
+  const remaining = nextClass
+    ? Math.max(0, new Date(nextClass.scheduledAt).getTime() - now)
+    : 0;
+  const days = Math.floor(remaining / 86400000),
+    hours = Math.floor(remaining / 3600000) % 24,
+    minutes = Math.floor(remaining / 60000) % 60;
+  const firstName = user?.name?.trim().split(/\s+/)[0] || "estudiante";
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
-      <section
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          flexWrap: 'wrap',
-          gap: '20px',
-        }}
-      >
-        <div style={{ maxWidth: '620px' }}>
-          <span className="badge badge-emerald" style={{ marginBottom: '10px' }}>
-            <Sparkles size={13} />
-            <span>Panel del estudiante</span>
-          </span>
-          <h1 style={{ fontSize: '30px', fontWeight: 800, letterSpacing: '-0.025em', color: 'var(--text-main)' }}>
-            Hola, {firstName} 👋
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '15px', marginTop: '6px', lineHeight: 1.6 }}>
-            Consulta tus cursos, retoma tu aprendizaje y revisa lo próximo en tu agenda.
-          </p>
-        </div>
-
-        <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <CheckCircle2 size={15} style={{ color: 'var(--brand-celeste)' }} />
-          Progreso sincronizado con tu cuenta
-        </div>
-      </section>
-
-      <section style={{ display: 'flex', gap: '14px', flexWrap: 'wrap' }} aria-label="Resumen del estudiante">
-        <MetricCard icon={BookOpen} value={stats.enrolledCourses ?? courses.length} label="Cursos inscritos" />
-        <MetricCard icon={CheckCircle2} value={stats.completedLessons ?? 0} label="Lecciones completadas" />
-        <MetricCard icon={GraduationCap} value={`${stats.averageProgress ?? 0}%`} label="Progreso promedio" />
-        <MetricCard icon={Clock3} value={`${hoursWatched.toLocaleString('es-EC')} h`} label="Tiempo completado" />
-      </section>
-
-      {featuredLive && (
-        <section className="live-banner" aria-labelledby="next-class-title">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '24px',
-              alignItems: 'center',
-            }}
-          >
-            <div>
-              <span className="badge badge-live" style={{ marginBottom: '12px' }}>
-                <Radio size={14} />
-                <span>{featuredLive.effectiveStatus === 'live' ? 'EN VIVO AHORA' : 'PRÓXIMA CLASE'}</span>
+    <div className="space-y-8">
+      <section className="relative isolate overflow-hidden rounded-[26px] bg-slate-900 px-6 py-8 text-white sm:px-9 sm:py-10">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-32 -right-12 size-96 rounded-full border-[60px] border-sky-400/5"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-8 right-24 size-52 rounded-full border border-sky-300/10"
+        />
+        <div className="relative flex flex-wrap items-center justify-between gap-7">
+          <div className="max-w-xl">
+            <p className="mb-3 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-sky-300">
+              <span className="size-1.5 rounded-full bg-sky-400" />
+              TU ESPACIO DE APRENDIZAJE
+            </p>
+            <h1 className="text-[29px] leading-tight font-extrabold tracking-[-0.04em] text-white sm:text-[36px]">
+              Hola, {firstName}.<br />
+              <span className="font-medium text-slate-300">
+                Sigamos avanzando.
               </span>
-              <h2 id="next-class-title" style={{ fontSize: '23px', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.3 }}>
-                {featuredLive.title}
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '8px' }}>
-                {featuredLive.subtitle}
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '16px', color: 'var(--text-main)', fontSize: '13px', fontWeight: 650 }}>
-                <CalendarDays size={16} style={{ color: 'var(--brand-celeste)' }} />
-                {Number.isNaN(new Date(featuredLive.scheduledAt).getTime())
-                  ? 'Fecha por confirmar'
-                  : dateFormatter.format(new Date(featuredLive.scheduledAt))}
-                <span style={{ color: 'var(--text-dim)' }}>• {featuredLive.duration}</span>
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: '22px',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-medium)',
-                background: 'var(--bg-surface-elevated)',
-              }}
-            >
-              {featuredLive.effectiveStatus === 'live' ? (
-                <div style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 800, color: 'var(--brand-celeste)' }}>
-                  La sala ya está abierta
-                </div>
-              ) : (
-                <div style={{ display: 'flex', gap: '10px', marginBottom: '18px' }}>
-                  {[
-                    ['Días', countdown.days],
-                    ['Horas', countdown.hours],
-                    ['Min', countdown.minutes],
-                    ['Seg', countdown.seconds],
-                  ].map(([label, value]) => (
-                    <div key={label} style={{ flex: 1, minWidth: 50, textAlign: 'center' }}>
-                      <div style={{ fontSize: '25px', fontWeight: 800, color: 'var(--text-main)', fontVariantNumeric: 'tabular-nums' }}>
-                        {String(value).padStart(2, '0')}
-                      </div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-dim)', textTransform: 'uppercase' }}>{label}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => onOpenLiveSession(featuredLive)}>
-                <Radio size={16} />
-                <span>{featuredLive.effectiveStatus === 'live' ? 'Entrar a la clase' : 'Ver detalles de la clase'}</span>
-              </button>
-            </div>
+            </h1>
+            <p className="mt-4 max-w-sm text-xs leading-6 text-slate-400">
+              Cada lección es un paso más. Aquí encontrarás tus programas, tu
+              progreso y lo próximo en tu agenda.
+            </p>
           </div>
-        </section>
-      )}
-
-      {activeCourse && (
-        <section
-          className="card"
-          style={{
-            padding: '24px 28px',
-            borderLeft: '4px solid var(--brand-celeste)',
-            borderColor: 'var(--brand-celeste-border)',
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 360px' }}>
-              <div style={{ color: 'var(--brand-celeste)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', marginBottom: '7px' }}>
-                Continuar aprendiendo
-              </div>
-              <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>{activeCourse.title}</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '5px' }}>
-                {nextLesson ? `Siguiente lección: ${nextLesson.title}` : 'Has completado todas las lecciones publicadas.'}
-              </p>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '15px' }}>
-                <div className="progress-bar-container" style={{ flex: 1, height: '8px' }}>
-                  <div className="progress-bar-fill" style={{ width: `${activeCourse.progressPercent}%` }} />
-                </div>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-celeste)', whiteSpace: 'nowrap' }}>
-                  {activeCourse.progressPercent}%
-                </span>
-              </div>
-            </div>
-            <button className="btn btn-primary btn-lg" onClick={() => onSelectCourse(activeCourse)}>
-              <Play size={17} fill="currentColor" />
-              <span>Retomar curso</span>
-            </button>
-          </div>
-        </section>
-      )}
-
-      <section aria-labelledby="courses-title">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'end', gap: '16px', marginBottom: '17px', flexWrap: 'wrap' }}>
-          <div>
-            <h2 id="courses-title" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-main)' }}>Mis cursos</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '3px' }}>Solo aparecen los cursos asociados a tu matrícula.</p>
-          </div>
-          <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('courses')}>
-            Ver todos <ArrowRight size={14} />
+          <button
+            className="btn !border-white/15 !bg-white/8 !px-5 !text-white backdrop-blur-sm hover:!bg-white/15"
+            onClick={() => onNavigate("courses")}
+          >
+            Explorar mis programas
+            <ArrowUpRight size={16} />
           </button>
         </div>
-
-        {courses.length ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '20px' }}>
-            {courses.map((course) => {
-              const hasContent = course.totalLessonsCount > 0;
-              return (
-                <article key={course.id} className="card" style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ height: '150px', position: 'relative', overflow: 'hidden' }}>
-                    <img src={course.thumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <span className="badge badge-emerald" style={{ position: 'absolute', top: '12px', left: '12px' }}>{course.category}</span>
-                  </div>
-                  <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: 750, color: 'var(--text-main)', lineHeight: 1.35 }}>{course.title}</h3>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '13px', lineHeight: 1.5, marginTop: '7px' }}>{course.tagline}</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginTop: '16px' }}>
-                      {course.mentorAvatar ? (
-                        <img src={course.mentorAvatar} alt="" style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover' }} />
-                      ) : (
-                        <div style={{ width: 30, height: 30, borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'var(--brand-celeste-subtle)', color: 'var(--brand-celeste)' }}>
-                          <UserRound size={15} />
-                        </div>
-                      )}
-                      <div style={{ minWidth: 0 }}>
-                        <div style={{ fontSize: '12px', color: 'var(--text-main)', fontWeight: 650 }}>{course.mentorName}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>{course.mentorRole}</div>
-                      </div>
-                    </div>
-                    <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '13px', marginTop: '16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginBottom: '7px', fontSize: '12px' }}>
-                        <span style={{ color: 'var(--text-muted)' }}>
-                          {hasContent ? `${course.completedLessonsCount} de ${course.totalLessonsCount} lecciones` : 'Contenido por publicar'}
-                        </span>
-                        <span style={{ color: 'var(--brand-celeste)', fontWeight: 700 }}>{course.progressPercent}%</span>
-                      </div>
-                      <div className="progress-bar-container">
-                        <div className="progress-bar-fill" style={{ width: `${course.progressPercent}%` }} />
-                      </div>
-                    </div>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      disabled={!hasContent}
-                      onClick={() => hasContent && onSelectCourse(course)}
-                      style={{ marginTop: '16px', width: '100%', opacity: hasContent ? 1 : 0.6 }}
-                    >
-                      {hasContent ? 'Abrir curso' : 'Esperando contenido'}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState
-            icon={BookOpen}
-            title="Aún no tienes cursos asignados"
-            description="Cuando el administrador registre tu matrícula, el curso aparecerá aquí automáticamente."
-          />
-        )}
       </section>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: '22px' }}>
-        <section className="card" aria-labelledby="schedule-title">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div>
-              <h2 id="schedule-title" style={{ fontSize: '18px', fontWeight: 750, color: 'var(--text-main)' }}>Próximas clases</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '3px' }}>Agenda de tus cursos inscritos</p>
-            </div>
-            <CalendarDays size={20} style={{ color: 'var(--brand-celeste)' }} />
-          </div>
-
-          {upcomingClasses.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {upcomingClasses.slice(0, 4).map((liveClass) => (
+      <section
+        aria-label="Resumen del estudiante"
+        className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4"
+      >
+        <Metric
+          icon={BookOpen}
+          label="Mis programas"
+          value={courses.length}
+          detail="Tu formación disponible"
+        />
+        <Metric
+          icon={CheckCircle2}
+          label="Lecciones completadas"
+          value={completed}
+          detail="Pasos que ya has dado"
+        />
+        <Metric
+          icon={GraduationCap}
+          label="Progreso promedio"
+          value={average + "%"}
+          detail="En tus cursos de contenido"
+        />
+        <Metric
+          icon={Clock3}
+          label="Tiempo completado"
+          value={
+            Number(user?.stats?.totalHoursWatched || 0).toLocaleString(
+              "es-EC",
+            ) + " h"
+          }
+          detail="De las lecciones finalizadas"
+        />
+      </section>
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-7">
+          {activeCourse && (
+            <section className="rounded-[22px] border border-brand-line/60 bg-surface p-5 shadow-panel sm:p-6">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">
+                  CONTINUAR APRENDIENDO
+                </p>
+                <span className="text-[10px] text-subtle">A tu ritmo</span>
+              </div>
+              <div className="flex items-start gap-5">
+                <div className="hidden h-24 w-28 shrink-0 overflow-hidden rounded-xl sm:block">
+                  <img
+                    src={activeCourse.thumbnail}
+                    alt=""
+                    className="size-full object-cover"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-lg leading-7 font-bold tracking-tight">
+                    {activeCourse.title}
+                  </h2>
+                  <p className="mt-1 text-xs leading-5 text-subtle">
+                    {nextLesson
+                      ? "Siguiente lección: " + nextLesson.title
+                      : "Has completado todas las lecciones publicadas."}
+                  </p>
+                  <div className="mt-4">
+                    <Progress
+                      value={activeCourse.progressPercent}
+                      label="Tu avance"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
+                <div className="flex items-center gap-2">
+                  <Avatar
+                    name={activeCourse.mentorName}
+                    src={activeCourse.mentorAvatar}
+                    className="size-6"
+                  />
+                  <span className="text-[11px] text-subtle">
+                    {activeCourse.mentorName}
+                  </span>
+                </div>
                 <button
-                  type="button"
-                  key={liveClass.id}
-                  onClick={() => onOpenLiveSession(liveClass)}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    padding: '12px',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-subtle)',
-                    background: 'var(--bg-surface-elevated)',
-                    color: 'inherit',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
+                  className="btn btn-primary btn-sm"
+                  onClick={() => onSelectCourse(activeCourse)}
                 >
-                  <div style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', display: 'grid', placeItems: 'center', background: 'var(--brand-celeste-subtle)', color: 'var(--brand-celeste)', flexShrink: 0 }}>
-                    {liveClass.effectiveStatus === 'live' ? <Radio size={18} /> : <CalendarDays size={18} />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: 700 }}>{liveClass.title}</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: '11px', marginTop: '3px' }}>
-                      {liveClass.date} • {liveClass.time} • {liveClass.duration}
-                    </div>
-                  </div>
-                  <ArrowRight size={15} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
+                  <Play size={12} fill="currentColor" />
+                  Retomar curso
+                  <ArrowRight size={13} />
                 </button>
-              ))}
-              <button className="btn btn-secondary btn-sm" onClick={() => onNavigate('live')} style={{ marginTop: '4px' }}>
-                Ver agenda completa
+              </div>
+            </section>
+          )}
+          <section>
+            <div className="mb-5 flex items-end justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold">Mis programas</h2>
+                <p className="mt-1 text-[11px] text-subtle">
+                  Conocimiento para tu siguiente paso.
+                </p>
+              </div>
+              <button
+                className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold text-brand hover:underline"
+                onClick={() => onNavigate("courses")}
+              >
+                Ver todos
+                <ArrowRight size={13} />
               </button>
             </div>
-          ) : (
-            <EmptyState
-              icon={CalendarDays}
-              title="Sin clases programadas"
-              description="Las nuevas sesiones aparecerán aquí cuando sean agendadas."
-            />
-          )}
-        </section>
-
-        <section className="card" aria-labelledby="news-title">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div>
-              <h2 id="news-title" style={{ fontSize: '18px', fontWeight: 750, color: 'var(--text-main)' }}>Novedades</h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '3px' }}>Anuncios generales y de tus cursos</p>
+            {courses.length ? (
+              <div className="grid gap-5 sm:grid-cols-2">
+                {courses.slice(0, 4).map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    onSelect={onSelectCourse}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                title="Tus programas te esperan"
+                description="Cuando tengas un curso asignado, podrás comenzar tu aprendizaje desde aquí."
+              />
+            )}
+          </section>
+        </div>
+        <aside className="min-w-0 space-y-6">
+          <section className="rounded-[22px] border border-line bg-surface p-5 shadow-panel">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-sm">Tu próxima clase</h2>
+              <CalendarDays size={17} className="text-subtle" />
             </div>
-            <Bell size={20} style={{ color: 'var(--brand-celeste)' }} />
-          </div>
-
-          {announcements.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '11px' }}>
-              {announcements.map((announcement) => (
-                <article key={announcement.id} style={{ padding: '13px 14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-subtle)', background: 'var(--bg-surface-elevated)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '6px' }}>
-                    <span style={{ color: 'var(--brand-celeste)', fontSize: '11px', fontWeight: 700 }}>
-                      {announcement.courseTitle || 'Comunidad'}
-                    </span>
-                    <span style={{ color: 'var(--text-dim)', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                      {announcementDateFormatter.format(new Date(announcement.publishedAt))}
-                    </span>
+            {nextClass ? (
+              <>
+                <span className="badge badge-emerald mb-4">
+                  {nextClass.effectiveStatus === "live" ? (
+                    <Radio size={11} />
+                  ) : (
+                    <span className="size-1 rounded-full bg-brand" />
+                  )}
+                  {nextClass.effectiveStatus === "live"
+                    ? "En vivo ahora"
+                    : "En tu agenda"}
+                </span>
+                <h3 className="text-base leading-6">{nextClass.title}</h3>
+                <p className="mt-2 text-xs text-subtle">{nextClass.subtitle}</p>
+                <div className="mt-5 flex items-center gap-3 rounded-xl border border-line bg-elevated/60 p-3">
+                  <div className="min-w-10 border-r border-line pr-3 text-center">
+                    <p className="text-xl leading-none font-extrabold text-brand">
+                      {date(nextClass.scheduledAt, { day: "2-digit" })}
+                    </p>
+                    <p className="mt-1 text-[9px] font-bold uppercase text-subtle">
+                      {date(nextClass.scheduledAt, { month: "short" })}
+                    </p>
                   </div>
-                  <h3 style={{ color: 'var(--text-main)', fontSize: '13px', fontWeight: 700, lineHeight: 1.4 }}>{announcement.title}</h3>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.5, marginTop: '5px' }}>{announcement.body}</p>
-                </article>
-              ))}
+                  <div>
+                    <p className="text-xs font-bold">{nextClass.time}</p>
+                    <p className="mt-1 text-[10px] text-subtle">
+                      {nextClass.duration}
+                    </p>
+                  </div>
+                </div>
+                <div className="my-4 flex items-center gap-2.5">
+                  <Avatar
+                    src={nextClass.mentorAvatar}
+                    name={nextClass.mentorName}
+                    className="size-7"
+                  />
+                  <p className="text-[11px] text-subtle">
+                    {nextClass.mentorName}
+                  </p>
+                </div>
+                {nextClass.effectiveStatus !== "live" && remaining > 0 && (
+                  <p className="mb-4 text-[10px] text-subtle">
+                    Comienza en{" "}
+                    <span className="font-bold text-ink">
+                      {days > 0 ? days + " d " : ""}
+                      {hours + " h " + minutes + " min"}
+                    </span>
+                  </p>
+                )}
+                <button
+                  className="btn btn-primary w-full"
+                  onClick={() => onOpenLiveSession(nextClass)}
+                >
+                  {nextClass.effectiveStatus === "live"
+                    ? "Ver clase e ingresar"
+                    : "Ver detalles de la clase"}
+                  <ArrowUpRight size={14} />
+                </button>
+              </>
+            ) : (
+              <EmptyState
+                icon={CalendarDays}
+                title="Tu agenda está al día"
+                description="Las próximas clases de tus programas aparecerán aquí."
+              />
+            )}
+            <button
+              className="mt-4 flex w-full items-center justify-center gap-2 text-[11px] font-semibold text-subtle hover:text-brand"
+              onClick={() => onNavigate("live")}
+            >
+              Ver calendario completo
+              <ArrowRight size={12} />
+            </button>
+          </section>
+          <section className="rounded-[22px] border border-line bg-surface p-5 shadow-panel">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-sm">Novedades</h2>
+              <Megaphone size={17} className="text-subtle" />
             </div>
-          ) : (
-            <EmptyState
-              icon={Megaphone}
-              title="No hay novedades por ahora"
-              description="Los anuncios publicados en Supabase aparecerán aquí automáticamente."
-            />
-          )}
-        </section>
+            {announcements.length ? (
+              <div className="space-y-5">
+                {announcements.slice(0, 4).map((item) => (
+                  <article
+                    key={item.id}
+                    className="border-b border-line pb-4 last:border-0 last:pb-0"
+                  >
+                    <p className="text-[9px] font-bold tracking-wide text-brand">
+                      {item.courseTitle || "TU COMUNIDAD"}
+                    </p>
+                    <h3 className="mt-1.5 text-xs leading-5">{item.title}</h3>
+                    <p className="mt-1.5 line-clamp-3 text-[11px] leading-5 text-subtle">
+                      {item.body}
+                    </p>
+                    <p className="mt-2 text-[9px] text-subtle/70">
+                      {date(item.publishedAt, {
+                        day: "numeric",
+                        month: "short",
+                      })}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="py-4 text-xs leading-6 text-subtle">
+                No hay novedades por ahora. Los avisos de tu comunidad se
+                mostrarán aquí.
+              </p>
+            )}
+          </section>
+        </aside>
       </div>
+      {upcoming.length > 1 && (
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg">Más adelante en tu agenda</h2>
+            <button
+              className="text-xs font-bold text-brand"
+              onClick={() => onNavigate("live")}
+            >
+              Ver calendario
+            </button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {upcoming.slice(1, 5).map((session) => (
+              <button
+                key={session.id}
+                onClick={() => onOpenLiveSession(session)}
+                className="group flex items-center gap-4 rounded-2xl border border-line bg-surface p-4 text-left shadow-panel hover:border-brand/30"
+              >
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                  <CalendarDays size={19} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-bold">{session.title}</p>
+                  <p className="mt-1 text-[10px] text-subtle">
+                    {session.date} · {session.time} · {session.duration}
+                  </p>
+                </div>
+                <ArrowUpRight
+                  size={15}
+                  className="text-subtle transition group-hover:text-brand"
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }
-
 export default DashboardView;

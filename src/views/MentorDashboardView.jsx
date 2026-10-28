@@ -13,16 +13,7 @@ import {
 
 function EmptyState({ children }) {
   return (
-    <div
-      style={{
-        padding: "24px",
-        textAlign: "center",
-        border: "1px dashed var(--border-medium)",
-        borderRadius: "var(--radius-md)",
-        color: "var(--text-muted)",
-        fontSize: "13px",
-      }}
-    >
+    <div className="p-6 text-center [border:1px_dashed_var(--border-medium)] [border-radius:var(--radius-md)] text-muted text-[13px]">
       {children}
     </div>
   );
@@ -34,12 +25,7 @@ function StudentAvatar({ student }) {
       <img
         src={student.studentAvatar || student.avatarUrl}
         alt=""
-        style={{
-          width: 34,
-          height: 34,
-          borderRadius: "50%",
-          objectFit: "cover",
-        }}
+        className="[width:34px] [height:34px] rounded-full object-cover"
       />
     );
   }
@@ -48,16 +34,7 @@ function StudentAvatar({ student }) {
   return (
     <div
       aria-hidden="true"
-      style={{
-        width: 34,
-        height: 34,
-        borderRadius: "50%",
-        display: "grid",
-        placeItems: "center",
-        background: "var(--brand-celeste-subtle)",
-        color: "var(--brand-celeste)",
-        fontWeight: 800,
-      }}
+      className="[width:34px] [height:34px] rounded-full grid [place-items:center] [background:var(--brand-celeste-subtle)] text-brand font-extrabold"
     >
       {name.charAt(0).toUpperCase()}
     </div>
@@ -108,54 +85,33 @@ export function MentorDashboardView({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
+    <div className="flex flex-col gap-7">
+      <button
+        className="btn btn-primary"
+        onClick={() => onNavigate("mentor-courses")}
+      >
+        Gestionar mis cursos y estudiantes
+      </button>
       <section>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            marginBottom: "8px",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
           <span className="badge badge-emerald">
             <Sparkles size={13} />
             <span>Panel académico del mentor</span>
           </span>
-          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>
+          <span className="text-[13px] text-muted">
             {user.company || "Perfil profesional"}
           </span>
         </div>
-        <h1
-          style={{
-            fontSize: "28px",
-            fontWeight: 800,
-            letterSpacing: "-0.02em",
-            color: "var(--text-main)",
-          }}
-        >
+        <h1 className="text-2xl sm:text-[28px] font-extrabold [letter-spacing:-0.02em] text-ink">
           Panel del Mentor: {user.name}
         </h1>
-        <p
-          style={{
-            color: "var(--text-muted)",
-            fontSize: "15px",
-            marginTop: "4px",
-          }}
-        >
+        <p className="text-muted text-[15px] mt-1">
           Datos calculados desde tus cursos, matrículas y actividad académica en
           Supabase.
         </p>
       </section>
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-          gap: "14px",
-        }}
-      >
+      <section className="grid grid-cols-2 xl:grid-cols-4 [gap:14px]">
         <div className="stat-card">
           <div className="stat-icon-wrapper">
             <Users size={20} />
@@ -166,10 +122,7 @@ export function MentorDashboardView({
           </div>
         </div>
         <div className="stat-card">
-          <div
-            className="stat-icon-wrapper"
-            style={{ color: "var(--brand-celeste)" }}
-          >
+          <div className="stat-icon-wrapper">
             <TrendingUp size={20} />
           </div>
           <div>
@@ -190,19 +143,9 @@ export function MentorDashboardView({
 
       {featuredLive ? (
         <section className="live-banner">
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "24px",
-              alignItems: "center",
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6 items-center">
             <div>
-              <span
-                className="badge badge-live"
-                style={{ marginBottom: "12px" }}
-              >
+              <span className="badge badge-live mb-3">
                 <Radio size={14} />
                 <span>
                   {featuredLive.effectiveStatus === "live"
@@ -210,58 +153,25 @@ export function MentorDashboardView({
                     : "PRÓXIMA SESIÓN"}
                 </span>
               </span>
-              <h2
-                style={{
-                  fontSize: "22px",
-                  fontWeight: 800,
-                  color: "var(--text-main)",
-                }}
-              >
+              <h2 className="text-[22px] font-extrabold text-ink">
                 {featuredLive.title}
               </h2>
-              <p
-                style={{
-                  color: "var(--text-muted)",
-                  fontSize: "14px",
-                  marginTop: "8px",
-                }}
-              >
+              <p className="text-muted text-[14px] mt-2">
                 {featuredLive.subtitle}
               </p>
-              <div
-                style={{
-                  color: "var(--text-muted)",
-                  fontSize: "13px",
-                  marginTop: "14px",
-                }}
-              >
+              <div className="text-muted text-[13px] [margin-top:14px]">
                 {featuredLive.date} • {featuredLive.time} •{" "}
                 {featuredLive.duration} • {featuredLive.attendeesCount || 0}{" "}
                 estudiantes matriculados
               </div>
             </div>
-            <div
-              style={{
-                background: "var(--bg-surface-elevated)",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "var(--radius-md)",
-                padding: "22px",
-                textAlign: "center",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--brand-celeste)",
-                  fontWeight: 700,
-                  marginBottom: "12px",
-                }}
-              >
+            <div className="[background:var(--bg-surface-elevated)] [border:1px_solid_var(--border-medium)] [border-radius:var(--radius-md)] [padding:22px] text-center">
+              <div className="text-[12px] text-brand font-bold mb-3">
                 ACCESO PROTEGIDO CON LIVEKIT
               </div>
               <button
-                className="btn btn-primary"
-                style={{ width: "100%" }}
+                className="btn btn-primary w-full"
+
                 onClick={() => onOpenLiveSession(featuredLive)}
               >
                 <Radio size={16} />
@@ -281,182 +191,84 @@ export function MentorDashboardView({
             en vivo.
           </EmptyState>
           <button
-            className="btn btn-secondary btn-sm"
+            className="btn btn-secondary btn-sm mt-3"
             onClick={() => onNavigate("live")}
-            style={{ marginTop: 12 }}
           >
             Ver todas las sesiones
           </button>
         </section>
       )}
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-          gap: "24px",
-        }}
-      >
+      <section className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6">
         <div className="card">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "18px",
-              gap: 12,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <MessageSquare
-                size={18}
-                style={{ color: "var(--brand-celeste)" }}
-              />
-              <h3
-                style={{
-                  fontSize: "17px",
-                  fontWeight: 700,
-                  color: "var(--text-main)",
-                }}
-              >
+          <div className="flex justify-between items-center [margin-bottom:18px] gap-3">
+            <div className="flex items-center gap-2">
+              <MessageSquare size={18} className="text-brand" />
+              <h3 className="text-[17px] font-bold text-ink">
                 Dudas de estudiantes
               </h3>
             </div>
-            <span className="badge badge-emerald" style={{ fontSize: "11px" }}>
+            <span className="badge badge-emerald text-[11px]">
               {stats.questionsPending || 0} pendientes
             </span>
           </div>
 
           {replyError && (
-            <div
-              role="alert"
-              style={{ marginBottom: 12, color: "#B91C1C", fontSize: 12 }}
-            >
+            <div role="alert" className="mb-3 text-danger text-[12px]">
               {replyError}
             </div>
           )}
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "14px" }}
-          >
+          <div className="flex flex-col [gap:14px]">
             {questions.length ? (
               questions.map((question) => (
                 <article
                   key={question.id}
-                  style={{
-                    padding: "16px",
-                    borderRadius: "var(--radius-md)",
-                    background: "var(--bg-surface-elevated)",
-                    border: "1px solid var(--border-subtle)",
-                  }}
+                  className="p-4 [border-radius:var(--radius-md)] [background:var(--bg-surface-elevated)] [border:1px_solid_var(--border-subtle)]"
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 12,
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 10 }}
-                    >
+                  <div className="flex justify-between items-center gap-3">
+                    <div className="flex items-center [gap:10px]">
                       <StudentAvatar student={question} />
                       <div>
-                        <div
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "var(--text-main)",
-                          }}
-                        >
+                        <div className="text-[13px] font-bold text-ink">
                           {question.studentName}
                         </div>
-                        <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                        <div className="text-[11px] text-subtle">
                           {question.studentCompany} • {question.timeAgo}
                         </div>
                       </div>
                     </div>
                     <span
                       className={
-                        question.status === "Pendiente"
+                        (question.status === "Pendiente"
                           ? "badge badge-amber"
-                          : "badge badge-emerald"
+                          : "badge badge-emerald") + " text-[11px]"
                       }
-                      style={{ fontSize: 10 }}
                     >
                       {question.status}
                     </span>
                   </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--brand-celeste)",
-                      fontWeight: 600,
-                      marginTop: 12,
-                    }}
-                  >
+                  <div className="text-[11px] text-brand font-semibold mt-3">
                     {question.courseTitle} • {question.lessonTitle}
                   </div>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: "var(--text-muted)",
-                      lineHeight: 1.5,
-                      marginTop: 8,
-                    }}
-                  >
+                  <p className="text-[13px] text-muted [line-height:1.5] mt-2">
                     “{question.question}”
                   </p>
                   {question.mentorReply && (
-                    <div
-                      style={{
-                        padding: "10px 12px",
-                        marginTop: 10,
-                        borderRadius: "var(--radius-sm)",
-                        background: "var(--brand-celeste-subtle)",
-                        border: "1px solid var(--brand-celeste-border)",
-                        fontSize: 12,
-                      }}
-                    >
-                      <strong style={{ color: "var(--brand-celeste)" }}>
-                        Tu respuesta:{" "}
-                      </strong>
-                      <span style={{ color: "var(--text-main)" }}>
-                        {question.mentorReply}
-                      </span>
+                    <div className="[padding:10px_12px] [margin-top:10px] [border-radius:var(--radius-sm)] [background:var(--brand-celeste-subtle)] [border:1px_solid_var(--brand-celeste-border)] text-[12px]">
+                      <strong className="text-brand">Tu respuesta: </strong>
+                      <span className="text-ink">{question.mentorReply}</span>
                     </div>
                   )}
                   {replyingTo === question.id ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        gap: 8,
-                        marginTop: 12,
-                      }}
-                    >
+                    <div className="flex flex-col gap-2 mt-3">
                       <textarea
                         rows={3}
                         value={replyText}
                         onChange={(event) => setReplyText(event.target.value)}
                         placeholder="Escribe tu respuesta..."
-                        style={{
-                          width: "100%",
-                          padding: 10,
-                          borderRadius: "var(--radius-sm)",
-                          background: "var(--bg-surface)",
-                          border: "1px solid var(--border-medium)",
-                          color: "var(--text-main)",
-                          fontSize: 13,
-                        }}
+                        className="w-full [padding:10px] [border-radius:var(--radius-sm)] [background:var(--bg-surface)] [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
                       />
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "flex-end",
-                          gap: 8,
-                        }}
-                      >
+                      <div className="flex justify-end gap-2">
                         <button
                           className="btn btn-secondary btn-sm"
                           onClick={() => {
@@ -485,8 +297,8 @@ export function MentorDashboardView({
                     </div>
                   ) : question.status === "Pendiente" ? (
                     <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ marginTop: 12 }}
+                      className="btn btn-secondary btn-sm mt-3"
+
                       onClick={() => {
                         setReplyingTo(question.id);
                         setReplyText("");
@@ -507,78 +319,39 @@ export function MentorDashboardView({
         </div>
 
         <div className="card">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 18,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <BookOpen size={18} style={{ color: "var(--brand-celeste)" }} />
-              <h3
-                style={{
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: "var(--text-main)",
-                }}
-              >
+          <div className="flex justify-between items-center [margin-bottom:18px]">
+            <div className="flex items-center gap-2">
+              <BookOpen size={18} className="text-brand" />
+              <h3 className="text-[17px] font-bold text-ink">
                 Cursos asignados
               </h3>
             </div>
-            <span style={{ fontSize: 12, color: "var(--text-dim)" }}>
+            <span className="text-[12px] text-subtle">
               {stats.assignedCourses || 0} cursos
             </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div className="flex flex-col [gap:14px]">
             {courses.length ? (
               courses.map((course) => (
                 <article
                   key={course.id}
-                  style={{
-                    padding: 16,
-                    borderRadius: "var(--radius-md)",
-                    background: "var(--bg-surface-elevated)",
-                    border: "1px solid var(--border-subtle)",
-                  }}
+                  className="p-4 [border-radius:var(--radius-md)] [background:var(--bg-surface-elevated)] [border:1px_solid_var(--border-subtle)]"
                 >
-                  <h4
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: "var(--text-main)",
-                    }}
-                  >
+                  <h4 className="text-[14px] font-bold text-ink">
                     {course.title}
                   </h4>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--text-dim)",
-                      marginTop: 5,
-                    }}
-                  >
+                  <div className="text-[12px] text-subtle [margin-top:5px]">
                     {course.totalModulesCount || 0} módulos •{" "}
                     {course.totalLessonsCount || 0} lecciones •{" "}
                     {course.activeStudents || 0} estudiantes
                   </div>
-                  <div
-                    className="progress-bar-container"
-                    style={{ height: 6, marginTop: 12 }}
-                  >
+                  <div className="progress-bar-container [height:6px] mt-3">
                     <div
                       className="progress-bar-fill"
                       style={{ width: `${course.averageProgress || 0}%` }}
                     />
                   </div>
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-muted)",
-                      marginTop: 5,
-                    }}
-                  >
+                  <div className="text-[11px] text-muted [margin-top:5px]">
                     Progreso promedio: {course.averageProgress || 0}%
                   </div>
                 </article>
@@ -591,72 +364,37 @@ export function MentorDashboardView({
       </section>
 
       <section className="card">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginBottom: 18,
-          }}
-        >
-          <CheckCircle2 size={18} style={{ color: "var(--brand-celeste)" }} />
-          <h3
-            style={{ fontSize: 17, fontWeight: 700, color: "var(--text-main)" }}
-          >
+        <div className="flex items-center gap-2 [margin-bottom:18px]">
+          <CheckCircle2 size={18} className="text-brand" />
+          <h3 className="text-[17px] font-bold text-ink">
             Progreso de estudiantes por curso
           </h3>
         </div>
         {students.length ? (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: 12,
-            }}
-          >
+          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3">
             {students.map((student) => (
               <article
                 key={`${student.id}:${student.courseId}`}
-                style={{
-                  padding: 14,
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                  background: "var(--bg-deep)",
-                }}
+                className="[padding:14px] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)] [background:var(--bg-deep)]"
               >
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <div className="flex [gap:10px] items-center">
                   <StudentAvatar student={student} />
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 700,
-                        color: "var(--text-main)",
-                      }}
-                    >
+                  <div className="[min-width:0px]">
+                    <div className="text-[13px] font-bold text-ink">
                       {student.fullName || student.email}
                     </div>
-                    <div style={{ fontSize: 11, color: "var(--text-dim)" }}>
+                    <div className="text-[11px] text-subtle">
                       {student.courseTitle}
                     </div>
                   </div>
                 </div>
-                <div
-                  className="progress-bar-container"
-                  style={{ height: 6, marginTop: 12 }}
-                >
+                <div className="progress-bar-container [height:6px] mt-3">
                   <div
                     className="progress-bar-fill"
                     style={{ width: `${student.progressPercent}%` }}
                   />
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-muted)",
-                    marginTop: 5,
-                  }}
-                >
+                <div className="text-[11px] text-muted [margin-top:5px]">
                   {student.completedLessons} de {student.totalLessons} lecciones
                   • {student.progressPercent}%
                 </div>

@@ -1,198 +1,161 @@
-import React from 'react';
-import { 
-  LayoutDashboard, BookOpen, Radio, Film, FolderDown, 
-  Users, MessageSquare, Shield, 
-  Sparkles, Compass, CheckCircle2, LogOut, GraduationCap, 
-  HelpCircle, User, ChevronLeft 
-} from 'lucide-react';
-
-export function Sidebar({ 
-  currentView, 
-  onNavigate, 
-  currentRole, 
-  user, 
+import React from "react";
+import {
+  ArrowUpRight,
+  ChevronLeft,
+  LogOut,
+  UserRound,
+  Radio,
+} from "lucide-react";
+import { Brand, Avatar } from "./ui";
+import { navigationForRole, ROLE_LABELS } from "../services/navigation";
+import { homeViewForRole } from "../services/access";
+export function Sidebar({
+  currentView,
+  onNavigate,
+  currentRole,
+  user,
   liveClasses = [],
   onLogout,
   isOpen = true,
-  onToggleSidebar 
+  onToggleSidebar,
 }) {
-  const liveNow = liveClasses.find((session) => session.isLiveNow);
-  const upcoming = [...liveClasses]
-    .filter((session) => session.effectiveStatus === 'scheduled')
-    .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))[0];
-  const liveBadge = liveNow
-    ? 'EN VIVO'
-    : upcoming
-      ? new Date(upcoming.scheduledAt).toLocaleString('es-EC', {
-          day: new Date(upcoming.scheduledAt).toDateString() === new Date().toDateString() ? undefined : '2-digit',
-          month: new Date(upcoming.scheduledAt).toDateString() === new Date().toDateString() ? undefined : 'short',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      : null;
-  const studentNavItems = [
-    { id: 'tickets', label: 'Soporte', icon: HelpCircle },
-    { id: 'dashboard', label: 'Mi Dashboard', icon: LayoutDashboard },
-    { id: 'courses', label: 'Mis Programas', icon: BookOpen },
-    { 
-      id: 'live', 
-      label: 'Clases en Vivo', 
-      icon: Radio, 
-      badge: liveBadge,
-      badgeType: 'badge-live' 
-    },
-    { id: 'replays', label: 'Videoteca Replays', icon: Film },
-    { id: 'library', label: 'Biblioteca & Recursos', icon: FolderDown },
-    { id: 'mentors', label: 'Mentores de Élite', icon: Users },
-    { id: 'community', label: 'Comunidad & Red', icon: MessageSquare }
-  ];
-
-  const mentorNavItems = [
-    { id: 'mentor-dashboard', label: 'Panel del Mentor', icon: LayoutDashboard },
-    { id: 'profile', label: 'Mi Perfil & Datos', icon: User },
-    { 
-      id: 'live', 
-      label: 'Sala en Vivo (Host)', 
-      icon: Radio, 
-      badge: liveNow ? 'EN VIVO' : liveBadge,
-      badgeType: 'badge-live' 
-    },
-    { id: 'replays', label: 'Mis Grabaciones (Replays)', icon: Film },
-    { id: 'library', label: 'Biblioteca de Recursos', icon: FolderDown },
-    { id: 'community', label: 'Comunidad de Alumnos', icon: MessageSquare }
-  ];
-
-  const adminNavItems = [
-    { id: 'admin-overview', label: 'Panel General', icon: LayoutDashboard },
-    { id: 'profile', label: 'Mi Perfil & Datos', icon: User },
-    { id: 'admin-courses', label: 'Gestor de Cursos', icon: BookOpen },
-    { id: 'admin-live', label: 'Agendar Vivos & Replays', icon: Radio },
-    { id: 'admin-users', label: 'Usuarios & Permisos', icon: Users }
-  ];
-
-  // Determinar los ítems correspondientes al rol autenticado
-  const getNavItems = () => {
-    if (currentRole === 'soporte') return [{ id: 'tickets', label: 'Mesa de soporte', icon: HelpCircle }, { id: 'profile', label: 'Mi Perfil & Datos', icon: User }];
-    if (currentRole === 'admin') return adminNavItems;
-    if (currentRole === 'mentor') return mentorNavItems;
-    return studentNavItems;
-  };
-
-  const getSectionTitle = () => {
-    if (currentRole === 'soporte') return 'SOPORTE';
-    if (currentRole === 'admin') return 'ADMINISTRACIÓN & CMS';
-    if (currentRole === 'mentor') return 'CLAUSTRO DE MENTORES';
-    return 'FORMACIÓN & ACELERACIÓN';
-  };
-
-  const navItems = getNavItems();
-
+  const live = liveClasses.find((session) => session.isLiveNow);
+  const next =
+    live ||
+    [...liveClasses]
+      .filter((session) => session.effectiveStatus === "scheduled")
+      .sort((a, b) =>
+        String(a.scheduledAt).localeCompare(String(b.scheduledAt)),
+      )[0];
   return (
-    <aside className={`sidebar ${isOpen ? 'open' : 'collapsed'}`}>
-      {/* Brand & Logo con colores originales respetados */}
-      <div 
-        className="sidebar-brand" 
-        style={{ cursor: 'pointer' }} 
-        onClick={() => {
-          if (currentRole === 'soporte') onNavigate('tickets');
-          else if (currentRole === 'admin') onNavigate('admin-overview');
-          else if (currentRole === 'mentor') onNavigate('mentor-dashboard');
-          else onNavigate('dashboard');
-        }}
-      >
-        <div className="brand-icon">
-          <img 
-            src="/logo.png" 
-            alt="Comunidad del Intercambio" 
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-          />
-        </div>
-        <div className="brand-title">
-          <span className="brand-name">COMUNIDAD</span>
-          <span className="brand-subtitle">DEL INTERCAMBIO</span>
-        </div>
-      </div>
-
-      {/* Navigation List - Con la flechita aquí en la sección */}
-      <div className="sidebar-nav">
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 12px 6px'
-        }}>
-          <span className="sidebar-section-title" style={{ padding: 0 }}>
-            {getSectionTitle()}
-          </span>
-
-          {/* Flechita para guardar el menú */}
-          {onToggleSidebar && (
-            <button
-              type="button"
-              onClick={onToggleSidebar}
-              title="Guardar menú"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                padding: '4px',
-                borderRadius: '6px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'var(--brand-celeste)';
-                e.currentTarget.style.backgroundColor = 'var(--bg-surface-elevated)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = 'var(--text-muted)';
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-            >
-              <ChevronLeft size={16} />
-            </button>
-          )}
-        </div>
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentView === item.id;
-          return (
-            <button
-              key={item.id}
-              className={`nav-item ${isActive ? 'active' : ''}`}
-              onClick={() => onNavigate(item.id)}
-            >
-              <Icon size={18} className="nav-icon" />
-              <span>{item.label}</span>
-              {item.badge && (
-                <span className={`nav-badge ${item.badgeType}`}>
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Sidebar Footer */}
-      <div className="sidebar-footer">
-        {/* Botón Cerrar Sesión para cambiar de rol o salir */}
-        <button 
-          className="btn btn-secondary btn-sm"
-          style={{ width: '100%', justifyContent: 'center', gap: '8px', color: 'var(--text-muted)' }}
-          onClick={onLogout}
-          title="Cerrar sesión y volver al login"
+    <aside
+      aria-label="Navegación principal"
+      aria-hidden={!isOpen}
+      inert={!isOpen ? true : undefined}
+      className={
+        "fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-line bg-surface transition-transform duration-300 " +
+        (isOpen ? "translate-x-0" : "-translate-x-full")
+      }
+    >
+      <div className="flex h-24 shrink-0 items-center justify-between gap-2 px-6">
+        <button
+          onClick={() => onNavigate(homeViewForRole(currentRole))}
+          aria-label="Ir al inicio"
         >
-          <LogOut size={13} />
-          <span>Cerrar Sesión</span>
+          <Brand />
         </button>
+        <button
+          aria-label="Cerrar menú lateral"
+          className="icon-button -mr-3 size-7 text-subtle/70"
+          onClick={onToggleSidebar}
+        >
+          <ChevronLeft size={16} />
+        </button>
+      </div>
+      <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-3">
+        {navigationForRole(currentRole).map((group) => (
+          <div key={group.label}>
+            <p className="mb-2 px-3 text-[9px] font-bold tracking-[0.16em] text-subtle/70">
+              {group.label}
+            </p>
+            <div className="space-y-1">
+              {group.items.map((item) => {
+                const active =
+                  currentView === item.id ||
+                  (currentView === "course-player" && item.id === "courses");
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => onNavigate(item.id)}
+                    className={
+                      "group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[12px] font-semibold transition " +
+                      (active
+                        ? "bg-brand-soft text-brand shadow-[inset_0_0_0_1px_var(--brand-celeste-border)]"
+                        : "text-muted hover:bg-elevated hover:text-ink")
+                    }
+                  >
+                    <Icon
+                      size={18}
+                      strokeWidth={active ? 2 : 1.6}
+                      className={
+                        active
+                          ? "text-brand"
+                          : "text-subtle group-hover:text-brand"
+                      }
+                    />
+                    <span className="flex-1">{item.label}</span>
+                    {item.id === "live" && live && (
+                      <span
+                        className="size-1.5 rounded-full bg-brand"
+                        aria-label="Clase en vivo"
+                      />
+                    )}
+                    {active && (
+                      <span className="h-4 w-0.5 rounded-full bg-brand" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </nav>
+      <div className="shrink-0 space-y-4 p-4">
+        {next && currentRole !== "soporte" && (
+          <button
+            onClick={() =>
+              onNavigate(currentRole === "admin" ? "admin-live" : "live")
+            }
+            className="w-full rounded-2xl border border-brand-line/60 bg-brand-soft/70 p-4 text-left transition hover:border-brand/40"
+          >
+            <div className="mb-2 flex items-center gap-2 text-[10px] font-bold text-brand">
+              <Radio size={13} />
+              {live ? "EN VIVO AHORA" : "EN TU AGENDA"}
+              <ArrowUpRight size={13} className="ml-auto" />
+            </div>
+            <p className="line-clamp-2 text-xs leading-5 font-bold text-ink">
+              {next.title}
+            </p>
+            <p className="mt-1.5 text-[10px] text-subtle">
+              {next.date} · {next.time}
+            </p>
+          </button>
+        )}
+        <div className="border-t border-line pt-4">
+          <button
+            onClick={() => onNavigate("profile")}
+            className="group flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-elevated"
+          >
+            <Avatar
+              name={user?.name}
+              src={user?.avatarUrl}
+              className="size-9"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-ink">
+                {user?.name}
+              </p>
+              <p className="mt-0.5 text-[10px] text-subtle">
+                {ROLE_LABELS[currentRole]}
+              </p>
+            </div>
+            <UserRound
+              size={16}
+              className="text-subtle group-hover:text-brand"
+            />
+          </button>
+          <button
+            onClick={onLogout}
+            className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[11px] font-semibold text-subtle transition hover:bg-danger-soft hover:text-danger"
+          >
+            <LogOut size={15} />
+            Cerrar sesión
+          </button>
+        </div>
       </div>
     </aside>
   );
 }
-
 export default Sidebar;

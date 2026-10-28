@@ -1,274 +1,218 @@
-import React, { useState } from 'react';
-import { Lock, Mail, ArrowRight, Eye, EyeOff } from 'lucide-react';
-
-export function LoginView({ onLogin, onRegister }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+import React, { useState } from "react";
+import {
+  ArrowRight,
+  BookOpen,
+  Radio,
+  TrendingUp,
+  Eye,
+  EyeOff,
+  Mail,
+  LockKeyhole,
+  AlertCircle,
+  LoaderCircle,
+  ArrowUpRight,
+} from "lucide-react";
+import { Brand } from "../components/ui";
+export function LoginView({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
-  const [isRegistering, setIsRegistering] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const [error, setError] = useState("");
+  async function submit(event) {
+    event.preventDefault();
+    if (isSubmitting) return;
+    setError("");
     setIsSubmitting(true);
     try {
-      if (isRegistering) {
-        await onRegister({ fullName: fullName.trim(), email: email.trim(), password });
-      } else {
-        await onLogin({ email: email.trim(), password, rememberMe });
-      }
-    } catch (submitError) {
-      setError(submitError.message || 'No se pudo completar la operación.');
+      await onLogin({ email: email.trim(), password, rememberMe });
+    } catch (failure) {
+      setError(failure.message || "No se pudo completar la operación.");
     } finally {
       setIsSubmitting(false);
     }
-  };
-
+  }
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: 'var(--bg-main)',
-      color: 'var(--text-main)',
-      position: 'relative'
-    }}>
-      {/* Barra superior */}
-      <header style={{
-        height: '64px',
-        padding: '0 32px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        borderBottom: '1px solid var(--border-subtle)',
-        backgroundColor: 'var(--bg-surface)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '36px',
-            height: '36px',
-            backgroundColor: '#0F172A',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px',
-            border: '1px solid #1E293B',
-            flexShrink: 0
-          }}>
-            <img 
-              src="/logo.png" 
-              alt="Comunidad del Intercambio" 
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-            />
+    <div className="grid min-h-dvh bg-surface lg:grid-cols-[1.05fr_1fr]">
+      <aside className="relative hidden min-h-dvh flex-col overflow-hidden bg-slate-900 px-12 py-10 lg:flex xl:px-20">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-36 -right-56 size-[650px] rounded-full border border-white/5"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-14 -right-36 size-[470px] rounded-full border-[70px] border-sky-500/8"
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute right-8 bottom-20 size-72 rounded-full border border-sky-400/10"
+        />
+        <div className="relative">
+          <Brand light />
+        </div>
+        <div className="relative my-auto max-w-lg py-20">
+          <span className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[10px] font-semibold tracking-[0.05em] text-sky-200">
+            <span className="size-1.5 rounded-full bg-sky-400" />
+            TU ESPACIO DE CRECIMIENTO
+          </span>
+          <h1 className="text-[48px] leading-[1.12] font-extrabold tracking-[-0.055em] text-white xl:text-[60px]">
+            El siguiente nivel
+            <br />
+            empieza <span className="text-sky-400">contigo.</span>
+          </h1>
+          <p className="mt-6 max-w-sm text-sm leading-7 text-slate-300">
+            Conocimiento que se convierte en acción. Conecta con tus mentores y
+            avanza a tu ritmo, desde un solo lugar.
+          </p>
+          <div className="mt-12 space-y-5">
+            {[
+              {
+                icon: BookOpen,
+                title: "Aprende con propósito",
+                text: "Programas y recursos para poner en práctica.",
+              },
+              {
+                icon: Radio,
+                title: "Conecta en vivo",
+                text: "Clases y conversaciones con tus mentores.",
+              },
+              {
+                icon: TrendingUp,
+                title: "Sigue tu evolución",
+                text: "Retoma tu aprendizaje donde lo dejaste.",
+              },
+            ].map((item) => (
+              <div key={item.title} className="flex items-center gap-4">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sky-300">
+                  <item.icon size={18} strokeWidth={1.6} />
+                </span>
+                <div>
+                  <p className="text-xs font-bold text-white">{item.title}</p>
+                  <p className="mt-1 text-[11px] text-slate-400">{item.text}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          <span style={{ fontSize: '14px', fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--text-main)' }}>
-            COMUNIDAD <span style={{ color: 'var(--brand-celeste)' }}>DEL INTERCAMBIO</span>
+        </div>
+        <div className="relative flex items-center justify-between border-t border-white/10 pt-6 text-[10px] tracking-wide text-slate-400">
+          <span>COMUNIDAD DEL INTERCAMBIO</span>
+          <span className="flex items-center gap-2">
+            Formación & negocios
+            <ArrowUpRight size={13} />
           </span>
         </div>
-      </header>
-
-      {/* Contenedor Principal: Tarjeta Centrada de Login */}
-      <main style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '40px 20px'
-      }}>
-        <div style={{
-          width: '100%',
-          maxWidth: '440px',
-          backgroundColor: 'var(--bg-surface)',
-          border: '1px solid var(--border-medium)',
-          borderRadius: 'var(--radius-lg)',
-          boxShadow: 'var(--shadow-lg)',
-          padding: '42px 36px'
-        }}>
-          {/* Logo y Encabezado del Formulario */}
-          <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-            <div style={{
-              width: '64px',
-              height: '64px',
-              backgroundColor: '#0F172A',
-              borderRadius: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '8px',
-              margin: '0 auto 18px auto',
-              border: '1px solid #1E293B',
-              boxShadow: '0 4px 14px rgba(15, 23, 42, 0.15)'
-            }}>
-              <img 
-                src="/logo.png" 
-                alt="Comunidad del Intercambio" 
-                style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-              />
-            </div>
-
-            <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-main)', letterSpacing: '-0.01em', marginBottom: '6px' }}>
-              {isRegistering ? 'Crear cuenta' : 'Iniciar Sesión'}
-            </h1>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Comunidad del Intercambio • Formación & Negocios
-            </p>
-          </div>
-
-          {/* Formulario de Login Limpio */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {isRegistering && (
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', display: 'block', marginBottom: '6px', letterSpacing: '0.05em' }}>
-                  Nombre completo
-                </label>
-                <input
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Tu nombre"
-                  minLength={2}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-elevated)', border: '1px solid var(--border-medium)', color: 'var(--text-main)', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-                  required
+      </aside>
+      <main className="relative flex min-h-dvh flex-col px-6 py-7 sm:px-12">
+        <div className="lg:hidden">
+          <Brand />
+        </div>
+        <div className="mx-auto flex w-full max-w-[380px] flex-1 flex-col justify-center py-14 sm:py-20">
+          <span className="mb-6 flex size-12 items-center justify-center rounded-2xl border border-brand-line/70 bg-brand-soft text-brand">
+            <LockKeyhole size={22} strokeWidth={1.5} />
+          </span>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-brand">
+            BIENVENIDO A TU COMUNIDAD
+          </p>
+          <h1 className="text-[32px] leading-tight font-extrabold tracking-[-0.045em]">
+            Qué gusto verte de nuevo.
+          </h1>
+          <p className="mt-3 text-[13px] leading-6 text-subtle">
+            Ingresa a tu cuenta y continúa construyendo tu próximo paso.
+          </p>
+          <form onSubmit={submit} className="mt-9 space-y-5">
+            <label className="grid gap-2 text-xs font-semibold text-muted">
+              Correo electrónico
+              <div className="relative">
+                <Mail
+                  size={16}
+                  className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle"
                 />
-              </div>
-            )}
-            <div>
-              <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', display: 'block', marginBottom: '6px', letterSpacing: '0.05em' }}>
-                Correo Electrónico
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input 
-                  type="email" 
+                <input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  disabled={isSubmitting}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ejemplo@empresa.com"
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px 11px 38px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-surface-elevated)',
-                    border: '1px solid var(--border-medium)',
-                    color: 'var(--text-main)',
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                  required
+                  placeholder="nombre@correo.com"
+                  className="!min-h-12 w-full !pl-10"
                 />
               </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  Contraseña
-                </label>
-                <span style={{ fontSize: '11px', color: 'var(--brand-celeste)', cursor: 'pointer', fontWeight: 600 }}>
-                  ¿Olvidaste tu contraseña?
-                </span>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-dim)' }} />
-                <input 
-                  type={showPassword ? 'text' : 'password'}
+            </label>
+            <label className="grid gap-2 text-xs font-semibold text-muted">
+              Contraseña
+              <div className="relative">
+                <LockKeyhole
+                  size={16}
+                  className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle"
+                />
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  disabled={isSubmitting}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Introduce tu contraseña"
-                  minLength={isRegistering ? 8 : undefined}
-                  style={{
-                    width: '100%',
-                    padding: '11px 40px 11px 38px',
-                    borderRadius: 'var(--radius-md)',
-                    backgroundColor: 'var(--bg-surface-elevated)',
-                    border: '1px solid var(--border-medium)',
-                    color: 'var(--text-main)',
-                    fontSize: '13px',
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                  required
+                  placeholder="Ingresa tu contraseña"
+                  className="!min-h-12 w-full !pr-11 !pl-10"
                 />
                 <button
                   type="button"
+                  aria-label={
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
+                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded-lg p-2 text-subtle hover:text-brand"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-dim)',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'flex',
-                    alignItems: 'center'
-                  }}
-                  title={showPassword ? 'Ocultar contraseña' : 'Ver contraseña'}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)' }}>
-                <input 
-                  type="checkbox" 
-                  checked={rememberMe} 
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ accentColor: 'var(--brand-celeste)', cursor: 'pointer' }}
-                />
-                <span>Recordar mi sesión</span>
-              </label>
-            </div>
-
+            </label>
+            <label className="flex w-fit cursor-pointer items-center gap-2.5 text-[11px] text-muted">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              Recordarme en este dispositivo
+            </label>
             {error && (
-              <div role="alert" style={{ padding: '10px 12px', borderRadius: '8px', color: '#991B1B', background: '#FEF2F2', border: '1px solid #FECACA', fontSize: '12px' }}>
-                {error}
+              <div role="alert" className="flex items-start gap-2.5">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>{error}</span>
               </div>
             )}
-
-            <button 
-              type="submit" 
-              className="btn btn-primary"
-              style={{ width: '100%', padding: '12px', fontSize: '14px', marginTop: '4px', justifyContent: 'center' }}
-              disabled={isSubmitting}
-            >
-              <span>{isSubmitting ? 'Conectando…' : isRegistering ? 'Crear cuenta' : 'Ingresar al Portal'}</span>
-              <ArrowRight size={16} />
-            </button>
             <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => { setIsRegistering((value) => !value); setError(''); }}
-              style={{ width: '100%', justifyContent: 'center' }}
+              type="submit"
+              disabled={isSubmitting}
+              className="btn btn-primary !min-h-12 w-full !text-sm"
             >
-              {isRegistering ? 'Ya tengo una cuenta' : 'Crear una cuenta nueva'}
+              {isSubmitting ? (
+                <>
+                  <LoaderCircle size={17} className="animate-spin" />
+                  Conectando...
+                </>
+              ) : (
+                <>
+                  Ingresar a mi plataforma
+                  <ArrowRight size={17} />
+                </>
+              )}
             </button>
           </form>
+          <div className="mt-9 flex items-center gap-3 text-[10px] text-subtle/70">
+            <span className="h-px flex-1 bg-line" />
+            <LockKeyhole size={11} />
+            <span>Tu espacio de aprendizaje</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
         </div>
+        <p className="text-center text-[10px] text-subtle/70">
+          Comunidad del Intercambio · Formación que conecta
+        </p>
       </main>
-
-      {/* Footer corporativo */}
-      <footer style={{
-        padding: '16px 24px',
-        textAlign: 'center',
-        borderTop: '1px solid var(--border-subtle)',
-        fontSize: '12px',
-        color: 'var(--text-dim)',
-        backgroundColor: 'var(--bg-surface)'
-      }}>
-        © 2026 Comunidad del Intercambio • Todos los derechos reservados • Enfoque Corporativo
-      </footer>
     </div>
   );
 }
-
 export default LoginView;

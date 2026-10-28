@@ -1,19 +1,103 @@
-.tickets-page { display:grid; gap:20px; }
-.tickets-heading { display:flex; justify-content:space-between; gap:16px; align-items:center; flex-wrap:wrap; }
-.tickets-heading h1 { display:flex; gap:10px; align-items:center; }
-.tickets-heading p,.ticket-item small { color:var(--text-muted); }
-.tickets-layout { display:grid; grid-template-columns:minmax(200px, 300px) minmax(0,1fr); gap:20px; }
-.tickets-list,.ticket-conversation,.ticket-create { background:var(--bg-surface); border:1px solid var(--border-subtle); border-radius:12px; padding:20px; }
-.tickets-list { display:flex; flex-direction:column; gap:10px; max-height:70vh; overflow:auto; }
-.ticket-item { display:grid; gap:6px; text-align:left; padding:14px; background:var(--bg-surface-elevated); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:8px; cursor:pointer; overflow-wrap:anywhere; }
-.ticket-item.selected { border-color:var(--brand-celeste); }
-.ticket-create,.ticket-reply { display:grid; gap:12px; }
-.tickets-page label { display:grid; gap:6px; }
-.tickets-page input,.tickets-page textarea { width:100%; box-sizing:border-box; padding:10px; border:1px solid var(--border-subtle); border-radius:8px; background:var(--bg-main); color:var(--text-main); font:inherit; }
-.ticket-conversation { display:flex; flex-direction:column; gap:14px; min-width:0; }
-.ticket-messages { display:grid; gap:12px; max-height:50vh; overflow:auto; }
-.ticket-messages article { background:var(--bg-surface-elevated); padding:12px; border-radius:8px; overflow-wrap:anywhere; }
-.ticket-messages article.own-message { border-left:3px solid var(--brand-celeste); }
-.ticket-messages p { white-space:pre-wrap; }
-.tickets-error { padding:14px; background:#fff7ed; color:#9a3412; border-radius:8px; }
-@media(max-width:800px) { .tickets-layout { grid-template-columns:1fr; } .tickets-list { max-height:250px; } }
+@reference "../index.css";
+@layer components {
+  .tickets-page {
+    @apply grid gap-6;
+  }
+  .tickets-heading {
+    @apply flex flex-wrap items-start justify-between gap-4;
+  }
+  .tickets-heading h1 {
+    @apply flex items-center gap-3;
+  }
+  .tickets-heading h1 svg {
+    @apply text-brand;
+  }
+  .tickets-heading p {
+    @apply mt-2 max-w-xl text-xs leading-6 text-subtle;
+  }
+  .tickets-layout {
+    @apply grid items-start gap-5 lg:grid-cols-[280px_minmax(0,1fr)];
+  }
+  .tickets-list {
+    @apply grid max-h-[60dvh] gap-2 overflow-y-auto rounded-[22px] border border-line bg-surface p-3 shadow-panel;
+  }
+  .tickets-list > p {
+    @apply px-3 py-8 text-center text-xs text-subtle;
+  }
+  .ticket-item {
+    @apply grid w-full gap-1.5 rounded-xl border border-transparent bg-surface p-4 text-left transition [overflow-wrap:anywhere] hover:bg-elevated;
+  }
+  .ticket-item strong {
+    @apply text-xs leading-5 font-bold;
+  }
+  .ticket-item > span {
+    @apply w-fit rounded-full bg-elevated px-2 py-0.5 text-[9px] font-semibold text-subtle;
+  }
+  .ticket-item small {
+    @apply mt-1 text-[9px] text-subtle/75;
+  }
+  .ticket-item.selected {
+    @apply border-brand-line/70 bg-brand-soft/70;
+  }
+  .ticket-item.selected strong {
+    @apply text-brand;
+  }
+  .ticket-item.selected > span {
+    @apply bg-surface/80 text-brand;
+  }
+  .ticket-create {
+    @apply grid gap-4 rounded-[22px] border border-line bg-surface p-5 shadow-panel sm:grid-cols-2 sm:p-6;
+  }
+  .ticket-create h2 {
+    @apply text-base sm:col-span-2;
+  }
+  .ticket-create > button {
+    @apply w-fit justify-self-end sm:col-span-2;
+  }
+  .tickets-page label {
+    @apply grid gap-2 text-[11px] font-semibold text-muted;
+  }
+  .tickets-page input,
+  .tickets-page textarea {
+    @apply w-full;
+  }
+  .ticket-conversation {
+    @apply flex min-h-80 min-w-0 flex-col gap-4 rounded-[22px] border border-line bg-surface p-5 shadow-panel sm:p-6;
+  }
+  .ticket-conversation > h2 {
+    @apply text-lg;
+  }
+  .ticket-conversation > p {
+    @apply text-xs leading-6 text-subtle;
+  }
+  .ticket-conversation > .btn {
+    @apply w-fit;
+  }
+  .ticket-messages {
+    @apply grid max-h-[52dvh] gap-4 overflow-y-auto rounded-2xl border border-line bg-elevated/50 p-3 sm:p-5;
+  }
+  .ticket-messages article {
+    @apply w-fit max-w-[94%] rounded-2xl rounded-tl-sm border border-line bg-surface p-4 [overflow-wrap:anywhere];
+  }
+  .ticket-messages article.own-message {
+    @apply ml-auto rounded-tl-2xl rounded-tr-sm border-brand-line/60 bg-brand-soft;
+  }
+  .ticket-messages strong {
+    @apply text-[10px] font-bold text-brand;
+  }
+  .ticket-messages p {
+    @apply mt-1.5 whitespace-pre-wrap text-xs leading-6 text-muted;
+  }
+  .ticket-messages small {
+    @apply mt-2 block text-right text-[9px] text-subtle/70;
+  }
+  .ticket-reply {
+    @apply grid gap-3 border-t border-line pt-4;
+  }
+  .ticket-reply > button {
+    @apply w-fit justify-self-end;
+  }
+  .tickets-error {
+    @apply flex flex-wrap items-center justify-between gap-3 rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-xs text-danger;
+  }
+}

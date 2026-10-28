@@ -1,1091 +1,418 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
-  User,
-  Mail,
-  MapPin,
+  ArrowLeft,
+  ArrowUpRight,
+  Building2,
   Camera,
   CheckCircle2,
-  Save,
   Edit3,
-  ArrowLeft,
+  Globe,
+  LoaderCircle,
+  Mail,
+  MapPin,
+  Save,
+  UserRound,
 } from "lucide-react";
-
+import { Avatar, PageHeading } from "../components/ui";
+import { homeViewForRole } from "../services/access";
+import { ROLE_LABELS } from "../services/navigation";
+const formForUser = (user) => ({
+  name: user.name || "",
+  title: user.title || "",
+  company: user.company || "",
+  email: user.email || "",
+  phone: user.phone || "",
+  location: user.location || "",
+  linkedin: user.linkedin || "",
+  website: user.website || "",
+  bio: user.bio || "",
+  avatar: user.avatarUrl || "",
+});
+function Field({
+  label,
+  field,
+  form,
+  setForm,
+  editing,
+  type = "text",
+  placeholder,
+  maxLength,
+}) {
+  return (
+    <label className="grid gap-2 text-[11px] font-semibold text-muted">
+      {label}
+      <input
+        type={type}
+        value={form[field]}
+        readOnly={!editing}
+        required={field === "name"}
+        minLength={field === "name" ? 2 : undefined}
+        maxLength={maxLength}
+        placeholder={placeholder || "Sin especificar"}
+        className={
+          "w-full " +
+          (!editing ? "!border-transparent !bg-elevated/70 !text-muted" : "")
+        }
+        onChange={(event) =>
+          setForm((current) => ({ ...current, [field]: event.target.value }))
+        }
+      />
+    </label>
+  );
+}
 export function ProfileView({ user, onUpdateUser, onNavigate }) {
-  const roleLabel =
-    user.role === "soporte" ? "Soporte" : user.role === "admin"
-      ? "Administrador"
-      : user.role === "mentor"
-        ? "Mentor"
-        : "Estudiante";
-  const homeView =
-    user.role === "soporte" ? "tickets" : user.role === "admin"
-      ? "admin-overview"
-      : user.role === "mentor"
-        ? "mentor-dashboard"
-        : "dashboard";
-  const profileSubtitle =
-    user.role === "soporte" ? "Comunidad del Intercambio • Equipo de soporte" : user.role === "admin"
-      ? "Comunidad del Intercambio • Gestión administrativa"
-      : user.role === "mentor"
-        ? "Comunidad del Intercambio • Perfil profesional del mentor"
-        : "Comunidad del Intercambio • Datos académicos";
-  // Estado del formulario de edición
-  const [formData, setFormData] = useState({
-    name: user.name || "",
-    title: user.title || "",
-    company: user.company || "",
-    email: user.email || "",
-    phone: user.phone || "",
-    location: user.location || "",
-    linkedin: user.linkedin || "",
-    website: user.website || "",
-    bio: user.bio || "",
-    avatar:
-      user.avatar ||
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-  });
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [form, setForm] = useState(() => formForUser(user));
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
   const [avatarFile, setAvatarFile] = useState(null);
-  const [showPhotoPicker, setShowPhotoPicker] = useState(false);
-
-  // Fotografías de muestra ejecutivas listas para usar
-  const presetPhotos = [
-    {
-      label: "Foto 1",
-      url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      label: "Foto 2",
-      url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      label: "Foto 3",
-      url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      label: "Foto 4",
-      url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=300&q=80",
-    },
-    {
-      label: "Foto 5",
-      url: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80",
-    },
-  ];
-
-  const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleSave = async (e) => {
-    e.preventDefault();
-    setSaveError("");
-    setIsSaving(true);
+  const fileInput = useRef(null);
+  async function save(event) {
+    event.preventDefault();
+    if (!editing || saving) return;
+    setSaving(true);
+    setError("");
+    setSuccess(false);
     try {
-      const saved = await onUpdateUser({ ...formData }, avatarFile);
-      setFormData((current) => ({
+      const saved = await onUpdateUser({ ...form }, avatarFile);
+      setForm((current) => ({
         ...current,
         ...saved,
         name: saved.name,
-        avatar: saved.avatar,
+        avatar: saved.avatarUrl || saved.avatar || "",
       }));
       setAvatarFile(null);
-      setSaveSuccess(true);
-      setIsEditing(false);
-      setTimeout(() => setSaveSuccess(false), 4000);
-    } catch (error) {
-      setSaveError(error.message || "No se pudo guardar el perfil.");
+      setEditing(false);
+      setSuccess(true);
+    } catch (failure) {
+      setError(failure.message || "No se pudo guardar tu perfil.");
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
-  };
-
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setAvatarFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        handleInputChange("avatar", reader.result);
-      };
-      reader.readAsDataURL(file);
+  }
+  function photo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError("La imagen debe pesar menos de 5 MB.");
+      return;
     }
-  };
-
+    setAvatarFile(file);
+    setEditing(true);
+    setSuccess(false);
+    const reader = new FileReader();
+    reader.onloadend = () =>
+      setForm((current) => ({ ...current, avatar: reader.result }));
+    reader.readAsDataURL(file);
+  }
+  function cancel() {
+    setForm(formForUser(user));
+    setAvatarFile(null);
+    setEditing(false);
+    setError("");
+  }
+  const stats = user.stats || {};
+  const role = user.role;
+  const numbers =
+    role === "student"
+      ? [
+          { label: "Programas", value: stats.enrolledCourses ?? 0 },
+          { label: "Lecciones", value: stats.completedLessons ?? 0 },
+        ]
+      : role === "mentor"
+        ? [
+            { label: "Cursos", value: stats.assignedCourses ?? 0 },
+            { label: "Estudiantes", value: stats.activeStudents ?? 0 },
+          ]
+        : role === "admin"
+          ? [
+              { label: "Cursos", value: stats.totalCourses ?? 0 },
+              { label: "Estudiantes", value: stats.totalStudents ?? 0 },
+            ]
+          : [];
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "28px",
-        maxWidth: "1000px",
-        margin: "0 auto",
-      }}
-    >
-      {/* Alerta de confirmación al guardar */}
-      {saveSuccess && (
-        <div
-          style={{
-            padding: "14px 20px",
-            backgroundColor: "var(--brand-celeste-subtle)",
-            border: "1px solid var(--brand-celeste)",
-            borderRadius: "var(--radius-md)",
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            color: "var(--text-main)",
-            fontSize: "14px",
-            fontWeight: 600,
-          }}
-        >
-          <CheckCircle2
-            size={18}
-            style={{ color: "var(--brand-celeste)", flexShrink: 0 }}
-          />
-          <span>
-            ¡Tu perfil y fotografía se han actualizado exitosamente en toda la
-            plataforma!
-          </span>
-        </div>
-      )}
-      {saveError && (
-        <div
-          role="alert"
-          style={{
-            padding: "14px 20px",
-            backgroundColor: "#FEF2F2",
-            border: "1px solid #FCA5A5",
-            borderRadius: "var(--radius-md)",
-            color: "#991B1B",
-            fontSize: "14px",
-            fontWeight: 600,
-          }}
-        >
-          {saveError}
-        </div>
-      )}
-
-      {/* Encabezado Principal de la Vista (Estilo idéntico a la solicitud) */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: "16px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <div
-            style={{
-              width: "42px",
-              height: "42px",
-              borderRadius: "12px",
-              backgroundColor: "var(--brand-celeste-subtle)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--brand-celeste)",
-            }}
-          >
-            <User size={22} />
-          </div>
-          <div>
-            <h1
-              style={{
-                fontSize: "24px",
-                fontWeight: 800,
-                color: "var(--text-main)",
-                letterSpacing: "-0.02em",
-                margin: 0,
-              }}
-            >
-              Mi Perfil de {roleLabel}
-            </h1>
-            <p
-              style={{
-                fontSize: "13px",
-                color: "var(--text-muted)",
-                margin: "2px 0 0 0",
-              }}
-            >
-              {profileSubtitle}
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {onNavigate && (
+    <section className="space-y-7">
+      <PageHeading
+        eyebrow="TU IDENTIDAD EN LA COMUNIDAD"
+        title="Un perfil que habla de ti."
+        description="Mantén tus datos actualizados y comparte tu experiencia con tu comunidad."
+        icon={UserRound}
+        action={
+          !editing ? (
             <button
-              className="btn btn-secondary btn-sm"
-              onClick={() => onNavigate(homeView)}
-              style={{ gap: "6px" }}
-              title="Volver a la pantalla de Dashboard"
+              className="btn btn-secondary"
+              onClick={() => {
+                setEditing(true);
+                setSuccess(false);
+              }}
             >
-              <ArrowLeft size={14} />
-              <span>Volver</span>
+              <Edit3 size={14} />
+              Editar perfil
             </button>
-          )}
-
-          <button
-            className={isEditing ? "btn btn-secondary" : "btn btn-primary"}
-            onClick={() => setIsEditing(!isEditing)}
-            style={{ gap: "8px", padding: "9px 18px" }}
-          >
-            <Edit3 size={15} />
-            <span>{isEditing ? "Ver Perfil" : "Editar Datos"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tarjeta Principal de Perfil con Fotografía y Descripción */}
-      <div
-        style={{
-          backgroundColor: "var(--bg-surface)",
-          border: "1px solid var(--border-medium)",
-          borderRadius: "var(--radius-lg)",
-          boxShadow: "var(--shadow-sm)",
-          overflow: "hidden",
-        }}
-      >
-        {/* Franja superior estética */}
-        <div
-          style={{
-            height: "110px",
-            backgroundColor: "#0F172A",
-            borderBottom: "2px solid var(--brand-celeste)",
-            position: "relative",
-          }}
+          ) : (
+            <span className="badge badge-emerald">Editando tu perfil</span>
+          )
+        }
+      />
+      {error && <p role="alert">{error}</p>}
+      {success && (
+        <p
+          role="status"
+          className="flex items-center gap-2.5 rounded-xl border border-brand-line bg-brand-soft px-4 py-3 text-xs font-semibold text-brand"
         >
-          <div
-            style={{
-              position: "absolute",
-              right: "24px",
-              bottom: "12px",
-              color: "var(--brand-celeste)",
-              fontSize: "12px",
-              fontWeight: 700,
-              letterSpacing: "0.05em",
-            }}
-          >
-            COMUNIDAD DEL INTERCAMBIO • PERFIL OFICIAL
+          <CheckCircle2 size={16} />
+          Tu perfil y fotografía se actualizaron correctamente.
+        </p>
+      )}
+      <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="overflow-hidden rounded-[22px] border border-line bg-surface shadow-panel">
+          <div className="relative h-24 overflow-hidden bg-linear-to-br from-brand-soft via-sky-100/60 to-slate-100">
+            <span
+              aria-hidden="true"
+              className="absolute -top-10 -right-5 size-40 rounded-full border-[20px] border-white/40"
+            />
           </div>
-        </div>
-
-        <div style={{ padding: "0 32px 32px 32px" }}>
-          {/* Fila del Avatar y Datos Clave */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              justifyContent: "space-between",
-              marginTop: "-54px",
-              marginBottom: "20px",
-              flexWrap: "wrap",
-              gap: "16px",
-            }}
-          >
-            <div
-              style={{ display: "flex", alignItems: "flex-end", gap: "20px" }}
-            >
-              {/* Fotografía del Estudiante */}
-              <div style={{ position: "relative" }}>
-                <img
-                  src={formData.avatar}
-                  alt={formData.name}
-                  style={{
-                    width: "108px",
-                    height: "108px",
-                    borderRadius: "50%",
-                    objectFit: "cover",
-                    border: "4px solid var(--bg-surface)",
-                    boxShadow: "var(--shadow-md)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPhotoPicker(!showPhotoPicker)}
-                  title="Cambiar fotografía de perfil"
-                  style={{
-                    position: "absolute",
-                    bottom: "4px",
-                    right: "4px",
-                    backgroundColor: "var(--brand-celeste)",
-                    color: "#FFFFFF",
-                    border: "2px solid var(--bg-surface)",
-                    borderRadius: "50%",
-                    width: "32px",
-                    height: "32px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    boxShadow: "var(--shadow-sm)",
-                  }}
-                >
-                  <Camera size={14} />
-                </button>
-              </div>
-
-              {/* Nombre, Título y Badges */}
-              <div style={{ paddingBottom: "6px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <h2
-                    style={{
-                      fontSize: "22px",
-                      fontWeight: 800,
-                      color: "var(--text-main)",
-                      margin: 0,
-                    }}
-                  >
-                    {formData.name}
-                  </h2>
-                  <span
-                    className="badge badge-emerald"
-                    style={{ fontSize: "11px" }}
-                  >
-                    <CheckCircle2 size={12} />
-                    <span>Alumno Activo</span>
-                  </span>
-                  <span
-                    className="badge badge-amber"
-                    style={{ fontSize: "11px" }}
-                  >
-                    {user.plan || "Plan Scale Pass"}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: "14px",
-                    fontWeight: 600,
-                    color: "var(--brand-celeste)",
-                    marginTop: "4px",
-                  }}
-                >
-                  {formData.title}{" "}
-                  {formData.company ? `• ${formData.company}` : ""}
-                </div>
-              </div>
-            </div>
-
-            {/* Datos de Contacto Rápidos */}
-            <div
-              style={{
-                display: "flex",
-                gap: "16px",
-                fontSize: "13px",
-                color: "var(--text-muted)",
-                flexWrap: "wrap",
-                paddingBottom: "6px",
-              }}
-            >
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <Mail size={14} style={{ color: "var(--brand-celeste)" }} />
-                <span>{formData.email}</span>
-              </div>
-              <div
-                style={{ display: "flex", alignItems: "center", gap: "6px" }}
-              >
-                <MapPin size={14} style={{ color: "var(--brand-celeste)" }} />
-                <span>{formData.location}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Selector desplegable de fotografía de perfil */}
-          {showPhotoPicker && (
-            <div
-              style={{
-                padding: "16px 20px",
-                backgroundColor: "var(--bg-surface-elevated)",
-                border: "1px solid var(--border-medium)",
-                borderRadius: "var(--radius-md)",
-                marginBottom: "24px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: "var(--text-main)",
-                  marginBottom: "10px",
-                }}
-              >
-                Selecciona tu fotografía o sube una desde tu computadora:
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "14px",
-                  flexWrap: "wrap",
-                  marginBottom: "14px",
-                }}
-              >
-                {presetPhotos.map((p, idx) => (
-                  <img
-                    key={idx}
-                    src={p.url}
-                    alt={p.label}
-                    onClick={() => {
-                      handleInputChange("avatar", p.url);
-                      setAvatarFile(null);
-                    }}
-                    style={{
-                      width: "46px",
-                      height: "46px",
-                      borderRadius: "50%",
-                      objectFit: "cover",
-                      cursor: "pointer",
-                      border:
-                        formData.avatar === p.url
-                          ? "3px solid var(--brand-celeste)"
-                          : "2px solid var(--border-subtle)",
-                      transition: "transform 0.15s ease",
-                    }}
-                    title={`Elegir ${p.label}`}
-                  />
-                ))}
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "12px",
-                  flexWrap: "wrap",
-                }}
-              >
-                <label
-                  className="btn btn-secondary btn-sm"
-                  style={{ cursor: "pointer", gap: "6px" }}
-                >
-                  <Camera size={14} />
-                  <span>Subir foto desde tu equipo</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    style={{ display: "none" }}
-                  />
-                </label>
-
-                <input
-                  type="url"
-                  placeholder="O pega aquí la URL de tu foto..."
-                  value={formData.avatar}
-                  onChange={(e) => handleInputChange("avatar", e.target.value)}
-                  style={{
-                    flex: 1,
-                    minWidth: "220px",
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    border: "1px solid var(--border-medium)",
-                    borderRadius: "var(--radius-sm)",
-                    backgroundColor: "var(--bg-surface)",
-                    color: "var(--text-main)",
-                  }}
-                />
-
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowPhotoPicker(false)}
-                >
-                  Listo
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* DESCRIPCIÓN DEL PERFIL (Requisito solicitado: Abajo del perfil una descripción) */}
-          <div
-            style={{
-              marginTop: "16px",
-              padding: "20px 24px",
-              backgroundColor: "var(--bg-surface-elevated)",
-              border: "1px solid var(--border-subtle)",
-              borderLeft: "4px solid var(--brand-celeste)",
-              borderRadius: "var(--radius-md)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 800,
-                  color: "var(--text-dim)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                Descripción & Biografía Profesional
-              </span>
+          <div className="relative px-6 pb-6">
+            <div className="-mt-10 mb-4 inline-flex rounded-full bg-surface p-1.5">
+              <Avatar
+                name={form.name}
+                src={form.avatar}
+                className="size-20 !text-xl"
+              />
               <button
-                onClick={() => setIsEditing(true)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "var(--brand-celeste)",
-                  fontSize: "12px",
-                  cursor: "pointer",
-                  fontWeight: 700,
-                }}
+                aria-label="Cambiar foto de perfil"
+                className="absolute top-12 left-20 flex size-7 items-center justify-center rounded-full border-2 border-surface bg-brand text-on-brand shadow-sm"
+                onClick={() => fileInput.current?.click()}
+                disabled={saving}
               >
-                Editar descripción
+                <Camera size={12} />
               </button>
             </div>
-            <p
-              style={{
-                fontSize: "14px",
-                color: "var(--text-main)",
-                lineHeight: "1.6",
-                margin: 0,
-                fontStyle: "normal",
-              }}
-            >
-              "{formData.bio}"
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={photo}
+            />
+            <p className="mb-2">
+              <span className="badge badge-emerald">
+                {ROLE_LABELS[role] || "Miembro"}
+              </span>
+            </p>
+            <h2 className="text-xl leading-7">{form.name}</h2>
+            <p className="mt-1 text-xs leading-6 text-subtle">
+              {form.title || ROLE_LABELS[role]}
+            </p>
+            <div className="mt-5 space-y-3 border-t border-line pt-5 text-[11px] text-subtle">
+              <p className="flex items-start gap-2.5 break-all">
+                <Mail size={14} className="mt-0.5 shrink-0" />
+                {user.email}
+              </p>
+              {form.company && (
+                <p className="flex items-center gap-2.5">
+                  <Building2 size={14} className="shrink-0" />
+                  {form.company}
+                </p>
+              )}
+              {form.location && (
+                <p className="flex items-center gap-2.5">
+                  <MapPin size={14} className="shrink-0" />
+                  {form.location}
+                </p>
+              )}
+            </div>
+            {numbers.length > 0 && (
+              <div className="mt-6 grid grid-cols-2 gap-2 rounded-xl bg-elevated p-4">
+                {numbers.map((item) => (
+                  <div key={item.label} className="text-center">
+                    <p className="text-xl font-extrabold tracking-tight">
+                      {item.value}
+                    </p>
+                    <p className="mt-1 text-[9px] text-subtle">{item.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="mt-5 text-[10px] leading-5 text-subtle/70">
+              Tu fotografía y perfil profesional acompañan tu participación en
+              la plataforma.
             </p>
           </div>
-
-          {/* Tarjetas de Métricas de Formación */}
-          {user.role === "student" && (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-                gap: "14px",
-                marginTop: "20px",
-              }}
-            >
-              <div
-                style={{
-                  padding: "14px 18px",
-                  backgroundColor: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Cursos Activos
-                </div>
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: 800,
-                    color: "var(--text-main)",
-                    marginTop: "4px",
-                  }}
-                >
-                  {user.stats?.coursesInProgress ?? 0} Programas
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "14px 18px",
-                  backgroundColor: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Lecciones Vistas
-                </div>
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: 800,
-                    color: "var(--brand-celeste)",
-                    marginTop: "4px",
-                  }}
-                >
-                  {user.stats?.completedLessons ?? 0} Completadas
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "14px 18px",
-                  backgroundColor: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Horas de Formación
-                </div>
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: 800,
-                    color: "var(--text-main)",
-                    marginTop: "4px",
-                  }}
-                >
-                  {user.stats?.totalHoursWatched ?? 0} Horas
-                </div>
-              </div>
-
-              <div
-                style={{
-                  padding: "14px 18px",
-                  backgroundColor: "var(--bg-surface)",
-                  border: "1px solid var(--border-subtle)",
-                  borderRadius: "var(--radius-md)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-dim)",
-                    fontWeight: 700,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Asistencia a Vivos
-                </div>
-                <div
-                  style={{
-                    fontSize: "20px",
-                    fontWeight: 800,
-                    color: "var(--text-main)",
-                    marginTop: "4px",
-                  }}
-                >
-                  {user.stats?.attendanceRate || "No medido"}
-                </div>
+        </aside>
+        <form onSubmit={save} className="space-y-6">
+          <article className="rounded-[22px] border border-line bg-surface p-5 shadow-panel sm:p-7">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                <UserRound size={18} />
+              </span>
+              <div>
+                <h2 className="text-base">Información personal</h2>
+                <p className="mt-0.5 text-[11px] text-subtle">
+                  Los datos básicos de tu cuenta.
+                </p>
               </div>
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* APARTADO PARA EDITAR EL PERFIL (Formulario de Edición) */}
-      {isEditing && (
-        <div
-          style={{
-            backgroundColor: "var(--bg-surface)",
-            border: "1px solid var(--brand-celeste-border)",
-            borderRadius: "var(--radius-lg)",
-            boxShadow: "var(--shadow-md)",
-            padding: "32px",
-          }}
-        >
-          <div
-            style={{
-              marginBottom: "24px",
-              borderBottom: "1px solid var(--border-subtle)",
-              paddingBottom: "16px",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: 800,
-                color: "var(--text-main)",
-                margin: "0 0 6px 0",
-              }}
-            >
-              Editar Información de Perfil
-            </h3>
-            <p
-              style={{
-                fontSize: "13px",
-                color: "var(--text-muted)",
-                margin: 0,
-              }}
-            >
-              Actualiza tus datos para que la comunidad te identifique
-              correctamente.
-            </p>
-          </div>
-
-          <form
-            onSubmit={handleSave}
-            style={{ display: "flex", flexDirection: "column", gap: "20px" }}
-          >
-            {/* Grid de Campos Personales */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-                gap: "18px",
-              }}
-            >
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Nombre Completo
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-medium)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Cargo o Título Profesional
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                  placeholder="Ej: Fundador & CEO"
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-medium)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                  required
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Empresa u Organización
-                </label>
-                <input
-                  type="text"
-                  value={formData.company}
-                  onChange={(e) => handleInputChange("company", e.target.value)}
-                  placeholder="Ej: ScaleTech LATAM"
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-medium)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Correo Electrónico
-                </label>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Nombre completo"
+                field="name"
+                form={form}
+                setForm={setForm}
+                editing={editing}
+                maxLength={120}
+              />
+              <label className="grid gap-2 text-[11px] font-semibold text-muted">
+                Correo electrónico
                 <input
                   type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-medium)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                  required
+                  value={user.email || ""}
+                  readOnly
+                  className="w-full !border-transparent !bg-elevated/70 !text-subtle"
                 />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Teléfono / WhatsApp de Contacto
-                </label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange("phone", e.target.value)}
-                  placeholder="+52 55 1234 5678"
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-medium)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                    display: "block",
-                    marginBottom: "6px",
-                  }}
-                >
-                  Ubicación (Ciudad, País)
-                </label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) =>
-                    handleInputChange("location", e.target.value)
-                  }
-                  placeholder="Ej: Madrid, España"
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-medium)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Campo: DESCRIPCIÓN Y BIOGRAFÍA */}
-            <div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "6px",
-                }}
-              >
-                <label
-                  style={{
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--text-dim)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Descripción del Perfil / Biografía Personal
-                </label>
-                <span style={{ fontSize: "11px", color: "var(--text-dim)" }}>
-                  {formData.bio.length} caracteres
-                </span>
-              </div>
-              <textarea
-                rows={4}
-                value={formData.bio}
-                onChange={(e) => handleInputChange("bio", e.target.value)}
-                placeholder="Escribe una breve descripción sobre tu perfil profesional, tus objetivos de negocio y áreas de interés..."
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  borderRadius: "var(--radius-md)",
-                  border: "1px solid var(--border-medium)",
-                  backgroundColor: "var(--bg-surface-elevated)",
-                  color: "var(--text-main)",
-                  fontSize: "13px",
-                  lineHeight: "1.5",
-                  outline: "none",
-                  resize: "vertical",
-                  boxSizing: "border-box",
-                }}
-                required
-              />
-              <span
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-dim)",
-                  marginTop: "4px",
-                  display: "block",
-                }}
-              >
-                Esta descripción aparecerá destacada abajo de tu fotografía y
-                nombre de perfil.
-              </span>
-            </div>
-
-            {/* Enlace URL de Fotografía */}
-            <div>
-              <label
-                style={{
-                  fontSize: "12px",
-                  fontWeight: 700,
-                  color: "var(--text-dim)",
-                  textTransform: "uppercase",
-                  display: "block",
-                  marginBottom: "6px",
-                }}
-              >
-                URL de Fotografía de Perfil
               </label>
-              <div style={{ display: "flex", gap: "10px" }}>
-                <input
-                  type="url"
-                  value={formData.avatar}
-                  onChange={(e) => handleInputChange("avatar", e.target.value)}
-                  placeholder="https://..."
-                  style={{
-                    flex: 1,
-                    padding: "10px 14px",
-                    borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-medium)",
-                    backgroundColor: "var(--bg-surface-elevated)",
-                    color: "var(--text-main)",
-                    fontSize: "13px",
-                    outline: "none",
-                    boxSizing: "border-box",
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowPhotoPicker(true)}
-                >
-                  <Camera size={14} />
-                  <span>Galería</span>
-                </button>
+              <Field
+                label="Teléfono"
+                field="phone"
+                type="tel"
+                form={form}
+                setForm={setForm}
+                editing={editing}
+                maxLength={40}
+              />
+              <Field
+                label="Ciudad / país"
+                field="location"
+                form={form}
+                setForm={setForm}
+                editing={editing}
+                maxLength={160}
+              />
+            </div>
+          </article>
+          <article className="rounded-[22px] border border-line bg-surface p-5 shadow-panel sm:p-7">
+            <div className="mb-6 flex items-center gap-3">
+              <span className="flex size-10 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                <Building2 size={18} />
+              </span>
+              <div>
+                <h2 className="text-base">Perfil profesional</h2>
+                <p className="mt-0.5 text-[11px] text-subtle">
+                  Tu experiencia y lo que te mueve.
+                </p>
               </div>
             </div>
-
-            {/* Botones de Guardar y Cancelar */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: "12px",
-                marginTop: "12px",
-                paddingTop: "16px",
-                borderTop: "1px solid var(--border-subtle)",
-              }}
-            >
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field
+                label="Cargo o especialidad"
+                field="title"
+                form={form}
+                setForm={setForm}
+                editing={editing}
+                maxLength={160}
+              />
+              <Field
+                label="Empresa / organización"
+                field="company"
+                form={form}
+                setForm={setForm}
+                editing={editing}
+                maxLength={160}
+              />
+              <Field
+                label="LinkedIn"
+                field="linkedin"
+                type="url"
+                form={form}
+                setForm={setForm}
+                editing={editing}
+                placeholder="https://linkedin.com/in/tu-perfil"
+              />
+              <Field
+                label="Sitio web"
+                field="website"
+                type="url"
+                form={form}
+                setForm={setForm}
+                editing={editing}
+                placeholder="https://tu-sitio.com"
+              />
+              <label className="grid gap-2 text-[11px] font-semibold text-muted sm:col-span-2">
+                Acerca de ti
+                <textarea
+                  maxLength={2000}
+                  rows={5}
+                  readOnly={!editing}
+                  placeholder="Comparte un poco de tu experiencia, tus intereses y tus objetivos."
+                  className={
+                    "w-full " +
+                    (!editing
+                      ? "!border-transparent !bg-elevated/70 !text-muted"
+                      : "")
+                  }
+                  value={form.bio}
+                  onChange={(event) =>
+                    setForm({ ...form, bio: event.target.value })
+                  }
+                />
+                <span className="text-right text-[9px] font-normal text-subtle">
+                  {form.bio.length} / 2000
+                </span>
+              </label>
+            </div>
+          </article>
+          {editing && (
+            <div className="flex flex-wrap items-center justify-end gap-3">
               <button
                 type="button"
+                disabled={saving}
+                onClick={cancel}
                 className="btn btn-secondary"
-                onClick={() => setIsEditing(false)}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
+                disabled={saving}
                 className="btn btn-primary"
-                style={{ gap: "8px", padding: "10px 24px" }}
-                disabled={isSaving}
               >
-                <Save size={15} />
-                <span>{isSaving ? "Guardando…" : "Guardar Cambios"}</span>
+                {saving ? (
+                  <LoaderCircle size={15} className="animate-spin" />
+                ) : (
+                  <Save size={15} />
+                )}{" "}
+                {saving ? "Guardando..." : "Guardar cambios"}
               </button>
             </div>
-          </form>
-        </div>
-      )}
-    </div>
+          )}
+          {!editing && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                type="button"
+                className="flex items-center gap-2 text-xs font-semibold text-subtle hover:text-brand"
+                onClick={() => onNavigate(homeViewForRole(role))}
+              >
+                <ArrowLeft size={14} />
+                Volver a mi espacio
+              </button>
+              {/^https?:\/\//.test(form.website) && (
+                <a
+                  className="flex items-center gap-2 text-xs font-semibold text-brand"
+                  href={form.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Globe size={13} />
+                  Mi sitio web
+                  <ArrowUpRight size={13} />
+                </a>
+              )}
+            </div>
+          )}
+        </form>
+      </div>
+    </section>
   );
 }
-
 export default ProfileView;
