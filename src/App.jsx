@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   libraryResources as initialResources,
   notificationsList as initialNotifications,
@@ -34,7 +34,13 @@ import { CommunityView } from "./views/CommunityView";
 import { ProfileView } from "./views/ProfileView";
 import { AdminView } from "./views/AdminView";
 
+import { ROLE_VIEWS, homeViewForRole } from "./services/access";
+import { authenticateWithResources } from "./services/asyncFlows";
+import { loadRoleResources } from "./services/applicationData";
+import { TicketsView } from "./views/TicketsView";
+
 const VIEW_PATHS = {
+  tickets: "/soporte",
   dashboard: "/panel",
   "mentor-dashboard": "/mentor",
   courses: "/programas",
@@ -49,42 +55,6 @@ const VIEW_PATHS = {
   "admin-live": "/administrador/sesiones",
   "admin-users": "/administrador/usuarios",
 };
-
-const ROLE_VIEWS = {
-  student: [
-    "dashboard",
-    "courses",
-    "course-player",
-    "live",
-    "replays",
-    "library",
-    "mentors",
-    "community",
-    "profile",
-  ],
-  mentor: [
-    "mentor-dashboard",
-    "live",
-    "replays",
-    "library",
-    "community",
-    "profile",
-  ],
-  admin: [
-    "admin-overview",
-    "admin-courses",
-    "admin-live",
-    "admin-users",
-    "profile",
-  ],
-};
-
-const homeViewForRole = (role) =>
-  role === "admin"
-    ? "admin-overview"
-    : role === "mentor"
-      ? "mentor-dashboard"
-      : "dashboard";
 
 const viewFromPath = (pathname) => {
   if (/^\/programas\/[^/]+$/.test(pathname)) return "course-player";
@@ -156,6 +126,9 @@ export function App() {
     localStorage.setItem("traction_theme", "light");
   }, []);
 
+  const authGeneration = useRef(0);
+  const resourceJob = useRef(null);
+
   // Auth & Multi-Role State
   const [isAuthenticated, setIsAuthenticated] = useState(hasSession);
   const [isBootstrapping, setIsBootstrapping] = useState(hasSession);
@@ -188,12 +161,14 @@ export function App() {
   });
 
   // Navigation State
-  const [currentView, setCurrentView] = useState(() => {
+  const [requestedCurrentView, setCurrentView] = useState(() => {
     const routeView = viewFromPath(window.location.pathname);
     if (routeView) return routeView;
     const savedRole = localStorage.getItem("traction_auth_role");
     return homeViewForRole(savedRole);
   });
+
+  const currentView = ROLE_VIEWS[currentRole]?.includes(requestedCurrentView) ? requestedCurrentView : homeViewForRole(currentRole);
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
@@ -245,26 +220,14 @@ export function App() {
     }
   };
 
-  const loadApplicationData = async (profile) => {
+  const loadApplicationData = async (profile, generation = authGeneration.current, options = {}) => {
+    const payload = await loadRoleResources(profile.role, api, options);
+    if (!payload) return adaptUser(profile);
     const isStudent =
       profile.role === "estudiante" || profile.role === "alumno";
     const isMentor = profile.role === "mentor" || profile.role === "docente";
     const isAdmin = profile.role === "admin";
-    const dashboardRequest = isStudent
-      ? api.dashboard.student()
-      : isMentor
-        ? api.dashboard.mentor()
-        : isAdmin
-          ? api.dashboard.admin()
-          : Promise.resolve(null);
-    const [coursePayload, sessionRows, videoRows, userRows, dashboard] =
-      await Promise.all([
-        isStudent || isMentor ? Promise.resolve([]) : api.courses.list(),
-        api.liveSessions.list(),
-        api.videos.list(),
-        isAdmin ? api.users.list() : Promise.resolve([]),
-        dashboardRequest,
-      ]);
+    const [coursePayload, sessionRows, videoRows, userRows, dashboard] = payload;
     const dashboardMentors = new Map(
       (dashboard?.mentors || []).map((mentor) => [String(mentor.id), mentor]),
     );
@@ -306,6 +269,7 @@ export function App() {
           ...(dashboard?.stats || {}),
         };
 
+    if (generation !== authGeneration.current || options.signal?.aborted) return adaptedUser;
     setUser(adaptedUser);
     setCourses(adaptedCourses);
     setLiveClasses(adaptedSessions);
@@ -352,29 +316,27 @@ export function App() {
   useEffect(() => {
     if (!hasSession()) return;
     let active = true;
-    (async () => {
-      try {
-        const profile = await api.me();
-        if (!active) return;
-        const loadedUser = await loadApplicationData(profile);
-        if (!active) return;
-        const role = loadedUser.role;
-        setCurrentRole(role);
+    const generation = ++authGeneration.current;
+    authenticateWithResources({
+      authenticate: () => api.me(),
+      isCurrent: () => active && generation === authGeneration.current,
+      onAuthenticated: profile => {
+        const account = adaptUser(profile);
+        setUser(account);
+        setCurrentRole(account.role);
         setIsAuthenticated(true);
         localStorage.setItem("traction_authenticated", "true");
-        localStorage.setItem("traction_auth_role", role);
-      } catch (error) {
-        if (!active) return;
-        clearSession();
-        setIsAuthenticated(false);
-        setAppError(error.message);
-      } finally {
-        if (active) setIsBootstrapping(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
+        localStorage.setItem("traction_auth_role", account.role);
+      },
+      onSettled: () => setIsBootstrapping(false),
+      loadResources: (profile, options) => loadApplicationData(profile, generation, options),
+      onResourceError: error => setAppError(error.message),
+      onResourceJob: cancel => { resourceJob.current = cancel; },
+    }).catch(error => {
+      if (!active || generation !== authGeneration.current) return;
+      clearSession(); setIsAuthenticated(false); setUser(null); setAppError(error.message);
+    });
+    return () => { active = false; resourceJob.current?.(); };
   }, []);
 
   // Mantener la lista administrativa sincronizada con nuevos registros.
@@ -403,7 +365,7 @@ export function App() {
   }, [isAuthenticated, currentRole]);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || currentRole === "soporte") return;
     let active = true;
     const refreshLiveSessions = async () => {
       try {
@@ -480,21 +442,27 @@ export function App() {
 
   // Handle real API login
   const handleLogin = async ({ email, password }) => {
-    const session = await api.login(email, password);
-    saveSession(session);
-    const accountUser = await loadApplicationData(session.user);
-    const role = accountUser.role;
-    setAppError("");
-    setUser(accountUser);
-    setCurrentRole(role);
-    setIsAuthenticated(true);
-    localStorage.setItem("traction_authenticated", "true");
-    localStorage.setItem("traction_auth_role", role);
-
-    const homeView = homeViewForRole(role);
-    setCurrentView(homeView);
-    window.history.replaceState({}, "", pathForView(homeView));
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    resourceJob.current?.();
+    const generation = ++authGeneration.current;
+    await authenticateWithResources({
+      authenticate: () => api.login(email, password),
+      isCurrent: () => generation === authGeneration.current,
+      onAuthenticated: session => {
+        saveSession(session);
+        const account = adaptUser(session.user);
+        setAppError(""); setUser(account); setCurrentRole(account.role); setIsAuthenticated(true);
+        localStorage.setItem("traction_authenticated", "true");
+        localStorage.setItem("traction_auth_role", account.role);
+        const homeView = homeViewForRole(account.role);
+        setCurrentView(homeView);
+        window.history.replaceState({}, "", pathForView(homeView));
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      },
+      onSettled: () => setIsBootstrapping(false),
+      loadResources: (session, options) => loadApplicationData(session.user, generation, options),
+      onResourceError: error => setAppError(error.message),
+      onResourceJob: cancel => { resourceJob.current = cancel; },
+    });
   };
 
   const handleRegister = async ({ fullName, email, password }) => {
@@ -504,7 +472,15 @@ export function App() {
 
   // Handle Logout
   const handleLogout = () => {
+    resourceJob.current?.();
+    ++authGeneration.current;
     clearSession();
+    setIsBootstrapping(false);
+    setUsers([]); setReplays([]); setMentors([]);
+    setSelectedCourse(null); setSelectedLessonId(null);
+    setLiveSessionModalData(null);
+    setIsNotificationsOpen(false); setIsMembershipModalOpen(false);
+    setAppError("");
     setIsAuthenticated(false);
     setUser(null);
     setCourses([]);
@@ -520,6 +496,12 @@ export function App() {
     setCurrentView("dashboard");
     window.history.replaceState({}, "", "/login");
   };
+
+  useEffect(() => {
+    const expire = () => handleLogout();
+    window.addEventListener("traction:session-expired", expire);
+    return () => window.removeEventListener("traction:session-expired", expire);
+  }, []);
 
   // Handle Update User Profile
   const handleUpdateUser = async (updatedData, avatarFile) => {
@@ -902,6 +884,7 @@ export function App() {
               </button>
             </div>
           )}
+          {currentView === "tickets" && (currentRole === "soporte" || currentRole === "student") && <TicketsView key={user.id} user={user} searchTerm={searchTerm} />}
           {/* Vista: Dashboard de Estudiante */}
           {currentView === "dashboard" && (
             <DashboardView
@@ -1042,7 +1025,6 @@ export function App() {
         isOpen={!!liveSessionModalData}
         onClose={() => setLiveSessionModalData(null)}
         liveClass={liveSessionModalData}
-        onJoin={async (session) => api.liveSessions.join(session.id)}
       />
     </div>
   );

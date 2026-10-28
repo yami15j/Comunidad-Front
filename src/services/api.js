@@ -1,5 +1,5 @@
 const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:3000"
+  import.meta.env?.VITE_API_URL || "http://localhost:3000"
 ).replace(/\/$/, "");
 
 const ACCESS_TOKEN_KEY = "traction_access_token";
@@ -31,7 +31,8 @@ async function request(path, options = {}) {
   let response;
   try {
     response = await fetch(`${API_URL}${path}`, { ...options, headers });
-  } catch {
+  } catch (error) {
+    if (error.name === "AbortError") throw error;
     throw new ApiError(
       `No se pudo conectar con la API en ${API_URL}. Comprueba que el backend esté iniciado.`,
       0,
@@ -49,7 +50,10 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    if (response.status === 401) clearSession();
+    if (response.status === 401 && token && localStorage.getItem(ACCESS_TOKEN_KEY) === token) {
+      clearSession();
+      window.dispatchEvent(new Event("traction:session-expired"));
+    }
     throw new ApiError(
       getErrorMessage(payload, `Error ${response.status}`),
       response.status,
@@ -78,6 +82,14 @@ export function hasSession() {
 }
 
 export const api = {
+  tickets: {
+    list: (options) => request("/tickets", options),
+    create: (input, options) => request("/tickets", { ...options, method: "POST", body: JSON.stringify(input) }),
+    messages: (id, options) => request(`/tickets/${id}/messages`, options),
+    send: (id, body, options) => request(`/tickets/${id}/messages`, { ...options, method: "POST", body: JSON.stringify({ body }) }),
+    claim: (id, options) => request(`/tickets/${id}/claim`, { ...options, method: "POST" }),
+    close: (id, options) => request(`/tickets/${id}/close`, { ...options, method: "POST" }),
+  },
   health: () => request("/health/db"),
   login: (email, password) =>
     request("/auth/login", {
@@ -100,7 +112,7 @@ export const api = {
     },
   },
   courses: {
-    list: () => request("/courses"),
+    list: (options) => request("/courses", options),
     create: (input) =>
       request("/courses", { method: "POST", body: JSON.stringify(input) }),
     assignTeacher: (courseId, docenteId) =>
@@ -115,23 +127,22 @@ export const api = {
       }),
   },
   liveSessions: {
-    list: () => request("/live-sessions"),
+    list: (options) => request("/live-sessions", options),
     create: (input) =>
       request("/live-sessions", {
         method: "POST",
         body: JSON.stringify(input),
       }),
-    join: (id) => request(`/live-sessions/${id}/join`, { method: "POST" }),
     end: (id) => request(`/live-sessions/${id}/end`, { method: "POST" }),
   },
   videos: {
-    list: () => request("/videos"),
+    list: (options) => request("/videos", options),
     playback: (id) => request(`/videos/${id}/playback`),
   },
   dashboard: {
-    student: () => request("/dashboard/student"),
-    mentor: () => request("/dashboard/mentor"),
-    admin: () => request("/dashboard/admin"),
+    student: (options) => request("/dashboard/student", options),
+    mentor: (options) => request("/dashboard/mentor", options),
+    admin: (options) => request("/dashboard/admin", options),
     resourceAccess: (resourceId) =>
       request(`/dashboard/student/resources/${resourceId}/access`),
     updateLessonProgress: (lessonId, completed) =>
@@ -156,7 +167,7 @@ export const api = {
       }),
   },
   users: {
-    list: () => request("/users"),
+    list: (options) => request("/users", options),
     create: (input) =>
       request("/users", { method: "POST", body: JSON.stringify(input) }),
     updateRole: (id, role) =>

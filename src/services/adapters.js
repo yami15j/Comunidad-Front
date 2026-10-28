@@ -49,21 +49,21 @@ export function adaptUser(user) {
     name: user.fullName || user.email,
     title:
       user.title ||
-      (role === "admin"
+      (role === "soporte" ? "Equipo de soporte" : role === "admin"
         ? "Administrador del Sistema"
         : role === "mentor"
           ? "Mentor"
           : "Miembro de la Comunidad"),
     avatar: user.avatarUrl || avatar,
     plan:
-      role === "admin"
+      role === "soporte" ? "Soporte" : role === "admin"
         ? "Administrador"
         : role === "mentor"
           ? "Mentor Oficial"
           : "Miembro activo",
     planTier: role,
     stats:
-      role === "admin"
+      role === "soporte" ? {} : role === "admin"
         ? { totalStudents: 0, mrr: "—", totalCourses: 0, activeLiveSessions: 0 }
         : role === "mentor"
           ? {

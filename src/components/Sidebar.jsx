@@ -31,6 +31,7 @@ export function Sidebar({
         })
       : null;
   const studentNavItems = [
+    { id: 'tickets', label: 'Soporte', icon: HelpCircle },
     { id: 'dashboard', label: 'Mi Dashboard', icon: LayoutDashboard },
     { id: 'courses', label: 'Mis Programas', icon: BookOpen },
     { 
@@ -71,12 +72,14 @@ export function Sidebar({
 
   // Determinar los ítems correspondientes al rol autenticado
   const getNavItems = () => {
+    if (currentRole === 'soporte') return [{ id: 'tickets', label: 'Mesa de soporte', icon: HelpCircle }, { id: 'profile', label: 'Mi Perfil & Datos', icon: User }];
     if (currentRole === 'admin') return adminNavItems;
     if (currentRole === 'mentor') return mentorNavItems;
     return studentNavItems;
   };
 
   const getSectionTitle = () => {
+    if (currentRole === 'soporte') return 'SOPORTE';
     if (currentRole === 'admin') return 'ADMINISTRACIÓN & CMS';
     if (currentRole === 'mentor') return 'CLAUSTRO DE MENTORES';
     return 'FORMACIÓN & ACELERACIÓN';
@@ -91,7 +94,8 @@ export function Sidebar({
         className="sidebar-brand" 
         style={{ cursor: 'pointer' }} 
         onClick={() => {
-          if (currentRole === 'admin') onNavigate('admin-overview');
+          if (currentRole === 'soporte') onNavigate('tickets');
+          else if (currentRole === 'admin') onNavigate('admin-overview');
           else if (currentRole === 'mentor') onNavigate('mentor-dashboard');
           else onNavigate('dashboard');
         }}

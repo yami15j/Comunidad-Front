@@ -1,0 +1,32 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+const storage = new Map();
+globalThis.localStorage = {getItem:k=>storage.get(k) ?? null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
+globalThis.window = new EventTarget();
+const {api,saveSession,hasSession} = await import('../src/services/api.js');
+test('ticket requests preserve contracts, abort signal, and captured authentication',async()=>{
+ saveSession({accessToken:'first'});
+ let request;
+ globalThis.fetch = async (url,options)=> {request={url,options};return new Response('[]');};
+ const controller = new AbortController();
+ await api.tickets.messages('ticket', {signal:controller.signal});
+ assert.equal(request.url,'http://localhost:3000/tickets/ticket/messages');
+ assert.equal(request.options.signal,controller.signal);
+ await api.tickets.send('ticket','Hello');
+ assert.equal(request.options.body,JSON.stringify({body:'Hello'}));
+ await api.tickets.create({subject:'Help',message:'Details'});
+ assert.equal(request.options.body,JSON.stringify({subject:'Help',message:'Details'}));
+});
+test('stale unauthorized response cannot destroy a newer session; current 401 invalidates UI',async()=>{
+ let finish;
+ globalThis.fetch=()=>new Promise(resolve=>{finish=resolve});
+ const stale=api.me();
+ saveSession({accessToken:'second'});
+ finish(new Response('{}',{status:401}));
+ await assert.rejects(stale);
+ assert.equal(hasSession(),true);
+ let expired=0;window.addEventListener('traction:session-expired',()=>expired++);
+ globalThis.fetch=async()=>new Response('{}',{status:401});
+ await assert.rejects(api.me());
+ assert.equal(hasSession(),false);assert.equal(expired,1);
+});

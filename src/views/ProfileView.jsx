@@ -12,19 +12,19 @@ import {
 
 export function ProfileView({ user, onUpdateUser, onNavigate }) {
   const roleLabel =
-    user.role === "admin"
+    user.role === "soporte" ? "Soporte" : user.role === "admin"
       ? "Administrador"
       : user.role === "mentor"
         ? "Mentor"
         : "Estudiante";
   const homeView =
-    user.role === "admin"
+    user.role === "soporte" ? "tickets" : user.role === "admin"
       ? "admin-overview"
       : user.role === "mentor"
         ? "mentor-dashboard"
         : "dashboard";
   const profileSubtitle =
-    user.role === "admin"
+    user.role === "soporte" ? "Comunidad del Intercambio • Equipo de soporte" : user.role === "admin"
       ? "Comunidad del Intercambio • Gestión administrativa"
       : user.role === "mentor"
         ? "Comunidad del Intercambio • Perfil profesional del mentor"

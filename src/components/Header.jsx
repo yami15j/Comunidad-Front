@@ -80,7 +80,7 @@ export function Header({
           <input
             type="text"
             placeholder={
-              currentRole === "mentor"
+              currentRole === "soporte" ? "Buscar tickets por asunto..." : currentRole === "mentor"
                 ? "Buscar alumnos, preguntas o lecciones..."
                 : currentRole === "admin"
                   ? "Buscar cursos, profesores o alumnos..."
@@ -96,6 +96,7 @@ export function Header({
       <div className="header-actions">
         {/* Badge del Rol Activo */}
         <div style={{ display: "flex", alignItems: "center" }}>
+          {currentRole === "soporte" && <span className="badge badge-emerald">Soporte</span>}
           {currentRole === "student" && (
             <span className="badge badge-emerald" style={{ gap: "6px" }}>
               <User size={13} />
