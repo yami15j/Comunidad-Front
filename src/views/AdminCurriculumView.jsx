@@ -14,6 +14,7 @@ export function AdminCurriculumView({
   mentors,
   initialCourseId,
   onCourseUpdated,
+  embedded = false,
 }) {
   const [courseId, setCourseId] = useState(initialCourseId || "");
   const [loadedData, setData] = useState(null);
@@ -71,13 +72,13 @@ export function AdminCurriculumView({
     load(courseId, controller.signal, true).catch((e) => {
       if (e.name !== "AbortError") setError(e.message);
     });
-    window.history.replaceState(
+    if (!embedded) window.history.replaceState(
       {},
       "",
       window.location.pathname + "?curso=" + encodeURIComponent(courseId),
     );
     return () => controller.abort();
-  }, [courseId, load]);
+  }, [courseId, load, embedded]);
   async function action(work, message) {
     if (busy) return;
     setBusy(true);
@@ -126,8 +127,8 @@ export function AdminCurriculumView({
   }
   return (
     <section className="academic-workspace grid gap-5">
-      <h1>Editor de cursos, modulos y lecciones</h1>
-      <label>
+      {!embedded && <h1>Editor de cursos, modulos y lecciones</h1>}
+      {!embedded && <label>
         Curso o programa
         <select
           value={courseId}
@@ -145,13 +146,13 @@ export function AdminCurriculumView({
             </option>
           ))}
         </select>
-      </label>
+      </label>}
       {error && <p role="alert">{error}</p>}
       {success && <p role="status">{success}</p>}
       {courseId && !data && !error && <p>Cargando contenido...</p>}
       {data && (
         <>
-          <details className="card">
+          <details className="card" open={embedded || undefined}>
             <summary>Datos del curso y profesor asignado</summary>
             <form
               onSubmit={(e) => {

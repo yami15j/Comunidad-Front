@@ -30,6 +30,7 @@ export function Header({
   onSearchChange,
   onLogout,
   onToggleSidebar,
+  isSidebarOpen = false,
   courses = [],
   onSelectCourse,
 }) {
@@ -93,13 +94,14 @@ export function Header({
   return (
     <header className="sticky top-0 z-30 flex h-20 min-w-0 items-center justify-between gap-3 border-b border-line/80 bg-surface/90 px-4 backdrop-blur-xl sm:px-6 lg:px-9 xl:px-10">
       <div className="flex min-w-0 items-center gap-3">
-        <button
-          className="icon-button -ml-2"
-          aria-label="Abrir o cerrar menú"
+        {!isSidebarOpen && <button
+          className="icon-button size-10 shrink-0 rounded-xl border border-line bg-elevated text-muted"
+          aria-label="Abrir menú lateral"
+          aria-expanded={isSidebarOpen}
           onClick={onToggleSidebar}
         >
           <Menu size={20} />
-        </button>
+        </button>}
         <div className="min-w-0">
           <div className="hidden items-center gap-2 text-[10px] font-medium text-subtle sm:flex">
             <span>Mi plataforma</span>

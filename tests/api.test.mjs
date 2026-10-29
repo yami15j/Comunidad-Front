@@ -16,6 +16,10 @@ test('ticket requests preserve contracts, abort signal, and captured authenticat
  assert.equal(request.options.body,JSON.stringify({body:'Hello'}));
  await api.tickets.create({subject:'Help',message:'Details'});
  assert.equal(request.options.body,JSON.stringify({subject:'Help',message:'Details'}));
+ await api.tickets.remove('ticket', {signal:controller.signal});
+ assert.equal(request.url,'http://localhost:3000/tickets/ticket');
+ assert.equal(request.options.method,'DELETE');
+ assert.equal(request.options.signal,controller.signal);
 });
 test('stale unauthorized response cannot destroy a newer session; current 401 invalidates UI',async()=>{
  let finish;

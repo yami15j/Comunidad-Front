@@ -33,7 +33,7 @@ export function MentorsView({ mentors = [], courses = [], onSelectCourse }) {
       <PageHeading
         eyebrow="PERSONAS QUE TE IMPULSAN"
         title="Aprende de la experiencia."
-        description="Conoce a tus mentores, su trayectoria y los programas que comparten contigo."
+        description="Conoce a tu mentor asignado, su trayectoria y sus programas."
         icon={GraduationCap}
       />
       <div className="relative max-w-sm">
@@ -53,8 +53,8 @@ export function MentorsView({ mentors = [], courses = [], onSelectCourse }) {
       {!visible.length ? (
         <EmptyState
           icon={GraduationCap}
-          title="No hay mentores para esta búsqueda"
-          description="Los perfiles de los mentores de tus programas se mostrarán aquí."
+          title={search ? "No hay resultados para esta búsqueda" : "Aún no tienes un mentor asignado"}
+          description="Tu mentor se mostrará aquí cuando administración lo asigne."
         />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-3">

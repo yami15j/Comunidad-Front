@@ -24,6 +24,7 @@ export function AdminView({
   dashboard = { stats: {}, recentActivity: [] },
   currentUserId,
   onUpdateUserRole,
+  onAssignMentor,
   onAssignUserToCourse,
   onCreateUser,
   currentView = "admin-overview",
@@ -94,6 +95,7 @@ export function AdminView({
     company: item.company || "Sin empresa registrada",
     email: item.email,
     role: item.role,
+    mentorId: item.mentorId || "",
     phone: item.phone || "",
     location: item.location || "",
     status: "Activo",
@@ -663,6 +665,7 @@ export function AdminView({
                     <th className="[padding:14px_18px] font-bold">
                       Rol y permisos
                     </th>
+                    <th className="px-4 py-3 font-bold">Mentor asignado</th>
                     <th className="[padding:14px_18px] font-bold">
                       Asignación a curso
                     </th>
@@ -714,6 +717,26 @@ export function AdminView({
                             Tu cuenta administrativa
                           </div>
                         )}
+                      </td>
+                      <td className="px-4 py-3">
+                        {student.role === "estudiante" ? <select
+                          aria-label={`Mentor de ${student.name}`}
+                          className="min-w-40 rounded-lg border border-line bg-elevated px-3 py-2 text-xs text-ink"
+                          value={student.mentorId}
+                          disabled={savingUserId !== null}
+                          onChange={async event => {
+                            const mentorId = event.target.value;
+                            if (!mentorId) return;
+                            setSavingUserId(student.id); setUserActionError(""); setUserActionSuccess("");
+                            try {
+                              await onAssignMentor(student.id, mentorId);
+                              setUserActionSuccess("Mentor asignado correctamente.");
+                            } catch (failure) { setUserActionError(failure.message); }
+                            finally { setSavingUserId(null); }
+                          }}>
+                          <option value="" disabled>Sin mentor asignado</option>
+                          {users.filter(account => account.role === "mentor").map(mentor => <option key={mentor.id} value={mentor.id}>{mentor.fullName || mentor.email}</option>)}
+                        </select> : <span className="text-xs text-subtle">No aplica</span>}
                       </td>
                       <td className="[padding:14px_18px]">
                         {["admin", "soporte"].includes(student.role) ? (

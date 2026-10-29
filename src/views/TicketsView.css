@@ -25,12 +25,18 @@
     @apply px-3 py-8 text-center text-xs text-subtle;
   }
   .ticket-item {
-    @apply grid w-full gap-1.5 rounded-xl border border-transparent bg-surface p-4 text-left transition [overflow-wrap:anywhere] hover:bg-elevated;
+    @apply flex w-full items-center rounded-xl border border-transparent bg-surface text-left transition hover:bg-elevated;
+  }
+  .ticket-select {
+    @apply grid min-w-0 flex-1 gap-1.5 bg-transparent p-4 text-left [overflow-wrap:anywhere];
+  }
+  .ticket-delete {
+    @apply mr-2 flex size-9 shrink-0 items-center justify-center rounded-lg text-danger transition hover:bg-danger-soft focus-visible:outline-2 focus-visible:outline-danger disabled:cursor-not-allowed disabled:opacity-50;
   }
   .ticket-item strong {
     @apply text-xs leading-5 font-bold;
   }
-  .ticket-item > span {
+  .ticket-select > span {
     @apply w-fit rounded-full bg-elevated px-2 py-0.5 text-[9px] font-semibold text-subtle;
   }
   .ticket-item small {
@@ -42,7 +48,7 @@
   .ticket-item.selected strong {
     @apply text-brand;
   }
-  .ticket-item.selected > span {
+  .ticket-item.selected .ticket-select > span {
     @apply bg-surface/80 text-brand;
   }
   .ticket-create {

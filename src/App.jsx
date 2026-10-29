@@ -1,5 +1,5 @@
 import { LoaderCircle } from "lucide-react";
-import { Brand } from "./components/ui";
+import { Brand, Dialog } from "./components/ui";
 import React, { useState, useEffect, useRef } from "react";
 import { communityThreads } from "./data/mockData";
 import { api, clearSession, hasSession, saveSession } from "./services/api";
@@ -152,6 +152,7 @@ export function App() {
   const [replays, setReplays] = useState([]);
 
   const [mentors, setMentors] = useState([]);
+  const [curriculumCourse, setCurriculumCourse] = useState(null);
   const [adminCourseId, setAdminCourseId] = useState(
     () => new URLSearchParams(window.location.search).get("curso") || "",
   );
@@ -310,24 +311,7 @@ export function App() {
         ).map(adaptMentor),
       );
     } else if (isStudent) {
-      const mentorById = new Map();
-      for (const course of adaptedCourses) {
-        if (!course.docenteId || mentorById.has(course.docenteId)) continue;
-        mentorById.set(
-          course.docenteId,
-          adaptMentor({
-            id: course.docenteId,
-            fullName: course.mentorName,
-            title: course.mentorRole,
-            avatarUrl: course.mentorAvatar,
-          }),
-        );
-      }
-      setMentors(
-        dashboard.mentors?.length
-          ? dashboard.mentors.map(adaptMentor)
-          : [...mentorById.values()],
-      );
+      setMentors((dashboard.mentors || []).map(adaptMentor));
     } else {
       setMentors([]);
     }
@@ -969,7 +953,7 @@ export function App() {
   };
   const openCurriculum = (course) => {
     setAdminCourseId(course.id);
-    handleNavigate("admin-curriculum");
+    setCurriculumCourse(course);
   };
 
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
@@ -1053,6 +1037,21 @@ export function App() {
           onToggleSidebar={handleToggleSidebar}
         />
 
+        {currentRole === "admin" && <Dialog
+          open={Boolean(curriculumCourse)}
+          onClose={() => setCurriculumCourse(null)}
+          title={`Editor curricular${curriculumCourse ? ": " + curriculumCourse.title : ""}`}
+          className="!max-w-3xl !max-h-[80dvh]"
+        >
+          {curriculumCourse && <AdminCurriculumView
+            key={curriculumCourse.id}
+            courses={courses.filter(course => course.id === curriculumCourse.id)}
+            mentors={mentors}
+            initialCourseId={curriculumCourse.id}
+            onCourseUpdated={refreshAdminCourses}
+            embedded
+          />}
+        </Dialog>}
         <main
           className="content-body view-enter"
           id="main-content"
@@ -1282,6 +1281,10 @@ export function App() {
               users={users}
               dashboard={adminDashboard}
               currentUserId={user.id}
+              onAssignMentor={async (studentId, mentorId) => {
+                const assignment = await api.users.assignMentor(studentId, mentorId);
+                setUsers(rows => rows.map(row => row.id === studentId ? { ...row, mentorId: assignment.mentorId } : row));
+              }}
               onUpdateUserRole={handleUpdateUserRole}
               onAssignUserToCourse={handleAssignUserToCourse}
               onCreateUser={handleCreateUser}

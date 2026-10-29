@@ -1,7 +1,7 @@
 import React from "react";
 import {
   ArrowUpRight,
-  ChevronLeft,
+  Menu,
   LogOut,
   UserRound,
   Radio,
@@ -37,19 +37,21 @@ export function Sidebar({
         (isOpen ? "translate-x-0" : "-translate-x-full")
       }
     >
-      <div className="flex h-24 shrink-0 items-center justify-between gap-2 px-6">
+      <div className="flex h-24 shrink-0 items-center justify-between gap-2 px-4">
         <button
           onClick={() => onNavigate(homeViewForRole(currentRole))}
           aria-label="Ir al inicio"
+          className="min-w-0 flex-1"
         >
           <Brand />
         </button>
         <button
           aria-label="Cerrar menú lateral"
-          className="icon-button -mr-3 size-7 text-subtle/70"
+          aria-expanded={isOpen}
+          className="icon-button size-10 shrink-0 rounded-xl border border-line bg-elevated text-muted"
           onClick={onToggleSidebar}
         >
-          <ChevronLeft size={16} />
+          <Menu size={20} />
         </button>
       </div>
       <nav className="flex-1 space-y-6 overflow-y-auto px-4 py-3">

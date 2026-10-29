@@ -155,6 +155,7 @@ export const api = {
       }),
   },
   tickets: {
+    remove: (id, options) => request(`/tickets/${id}`, { ...options, method: "DELETE" }),
     list: (options) => request("/tickets", options),
     create: (input, options) =>
       request("/tickets", {
@@ -272,6 +273,7 @@ export const api = {
       }),
   },
   users: {
+    assignMentor: (id, mentorId) => request(`/users/${id}/mentor`, { method: "PATCH", body: JSON.stringify({ mentorId }) }),
     list: (options) => request("/users", options),
     create: (input) =>
       request("/users", { method: "POST", body: JSON.stringify(input) }),

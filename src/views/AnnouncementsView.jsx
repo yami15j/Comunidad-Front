@@ -36,7 +36,7 @@ export function AnnouncementsView({ role, courses, onPublished }) {
   return (
     <section className="card academic-workspace">
       <h1>Avisos y eventos</h1>
-      <p>
+      <p className="mt-3 leading-relaxed">
         Las nuevas clases, lecciones, materiales y grabaciones generan
         notificaciones dentro de la plataforma. Aqui puedes publicar novedades
         adicionales.
