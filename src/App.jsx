@@ -1,5 +1,5 @@
 import { LoaderCircle } from "lucide-react";
-import { Brand, Dialog } from "./components/ui";
+import { Brand, Dialog, EmptyState } from "./components/ui";
 import React, { useState, useEffect, useRef } from "react";
 import { communityThreads } from "./data/mockData";
 import { api, clearSession, hasSession, saveSession } from "./services/api";
@@ -39,6 +39,7 @@ import { AdminCurriculumView } from "./views/AdminCurriculumView";
 import { AdminAccessView } from "./views/AdminAccessView";
 import { AnnouncementsView } from "./views/AnnouncementsView";
 import { MentorCoursesView } from "./views/MentorCoursesView";
+import { MentorLiveManager } from "./views/MentorLiveManager";
 import { RecordingUpload } from "./components/RecordingUpload";
 import { TicketsView } from "./views/TicketsView";
 
@@ -132,6 +133,7 @@ export function App() {
   const { theme, toggleTheme } = useTheme();
 
   const authGeneration = useRef(0);
+  const courseOpenGeneration = useRef(0);
   const resourceJob = useRef(null);
 
   // Auth & Multi-Role State
@@ -183,6 +185,7 @@ export function App() {
 
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedLessonId, setSelectedLessonId] = useState(null);
+  const [routeRevision, setRouteRevision] = useState(0);
 
   // Modals State
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -249,9 +252,15 @@ export function App() {
       (dashboard?.mentors || []).map((mentor) => [String(mentor.id), mentor]),
     );
     const courseRows = (dashboard?.courses || coursePayload).map((course) => {
-      const mentor = course.docenteId
+      const mentor = isStudent ? dashboard?.mentors?.[0] : course.docenteId
         ? dashboardMentors.get(String(course.docenteId))
         : null;
+      if (isStudent) return {
+        ...course,
+        mentorName: mentor?.fullName || "Mentor por asignar",
+        mentorTitle: mentor?.title || "Tu mentor asignado",
+        mentorAvatar: mentor?.avatarUrl || "",
+      };
       return mentor
         ? {
             ...course,
@@ -419,6 +428,11 @@ export function App() {
 
   useEffect(() => {
     const handlePopState = () => {
+      ++courseOpenGeneration.current;
+      // A different course can share the same view; URL changes must reload it.
+      setSelectedCourse(null);
+      setSelectedLessonId(null);
+      setRouteRevision((revision) => revision + 1);
       if (!isAuthenticated) {
         setCurrentView(homeViewForRole(currentRole));
         return;
@@ -440,7 +454,7 @@ export function App() {
     const match = window.location.pathname.match(/^\/programas\/([^/]+)$/);
     if (!match || !courses.length) return;
     const course = courses.find(
-      (item) => String(item.id) === decodeURIComponent(match[1]),
+      (item) => encodeURIComponent(String(item.id)) === match[1],
     );
     if (!course || selectedCourse?.id === course.id) return;
     let active = true;
@@ -469,7 +483,7 @@ export function App() {
     return () => {
       active = false;
     };
-  }, [courses, currentRole, selectedCourse?.id]);
+  }, [courses, currentRole, selectedCourse?.id, routeRevision]);
 
   // Handle real API login
   const handleLogin = async ({ email, password }) => {
@@ -535,8 +549,20 @@ export function App() {
 
   useEffect(() => {
     const expire = () => handleLogout();
+    // localStorage is shared by tabs. Revalidate the profile when another tab
+    // switches accounts instead of retaining the previous account's role/UI.
+    const synchronizeSession = (event) => {
+      if (event.key === null || (event.key === "traction_access_token" &&
+          event.oldValue !== event.newValue)) {
+        window.location.reload();
+      }
+    };
     window.addEventListener("traction:session-expired", expire);
-    return () => window.removeEventListener("traction:session-expired", expire);
+    window.addEventListener("storage", synchronizeSession);
+    return () => {
+      window.removeEventListener("traction:session-expired", expire);
+      window.removeEventListener("storage", synchronizeSession);
+    };
   }, []);
 
   // Handle Update User Profile
@@ -562,6 +588,11 @@ export function App() {
     if (avatarFile) saved = await api.profile.uploadAvatar(avatarFile);
     const adapted = adaptUser(saved);
     setUser((previous) => ({ ...previous, ...adapted, stats: previous.stats }));
+    if (currentRole === "mentor") {
+      const profileFields = { mentorName: adapted.name, mentorTitle: saved.title || "Mentor", mentorAvatar: saved.avatarUrl || "" };
+      setCourses(rows => rows.map(course => ({ ...course, ...profileFields })));
+      setLiveClasses(rows => rows.map(session => ({ ...session, ...profileFields })));
+    }
     return adapted;
   };
 
@@ -577,7 +608,6 @@ export function App() {
   };
 
   // Open Course in Player
-  const courseOpenGeneration = useRef(0);
   const handleSelectCourse = async (course) => {
     if (course.accessType === "live") {
       handleNavigate("live");
@@ -585,12 +615,6 @@ export function App() {
     }
     const requestId = ++courseOpenGeneration.current;
     const generation = authGeneration.current;
-    if (!course.modules?.length) {
-      setAppError(
-        "Este curso todavía no tiene módulos publicados en el backend.",
-      );
-      return;
-    }
     let resume = null;
     if (currentRole === "student") {
       try {
@@ -608,7 +632,7 @@ export function App() {
       return;
     setSelectedCourse({ ...course, resume });
     // Select first lesson or first uncompleted
-    const allLessons = course.modules.flatMap((m) => m.lessons);
+    const allLessons = (course.modules || []).flatMap((m) => m.lessons);
     const firstUncompleted = allLessons.find((l) => !l.completed);
     setSelectedLessonId(
       allLessons.some((lesson) => lesson.id === resume?.lessonId)
@@ -872,6 +896,8 @@ export function App() {
       scheduledAt: newLive.scheduledAt,
       durationMinutes: newLive.durationMinutes,
       joinUrl: newLive.joinUrl || undefined,
+      meetingId: newLive.meetingId || undefined,
+      meetingPasscode: newLive.meetingPasscode || undefined,
     });
     if (generation !== authGeneration.current) return;
     setLiveClasses((current) => [
@@ -1111,6 +1137,13 @@ export function App() {
           )}
 
           {/* Vista: Reproductor de Cursos y Lecciones */}
+          {currentView === "course-player" && !selectedCourse && (
+            <EmptyState
+              title="Curso no disponible"
+              description="Si el curso no aparece, revisa tus programas o solicita que se active tu acceso."
+              action={<button className="btn btn-primary" onClick={() => handleNavigate("courses")}>Ver mis programas</button>}
+            />
+          )}
           {currentView === "course-player" && selectedCourse && (
             <CoursePlayerView
               key={selectedCourse.id}
@@ -1129,6 +1162,17 @@ export function App() {
           )}
 
           {/* Vista: Clases en Vivo & Calendario */}
+          {currentRole === "mentor" && currentView === "live" && (
+            <MentorLiveManager courses={courses} liveClasses={liveClasses}
+              onSchedule={handleAddLiveClass}
+              onUpdate={async (id, input) => {
+                const generation = authGeneration.current;
+                const updated = await api.liveSessions.update(id, input);
+                if (generation !== authGeneration.current) return;
+                setLiveClasses(rows => rows.map(row => row.id === id ? adaptLiveSession(updated, courses) : row));
+                reloadNotifications();
+              }} />
+          )}
           {currentView === "live" && (
             <LiveClassesView
               liveClasses={liveClasses}
@@ -1138,6 +1182,28 @@ export function App() {
           )}
 
           {/* Vista: Videoteca de Replays (Grabaciones) */}
+          {currentRole === "mentor" && currentView === "replays" && (
+              <RecordingUpload
+                showLinkEditor={false}
+                courses={courses}
+                liveClasses={liveClasses}
+                onUploaded={(video) =>
+                  setReplays((current) => [
+                    adaptVideo(video, courses),
+                    ...current,
+                  ])
+                }
+                onSessionUpdated={(updated) =>
+                  setLiveClasses((current) =>
+                    current.map((session) =>
+                      session.id === updated.id
+                        ? adaptLiveSession(updated, courses)
+                        : session,
+                    ),
+                  )
+                }
+              />
+          )}
           {currentView === "replays" && (
             <ReplaysView
               replays={replays}
@@ -1227,28 +1293,9 @@ export function App() {
                 students={mentorDashboard.students || []}
                 liveClasses={liveClasses}
                 onEnroll={enrollFromMentor}
-                onSchedule={handleAddLiveClass}
                 onPlay={(videoId) => api.videos.playback(videoId)}
               />
-              <RecordingUpload
-                courses={courses}
-                liveClasses={liveClasses}
-                onUploaded={(video) =>
-                  setReplays((current) => [
-                    adaptVideo(video, courses),
-                    ...current,
-                  ])
-                }
-                onSessionUpdated={(updated) =>
-                  setLiveClasses((current) =>
-                    current.map((session) =>
-                      session.id === updated.id
-                        ? adaptLiveSession(updated, courses)
-                        : session,
-                    ),
-                  )
-                }
-              />
+
             </>
           )}
           {currentView === "admin-curriculum" && (

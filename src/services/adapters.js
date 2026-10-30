@@ -128,7 +128,7 @@ export function adaptCourse(course, index = 0) {
       (course.docenteId ? "Mentor asignado" : "Por asignar"),
     mentorRole:
       course.mentorTitle || course.mentorRole || "Mentor del programa",
-    mentorAvatar: course.mentorAvatar || avatar,
+    mentorAvatar: course.mentorAvatar ?? "",
     thumbnail: course.thumbnail || courseImages[index % courseImages.length],
     progressPercent: course.progressPercent ?? 0,
     completedLessonsCount,
@@ -182,7 +182,7 @@ export function adaptLiveSession(session, courses = []) {
     duration: `${durationMinutes} min`,
     isToday: scheduled.toDateString() === now.toDateString(),
     isLiveNow: effectiveStatus === "live",
-    attendeesCount: 0,
+    attendeesCount: course?.activeStudents ?? session.attendeesCount ?? null,
     category: course?.category || "Sin categoría",
     badge:
       effectiveStatus === "live"

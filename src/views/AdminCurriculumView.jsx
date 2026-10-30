@@ -11,10 +11,11 @@ const blankLesson = (position = 0) => ({
 });
 export function AdminCurriculumView({
   courses,
-  mentors,
+  mentors = [],
   initialCourseId,
   onCourseUpdated,
   embedded = false,
+  mentorMode = false,
 }) {
   const [courseId, setCourseId] = useState(initialCourseId || "");
   const [loadedData, setData] = useState(null);
@@ -89,6 +90,7 @@ export function AdminCurriculumView({
       setSuccess(message);
       try {
         await load(courseId);
+        await onCourseUpdated?.();
       } catch (e) {
         setError("Guardado, pero no se pudo actualizar la vista: " + e.message);
       }
@@ -126,7 +128,16 @@ export function AdminCurriculumView({
     });
   }
   return (
-    <section className="academic-workspace grid gap-5">
+    <section className={`academic-workspace grid gap-5 ${embedded ? "curriculum-editor !gap-3" : ""}`}>
+      {embedded && <div className="rounded-xl border border-brand-line bg-brand-soft/50 px-4 py-3">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-brand">Prepara tu clase</p>
+        <p className="mt-1 text-xs text-subtle">Organiza los módulos, crea las lecciones y adjunta sus materiales.</p>
+        {data && <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold text-muted">
+          <span className="rounded-full bg-surface px-2 py-1">{data.modules.length} módulos</span>
+          <span className="rounded-full bg-surface px-2 py-1">{lessons.length} lecciones</span>
+          <span className="rounded-full bg-surface px-2 py-1">{lessons.filter(lesson => lesson.is_published).length} publicadas</span>
+        </div>}
+      </div>}
       {!embedded && <h1>Editor de cursos, modulos y lecciones</h1>}
       {!embedded && <label>
         Curso o programa
@@ -152,7 +163,7 @@ export function AdminCurriculumView({
       {courseId && !data && !error && <p>Cargando contenido...</p>}
       {data && (
         <>
-          <details className="card" open={embedded || undefined}>
+          {!mentorMode && <details className="card" open={embedded || undefined}>
             <summary>Datos del curso y profesor asignado</summary>
             <form
               onSubmit={(e) => {
@@ -162,7 +173,6 @@ export function AdminCurriculumView({
                     ...courseForm,
                     docenteId: courseForm.docenteId || undefined,
                   });
-                  await onCourseUpdated?.();
                 }, "Curso actualizado.");
               }}
             >
@@ -243,7 +253,7 @@ export function AdminCurriculumView({
                 Guardar curso
               </button>
             </form>
-          </details>
+          </details>}
           <article className="card">
             <h2>{editingModule ? "Editar modulo" : "Crear modulo"}</h2>
             <form
@@ -353,6 +363,14 @@ export function AdminCurriculumView({
             <form
               onSubmit={(e) => {
                 e.preventDefault();
+                if (lessonForm.summary.length > 2000) {
+                  setError("El resumen admite hasta 2.000 caracteres. Mueve el contenido largo al campo Texto de la lección.");
+                  return;
+                }
+                if (lessonForm.content.length > 100000) {
+                  setError("El texto de la lección admite hasta 100.000 caracteres. Divide el contenido en varias lecciones o adjunta un archivo.");
+                  return;
+                }
                 action(async () => {
                   await api.administration.saveLesson(
                     moduleId,
@@ -400,16 +418,29 @@ export function AdminCurriculumView({
               <label>
                 Resumen
                 <textarea
+                  aria-label="Resumen de la lección"
+                  aria-invalid={lessonForm.summary.length > 2000}
+                  aria-describedby="lesson-summary-help"
                   value={lessonForm.summary}
                   onChange={(e) =>
                     setLessonForm({ ...lessonForm, summary: e.target.value })
                   }
                 />
+                <span id="lesson-summary-help" className={`text-[10px] font-normal ${lessonForm.summary.length > 2000 ? "text-danger" : "text-subtle"}`}>
+                  {lessonForm.summary.length}/2.000 caracteres. Escribe una descripción breve; el contenido completo va en Texto de la lección.
+                </span>
+                {lessonForm.summary.length > 2000 && <button type="button" className="btn btn-secondary"
+                  onClick={() => {
+                    setLessonForm(current => ({ ...current, content: [current.summary, current.content].filter(Boolean).join("\n\n"), summary: "" }));
+                    setError("");
+                  }}>Mover el resumen al texto de la lección</button>}
               </label>
               <label>
                 Texto de la leccion
                 <textarea
                   rows={7}
+                  aria-label="Texto de la lección"
+                  maxLength={100000}
                   value={lessonForm.content}
                   onChange={(e) =>
                     setLessonForm({ ...lessonForm, content: e.target.value })
@@ -433,8 +464,7 @@ export function AdminCurriculumView({
                 </select>
               </label>
               <p>
-                Los videos se cargan desde Agendar Vivos & Replays, en Publicar
-                grabacion.
+                {mentorMode ? "Los videos se suben desde Mis grabaciones. Después puedes asociarlos a esta lección." : "Los videos se cargan desde Agendar Vivos & Replays, en Publicar grabación."}
               </p>
               <label>
                 Duracion (minutos)

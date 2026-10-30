@@ -63,6 +63,16 @@ export function LiveSessionModal({ isOpen, onClose, liveClass }) {
           <p className="mt-1 text-[10px] text-subtle">Duración de la clase</p>
         </div>
       </div>
+      {!ended && (liveClass.meetingId || liveClass.meetingPasscode) && (
+        <section className="mb-5 rounded-2xl border border-line bg-elevated p-4">
+          <h3 className="text-xs font-bold">Ingreso manual a Zoom</h3>
+          <p className="mt-1 text-[11px] text-subtle">Si no puedes ingresar con el botón, usa estos datos en Zoom.</p>
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+            {liveClass.meetingId && <div><dt className="text-[10px] text-subtle">ID de reunión</dt><dd className="mt-1 select-text font-mono text-sm font-bold">{liveClass.meetingId}</dd></div>}
+            {liveClass.meetingPasscode && <div><dt className="text-[10px] text-subtle">Código de acceso</dt><dd className="mt-1 select-text font-mono text-sm font-bold">{liveClass.meetingPasscode}</dd></div>}
+          </dl>
+        </section>
+      )}
       {joinUrl && !ended ? (
         <>
           <a

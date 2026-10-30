@@ -4,6 +4,16 @@ const storage = new Map();
 globalThis.localStorage = {getItem:k=>storage.get(k) ?? null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)};
 globalThis.window = new EventTarget();
 const {api,saveSession,hasSession} = await import('../src/services/api.js');
+
+test('permission errors identify the refused action without changing account privileges', async () => {
+ saveSession({accessToken:'admin-looking-session'});
+ globalThis.fetch=async()=>new Response(JSON.stringify({message:'Insufficient permissions'}),{status:403});
+ await assert.rejects(api.users.list(), error => error.status === 403 && /administrar usuarios/.test(error.message));
+ await assert.rejects(api.dashboard.admin(), /panel administrativo/);
+ assert.equal(storage.get('traction_access_token'),'admin-looking-session');
+ globalThis.fetch=async()=>new Response(JSON.stringify({message:'You cannot view this video'}),{status:403});
+ await assert.rejects(api.videos.playback('private'), /You cannot view this video/);
+});
 test('ticket requests preserve contracts, abort signal, and captured authentication',async()=>{
  saveSession({accessToken:'first'});
  let request;

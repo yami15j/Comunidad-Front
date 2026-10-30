@@ -82,34 +82,34 @@ export function DashboardView({
   const firstName = user?.name?.trim().split(/\s+/)[0] || "estudiante";
   return (
     <div className="space-y-8">
-      <section className="relative isolate overflow-hidden rounded-[26px] bg-slate-900 px-6 py-8 text-white sm:px-9 sm:py-10">
+      <section className="relative isolate overflow-hidden rounded-2xl border border-sky-900/30 bg-gradient-to-br from-slate-900 via-slate-900 to-sky-950 px-5 py-6 text-white shadow-panel sm:px-7 sm:py-7">
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute -top-32 -right-12 size-96 rounded-full border-[60px] border-sky-400/5"
+          className="pointer-events-none absolute -top-24 -right-16 size-80 rounded-full border-[45px] border-sky-400/5"
         />
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute top-8 right-24 size-52 rounded-full border border-sky-300/10"
+          className="pointer-events-none absolute -bottom-24 right-24 size-64 rounded-full bg-sky-500/5 blur-2xl"
         />
-        <div className="relative flex flex-wrap items-center justify-between gap-7">
+        <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
           <div className="max-w-xl">
-            <p className="mb-3 flex items-center gap-2 text-[9px] font-bold uppercase tracking-[0.2em] text-sky-300">
+            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-sky-300/15 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-sky-200">
               <span className="size-1.5 rounded-full bg-sky-400" />
               TU ESPACIO DE APRENDIZAJE
             </p>
-            <h1 className="text-[29px] leading-tight font-extrabold tracking-[-0.04em] text-white sm:text-[36px]">
+            <h1 className="text-2xl leading-tight font-extrabold tracking-tight text-white sm:text-[30px]">
               Hola, {firstName}.<br />
-              <span className="font-medium text-slate-300">
+              <span className="font-medium text-sky-200">
                 Sigamos avanzando.
               </span>
             </h1>
-            <p className="mt-4 max-w-sm text-xs leading-6 text-slate-400">
+            <p className="mt-3 max-w-md text-xs leading-6 text-slate-300">
               Cada lección es un paso más. Aquí encontrarás tus programas, tu
               progreso y lo próximo en tu agenda.
             </p>
           </div>
           <button
-            className="btn !border-white/15 !bg-white/8 !px-5 !text-white backdrop-blur-sm hover:!bg-white/15"
+            className="btn self-start shrink-0 !min-h-10 !rounded-xl !border-sky-400/30 !bg-sky-500 !px-4 !py-2.5 !text-xs !text-white shadow-lg shadow-sky-950/20 transition hover:!bg-sky-400 md:self-center"
             onClick={() => onNavigate("courses")}
           >
             Explorar mis programas
@@ -153,15 +153,15 @@ export function DashboardView({
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="min-w-0 space-y-7">
           {activeCourse && (
-            <section className="rounded-[22px] border border-brand-line/60 bg-surface p-5 shadow-panel sm:p-6">
-              <div className="mb-5 flex items-center justify-between gap-3">
+            <section className="overflow-hidden rounded-2xl border border-brand-line/70 bg-gradient-to-br from-surface to-brand-soft/20 p-4 shadow-panel sm:p-5">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">
                   CONTINUAR APRENDIENDO
                 </p>
-                <span className="text-[10px] text-subtle">A tu ritmo</span>
+                <span className="rounded-full border border-line bg-surface px-2 py-1 text-[9px] font-semibold text-subtle">A tu ritmo</span>
               </div>
-              <div className="flex items-start gap-5">
-                <div className="hidden h-24 w-28 shrink-0 overflow-hidden rounded-xl sm:block">
+              <div className="flex items-start gap-4">
+                <div className="hidden size-20 shrink-0 overflow-hidden rounded-xl border border-line sm:block sm:size-24">
                   <img
                     src={activeCourse.thumbnail}
                     alt=""
@@ -169,15 +169,15 @@ export function DashboardView({
                   />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-lg leading-7 font-bold tracking-tight">
+                  <h2 className="line-clamp-2 text-base leading-6 font-bold tracking-tight text-ink">
                     {activeCourse.title}
                   </h2>
-                  <p className="mt-1 text-xs leading-5 text-subtle">
+                  <p className="mt-1.5 text-[11px] leading-5 text-subtle">
                     {nextLesson
                       ? "Siguiente lección: " + nextLesson.title
                       : "Has completado todas las lecciones publicadas."}
                   </p>
-                  <div className="mt-4">
+                  <div className="mt-3">
                     <Progress
                       value={activeCourse.progressPercent}
                       label="Tu avance"
@@ -185,22 +185,19 @@ export function DashboardView({
                   </div>
                 </div>
               </div>
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-4">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
                 <div className="flex items-center gap-2">
                   <Avatar
                     name={activeCourse.mentorName}
                     src={activeCourse.mentorAvatar}
-                    className="size-6"
+                    className="size-7"
                   />
-                  <span className="text-[11px] text-subtle">
-                    {activeCourse.mentorName}
-                  </span>
+                  <div><p className="text-[9px] text-subtle">Tu mentor</p><p className="text-[11px] font-semibold text-muted">{activeCourse.mentorName}</p></div>
                 </div>
                 <button
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-primary !min-h-9 !rounded-xl !px-4 !py-2 !text-xs"
                   onClick={() => onSelectCourse(activeCourse)}
                 >
-                  <Play size={12} fill="currentColor" />
                   Retomar curso
                   <ArrowRight size={13} />
                 </button>
@@ -208,15 +205,15 @@ export function DashboardView({
             </section>
           )}
           <section>
-            <div className="mb-5 flex items-end justify-between gap-3">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-line pb-3">
               <div>
-                <h2 className="text-lg font-bold">Mis programas</h2>
+                <div className="flex items-center gap-2"><h2 className="text-base font-bold tracking-tight text-ink">Mis programas</h2><span className="rounded-full border border-brand-line bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand">{courses.length}</span></div>
                 <p className="mt-1 text-[11px] text-subtle">
                   Conocimiento para tu siguiente paso.
                 </p>
               </div>
               <button
-                className="flex shrink-0 items-center gap-1.5 text-[11px] font-bold text-brand hover:underline"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-[10px] font-semibold text-brand transition-colors hover:border-brand/30 hover:bg-brand-soft"
                 onClick={() => onNavigate("courses")}
               >
                 Ver todos
@@ -224,7 +221,7 @@ export function DashboardView({
               </button>
             </div>
             {courses.length ? (
-              <div className="grid gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),320px))] items-stretch gap-4 [&_article>div:first-child]:!h-32 [&_article>div:last-child]:!p-4 [&_article_h3]:!text-sm [&_article_h3]:!leading-5 [&_article_.btn]:!text-[11px]">
                 {courses.slice(0, 4).map((course) => (
                   <CourseCard
                     key={course.id}

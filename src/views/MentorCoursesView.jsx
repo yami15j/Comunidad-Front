@@ -1,23 +1,19 @@
+import { EnrollmentStudentFields } from "../components/EnrollmentStudentFields";
+import { Dialog } from "../components/ui";
+import { AdminCurriculumView } from "./AdminCurriculumView";
 import React, { useState } from "react";
 export function MentorCoursesView({
   courses,
   students,
   liveClasses,
   onEnroll,
-  onSchedule,
   onPlay,
   onRefresh,
 }) {
+  const [editingCourse, setEditingCourse] = useState(null);
   const [email, setEmail] = useState({});
   const [busy, setBusy] = useState(null);
   const [message, setMessage] = useState({});
-  const [schedule, setSchedule] = useState({
-    courseId: "",
-    title: "",
-    scheduledAt: "",
-    durationMinutes: 60,
-    joinUrl: "",
-  });
   const [playing, setPlaying] = useState(null);
   async function enroll(event, courseId) {
     event.preventDefault();
@@ -34,27 +30,6 @@ export function MentorCoursesView({
       setBusy(null);
     }
   }
-  async function scheduleClass(event) {
-    event.preventDefault();
-    if (busy) return;
-    setBusy("schedule");
-    setMessage({});
-    try {
-      await onSchedule({
-        ...schedule,
-        scheduledAt: new Date(schedule.scheduledAt).toISOString(),
-        durationMinutes: Number(schedule.durationMinutes),
-      });
-      setMessage({
-        schedule: "Clase publicada. Tus estudiantes ya pueden verla.",
-      });
-      setSchedule((current) => ({ ...current, title: "", joinUrl: "" }));
-    } catch (error) {
-      setMessage({ schedule: error.message });
-    } finally {
-      setBusy(null);
-    }
-  }
   async function play(lesson) {
     try {
       const result = await onPlay(lesson.videoId);
@@ -65,14 +40,15 @@ export function MentorCoursesView({
   }
   return (
     <section className="academic-workspace grid gap-5 mb-6">
-      <h1>Mis cursos y estudiantes</h1>
-      <p>
-        Estos son los cursos que impartes. Puedes consultar el contenido,
-        matricular estudiantes registrados y programar clases sin solicitar
-        aprobacion.
-      </p>
+      <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+        <div className="min-w-0 border-l-[3px] border-brand py-1 pl-4 sm:pl-5">
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.14em] text-brand">Tu espacio de enseñanza</p>
+          <h1 className="!text-2xl font-extrabold leading-tight tracking-tight text-ink sm:!text-[28px]">Mis cursos y estudiantes</h1>
+          <p className="mt-2 max-w-xl text-xs leading-6 text-subtle sm:text-sm">Organiza tus contenidos, matricula estudiantes y acompaña su avance.</p>
+          <span className="mt-2 inline-block rounded-full border border-line bg-surface px-2.5 py-1 text-[10px] font-semibold text-muted">{courses.length} {courses.length === 1 ? 'curso asignado' : 'cursos asignados'}</span>
+        </div>
       <button
-        className="btn btn-secondary"
+        className="btn btn-secondary self-start shrink-0 !min-h-9 !rounded-xl !px-4 !py-2 !text-xs lg:self-center"
         onClick={async () => {
           try {
             await onRefresh();
@@ -83,6 +59,7 @@ export function MentorCoursesView({
       >
         Actualizar mis cursos
       </button>
+      </header>
       {message.refresh && <p role="alert">{message.refresh}</p>}
       {!courses.length && (
         <div className="card academic-workspace">
@@ -91,14 +68,17 @@ export function MentorCoursesView({
         </div>
       )}
       {courses.map((course) => (
-        <article className="card grid gap-3" key={course.id}>
-          <h2>{course.title}</h2>
-          <p>{course.description || course.tagline}</p>
-          <p>
-            {course.totalModulesCount || 0} modulos ?{" "}
-            {course.totalLessonsCount || 0} lecciones ?{" "}
-            {course.activeStudents || 0} estudiantes
-          </p>
+        <article className="card grid !gap-4 !space-y-0 !rounded-2xl !p-4 sm:!p-5 [&_details]:!rounded-xl [&_details]:!bg-elevated/30 [&_details]:!p-3 [&_summary]:!text-xs [&_details_p]:text-xs [&_details_p]:leading-6" key={course.id}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="!text-lg font-bold tracking-tight">{course.title}</h2>
+            <button className="btn btn-primary !min-h-9 !rounded-xl !px-4 !py-2 !text-xs" onClick={() => setEditingCourse(course)}>Editar contenido</button>
+          </div>
+          <p className="-mt-2 text-xs leading-6 text-subtle">{course.description || course.tagline}</p>
+          <div className="flex flex-wrap gap-2 text-[10px] font-semibold text-muted">
+            <span className="rounded-lg border border-line bg-elevated/50 px-2.5 py-1.5">{course.totalModulesCount || 0} módulos</span>
+            <span className="rounded-lg border border-line bg-elevated/50 px-2.5 py-1.5">{course.totalLessonsCount || 0} lecciones</span>
+            <span className="rounded-lg border border-brand-line bg-brand-soft px-2.5 py-1.5 text-brand">{course.activeStudents || 0} {course.activeStudents === 1 ? 'estudiante' : 'estudiantes'}</span>
+          </div>
           <details>
             <summary>Ver contenido que voy a impartir</summary>
             {course.modules?.length ? (
@@ -126,7 +106,7 @@ export function MentorCoursesView({
                 </section>
               ))
             ) : (
-              <p>Aun no tiene modulos publicados.</p>
+              <p className="text-subtle">Aún no tiene módulos publicados. Agrega el primero desde Editar contenido.</p>
             )}
           </details>
           <details>
@@ -134,9 +114,9 @@ export function MentorCoursesView({
             {students
               .filter((student) => student.courseId === course.id)
               .map((student) => (
-                <p key={student.id}>
-                  {student.fullName || student.email} ?{" "}
-                  {student.progressPercent}% completado
+                <p key={student.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-line py-2">
+                  <span className="font-semibold text-ink">{student.fullName || student.email}</span>
+                  <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-brand">{student.progressPercent}% completado</span>
                 </p>
               ))}
             {!students.some((student) => student.courseId === course.id) && (
@@ -145,32 +125,18 @@ export function MentorCoursesView({
           </details>
           <form
             onSubmit={(event) => enroll(event, course.id)}
-            className="grid gap-2"
+            className="!mt-0 grid !gap-3 rounded-xl border border-line bg-elevated/40 p-3 sm:p-4 lg:!grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:!grid-cols-2 md:items-end"
           >
-            <label>
-              Matricular estudiante por correo
-              <input
-                type="email"
-                required
-                disabled={!!busy}
-                value={email[course.id] || ""}
-                onChange={(e) =>
-                  setEmail((current) => ({
-                    ...current,
-                    [course.id]: e.target.value,
-                  }))
-                }
-                placeholder="Correo de una cuenta de estudiante registrada"
-              />
-            </label>
-            <button className="btn btn-primary" disabled={!!busy}>
+            <EnrollmentStudentFields courseId={course.id} value={email[course.id] || ''} disabled={!!busy}
+              onChange={value => setEmail(current => ({ ...current, [course.id]: value }))} />
+            <button className="btn btn-primary !min-h-10 !w-full !rounded-xl !px-4 !py-2.5 !text-xs md:!w-auto" disabled={!!busy}>
               {busy === course.id
                 ? "Matriculando..."
                 : "Matricular en este curso"}
             </button>
           </form>
           {message[course.id] && <p role="status">{message[course.id]}</p>}
-          <p>
+          <p className="border-t border-line pt-3 text-[11px] text-subtle">
             {
               liveClasses.filter(
                 (session) =>
@@ -178,86 +144,14 @@ export function MentorCoursesView({
                   session.effectiveStatus !== "ended",
               ).length
             }{" "}
-            clases proximas o en curso
+            clases próximas o en curso
           </p>
         </article>
       ))}
-      <section className="card">
-        <h2>Programar una clase en Zoom</h2>
-        <form onSubmit={scheduleClass} className="grid gap-3">
-          <label>
-            Curso
-            <select
-              required
-              disabled={!!busy}
-              value={schedule.courseId}
-              onChange={(e) =>
-                setSchedule({ ...schedule, courseId: e.target.value })
-              }
-            >
-              <option value="">Selecciona un curso</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Titulo
-            <input
-              required
-              minLength={3}
-              value={schedule.title}
-              onChange={(e) =>
-                setSchedule({ ...schedule, title: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            Fecha y hora local
-            <input
-              type="datetime-local"
-              required
-              value={schedule.scheduledAt}
-              onChange={(e) =>
-                setSchedule({ ...schedule, scheduledAt: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            Duracion en minutos
-            <input
-              type="number"
-              min={15}
-              max={480}
-              required
-              value={schedule.durationMinutes}
-              onChange={(e) =>
-                setSchedule({ ...schedule, durationMinutes: e.target.value })
-              }
-            />
-          </label>
-          <label>
-            Enlace de Zoom (opcional)
-            <input
-              type="url"
-              placeholder="https://zoom.us/j/..."
-              value={schedule.joinUrl}
-              onChange={(e) =>
-                setSchedule({ ...schedule, joinUrl: e.target.value })
-              }
-            />
-          </label>
-          <button
-            className="btn btn-primary"
-            disabled={!!busy || !courses.length}
-          >
-            Programar clase
-          </button>
-          {message.schedule && <p role="status">{message.schedule}</p>}
-        </form>
-      </section>
+      <Dialog open={Boolean(editingCourse)} onClose={() => setEditingCourse(null)} title={editingCourse ? 'Contenido de ' + editingCourse.title : 'Editar contenido'} className="!max-w-2xl !max-h-[78dvh] [&>div:first-child]:!px-5 [&>div:first-child]:!py-3 [&>div:first-child>h2]:!text-sm [&>div:last-child]:!p-4">
+        {editingCourse && <AdminCurriculumView key={editingCourse.id} courses={[editingCourse]} initialCourseId={editingCourse.id}
+          embedded mentorMode onCourseUpdated={onRefresh} />}
+      </Dialog>
       {playing && (
         <div className="modal-backdrop">
           <section

@@ -43,6 +43,8 @@ test("student library, calendar and Zoom access render real content and empty st
       mentorName: "Profesora de prueba",
       effectiveStatus: "scheduled",
       joinUrl: "https://company.zoom.us/j/123",
+      meetingId: "12345678901",
+      meetingPasscode: "GuestCode1",
     };
     const calendar = renderToStaticMarkup(
       React.createElement(LiveClassesView, { liveClasses: [session] }),
@@ -58,6 +60,9 @@ test("student library, calendar and Zoom access render real content and empty st
     );
     assert.match(modal, /href="https:\/\/company.zoom.us\/j\/123"/);
     assert.match(modal, /noopener noreferrer/);
+    assert.match(modal, /Ingreso manual a Zoom/);
+    assert.match(modal, /12345678901/);
+    assert.match(modal, /GuestCode1/);
     const closed = renderToStaticMarkup(
       React.createElement(LiveSessionModal, {
         isOpen: true,
@@ -65,6 +70,7 @@ test("student library, calendar and Zoom access render real content and empty st
       }),
     );
     assert.doesNotMatch(closed, /href=/);
+    assert.doesNotMatch(closed, /GuestCode1/);
     assert.match(closed, /ha finalizado/);
 
     const { MentorCoursesView } = await server.ssrLoadModule(

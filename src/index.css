@@ -476,6 +476,39 @@
   .academic-workspace details > *:not(summary) {
     @apply mt-4;
   }
+  .curriculum-editor {
+    @apply space-y-0;
+  }
+  .curriculum-editor .card {
+    @apply space-y-3 rounded-2xl border border-line p-4 shadow-none;
+  }
+  .curriculum-editor h2 {
+    @apply text-sm font-bold tracking-tight;
+  }
+  .curriculum-editor h3 {
+    @apply text-xs font-semibold;
+  }
+  .curriculum-editor p,
+  .curriculum-editor summary {
+    @apply text-xs leading-5;
+  }
+  .curriculum-editor label {
+    @apply gap-1.5 text-[11px];
+  }
+  .curriculum-editor form {
+    @apply mt-3 gap-3;
+  }
+  .curriculum-editor input:not([type="checkbox"]):not([type="file"]),
+  .curriculum-editor select,
+  .curriculum-editor textarea {
+    @apply rounded-xl px-3 py-2 text-xs;
+  }
+  .curriculum-editor textarea {
+    @apply min-h-20;
+  }
+  .curriculum-editor .btn {
+    @apply min-h-9 rounded-xl px-3 py-2 text-[11px];
+  }
   [role="alert"] {
     @apply rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger;
   }

@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import { api } from "../services/api";
+import { StudentCoursePicker } from "../components/StudentCoursePicker";
+import React, { useState, useEffect } from "react";
 import {
   Shield,
   Radio,
@@ -86,6 +88,8 @@ export function AdminView({
     scheduledAt: defaultSchedule(),
     durationMinutes: 75,
     joinUrl: "",
+    meetingId: "",
+    meetingPasscode: "",
     category: "Ventas & Crecimiento",
   }));
 
@@ -173,19 +177,69 @@ export function AdminView({
     }
   };
 
+  const [enrollmentRevision, setEnrollmentRevision] = useState(0);
+  const [enrollmentData, setEnrollmentData] = useState({ items: [], loading: true, error: '' });
+  useEffect(() => {
+    if (currentView !== 'admin-users') return;
+    const controller = new AbortController();
+    async function load() {
+      setEnrollmentData(previous => ({ ...previous, loading: true, error: '' }));
+      try {
+        const items = [];
+        let page = 0;
+        while (!controller.signal.aborted) {
+          const result = await api.administration.access({ page }, { signal: controller.signal });
+          items.push(...result.items);
+          if (items.length >= result.total || !result.items.length) break;
+          page++;
+        }
+        if (!controller.signal.aborted) setEnrollmentData({ items, loading: false, error: '' });
+      } catch (error) {
+        if (!controller.signal.aborted) setEnrollmentData({ items: [], loading: false, error: error.message });
+      }
+    }
+    load();
+    return () => controller.abort();
+  }, [currentView, enrollmentRevision]);
+
   const handleAssignCourse = async (account) => {
-    const courseId = assignmentSelections[account.id];
-    if (!courseId) return;
+    if (savingUserId !== null) return;
+    const selection = assignmentSelections[account.id];
+    const courseIds = Array.isArray(selection) ? selection : selection ? [selection] : [];
+    if (!courseIds.length) return;
     setUserActionError("");
     setUserActionSuccess("");
     setSavingUserId(account.id);
     try {
-      await onAssignUserToCourse(account.id, account.role, courseId);
-      setUserActionSuccess(
-        account.role === "mentor" || account.role === "docente"
-          ? "Mentor asignado al curso."
-          : "Estudiante matriculado en el curso.",
+      const failed = [];
+      let saved = 0;
+      for (const courseId of courseIds) {
+        try {
+          const enrollment = await onAssignUserToCourse(account.id, account.role, courseId);
+          if (account.role === "estudiante") setEnrollmentData(previous => ({
+            ...previous,
+            items: [...previous.items.filter(row => !(row.student_id === account.id && row.course_id === courseId)),
+            { student_id: account.id, course_id: courseId, status: 'active', access_type: 'full', expires_at: null, ...enrollment }],
+          }));
+          saved++;
+        } catch (error) {
+          failed.push({ id: courseId, message: error.message || "No se pudo guardar la matrícula." });
+        }
+      }
+      setAssignmentSelections(current => ({
+        ...current,
+        [account.id]: account.role === "estudiante" ? failed.map(item => item.id) : failed[0]?.id || "",
+      }));
+      if (failed.length) setUserActionError(
+        `No se guardaron ${failed.length} asignaciones: ` + failed.map(item => `${courses.find(course => course.id === item.id)?.title || item.id}: ${item.message}`).join('; '),
       );
+      if (saved) {
+        setUserActionSuccess(
+          account.role === "mentor" || account.role === "docente"
+            ? "Mentor asignado al curso."
+            : `Estudiante matriculado en ${saved} ${saved === 1 ? "curso" : "cursos"}.`,
+        );
+      }
     } catch (error) {
       setUserActionError(error.message || "No se pudo guardar la asignación.");
     } finally {
@@ -244,7 +298,7 @@ export function AdminView({
             </span>
           </div>
           <h1 className="text-2xl sm:text-[28px] font-extrabold text-ink">
-            Gestión Integral de Traction
+            Gestión Integral
           </h1>
           <p className="text-muted text-[14px] mt-1">
             Control central de programas, clases en vivo, profesores, alumnos y
@@ -667,7 +721,7 @@ export function AdminView({
                     </th>
                     <th className="px-4 py-3 font-bold">Mentor asignado</th>
                     <th className="[padding:14px_18px] font-bold">
-                      Asignación a curso
+                      Asignación a cursos
                     </th>
                   </tr>
                 </thead>
@@ -746,37 +800,45 @@ export function AdminView({
                               : "Mesa de soporte"}
                           </span>
                         ) : (
-                          <div className="flex gap-2 min-w-0 sm:min-w-[280px]">
-                            <select
-                              value={assignmentSelections[student.id] || ""}
-                              onChange={(e) =>
-                                setAssignmentSelections((current) => ({
-                                  ...current,
-                                  [student.id]: e.target.value,
-                                }))
-                              }
-                              className="[flex:1] [background:var(--bg-deep)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-sm)] text-ink [padding:6px_8px] text-[12px]"
-                            >
-                              <option value="">Seleccionar curso</option>
-                              {courses.map((course) => (
-                                <option key={course.id} value={course.id}>
-                                  {course.title}
-                                </option>
-                              ))}
-                            </select>
+                          <div className="flex flex-col gap-2 min-w-0 sm:min-w-[280px]">
+                            {student.role === "estudiante" ? <StudentCoursePicker
+                              student={student} courses={courses} enrollments={enrollmentData.items}
+                              selected={Array.isArray(assignmentSelections[student.id]) ? assignmentSelections[student.id] : []}
+                              onChange={ids => setAssignmentSelections(current => ({ ...current, [student.id]: ids }))}
+                              loading={enrollmentData.loading} error={enrollmentData.error}
+                              onRetry={() => setEnrollmentRevision(value => value + 1)} busy={savingUserId !== null} /> :
+                              <select
+                                aria-label={`Curso de ${student.name}`}
+                                disabled={savingUserId !== null}
+                                value={assignmentSelections[student.id] || ""}
+                                onChange={(e) =>
+                                  setAssignmentSelections((current) => ({
+                                    ...current,
+                                    [student.id]: e.target.value,
+                                  }))
+                                }
+                                className="[flex:1] [background:var(--bg-deep)] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-sm)] text-ink [padding:6px_8px] text-[12px]"
+                              >
+                                <option value="">Seleccionar curso</option>
+                                {courses.map((course) => (
+                                  <option key={course.id} value={course.id}>
+                                    {course.title}
+                                  </option>
+                                ))}
+                              </select>}
                             <button
                               type="button"
                               className="btn btn-primary btn-sm"
                               disabled={
-                                !assignmentSelections[student.id] ||
-                                savingUserId === student.id
+                                (student.role === "estudiante" ? !assignmentSelections[student.id]?.length || enrollmentData.loading || Boolean(enrollmentData.error) : !assignmentSelections[student.id]) ||
+                                savingUserId !== null
                               }
                               onClick={() => handleAssignCourse(student)}
                             >
-                              {student.role === "mentor" ||
-                              student.role === "docente"
+                              {savingUserId === student.id ? "Guardando..." : student.role === "mentor" ||
+                                student.role === "docente"
                                 ? "Asignar"
-                                : "Matricular"}
+                                : `Matricular en ${assignmentSelections[student.id]?.length || 0} ${assignmentSelections[student.id]?.length === 1 ? "curso" : "cursos"}`}
                             </button>
                           </div>
                         )}
@@ -1213,6 +1275,10 @@ export function AdminView({
                   className="w-full p-3"
                 />
               </label>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label>ID de reunión (opcional)<input inputMode="numeric" maxLength={20} placeholder="123 4567 8901" value={liveForm.meetingId} onChange={e => setLiveForm({ ...liveForm, meetingId: e.target.value })} /></label>
+                <label>Código de acceso (opcional)<input maxLength={32} autoComplete="off" value={liveForm.meetingPasscode} onChange={e => setLiveForm({ ...liveForm, meetingPasscode: e.target.value })} /></label>
+              </div>
               <div className="flex justify-end [gap:10px] [margin-top:10px]">
                 <button
                   type="button"

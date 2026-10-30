@@ -19,6 +19,17 @@ function getErrorMessage(payload, fallback) {
   return payload?.message || payload?.error || fallback;
 }
 
+function permissionMessage(path) {
+  const section = path.startsWith('/users') ? 'administrar usuarios'
+    : path.startsWith('/dashboard/admin') ? 'consultar el panel administrativo'
+    : path.startsWith('/admin') ? 'administrar contenido y accesos'
+    : path.startsWith('/live-sessions') ? 'consultar o modificar clases en vivo'
+    : path.startsWith('/videos') ? 'consultar o publicar grabaciones'
+    : path.startsWith('/courses') ? 'consultar o administrar cursos'
+    : 'realizar esta acción';
+  return `La cuenta de esta sesión no tiene permiso para ${section}. Cierra sesión y vuelve a ingresar con tu cuenta autorizada. Si continúa, solicita que un administrador revise el rol asignado.`;
+}
+
 async function request(path, options = {}) {
   const token = localStorage.getItem(ACCESS_TOKEN_KEY);
   const headers = new Headers(options.headers || {});
@@ -59,7 +70,9 @@ async function request(path, options = {}) {
       window.dispatchEvent(new Event("traction:session-expired"));
     }
     throw new ApiError(
-      getErrorMessage(payload, `Error ${response.status}`),
+      response.status === 403 && payload?.message === 'Insufficient permissions'
+        ? permissionMessage(path)
+        : getErrorMessage(payload, `Error ${response.status}`),
       response.status,
       payload,
     );
@@ -192,6 +205,7 @@ export const api = {
     },
   },
   courses: {
+    enrollmentCandidates: (id, page = 0, options) => request(`/courses/${id}/enrollment-candidates?page=${page}`, options),
     enrollByEmail: (courseId, email) =>
       request("/courses/" + courseId + "/enrollments/by-email", {
         method: "POST",
@@ -212,10 +226,11 @@ export const api = {
       }),
   },
   liveSessions: {
-    updateLink: (id, joinUrl) =>
+    update: (id, input) => request('/live-sessions/' + id, { method: 'PATCH', body: JSON.stringify(input) }),
+    updateLink: (id, joinUrl, details = {}) =>
       request("/live-sessions/" + id + "/link", {
         method: "PATCH",
-        body: JSON.stringify({ joinUrl }),
+        body: JSON.stringify({ joinUrl, ...details }),
       }),
     list: (options) => request("/live-sessions", options),
     create: (input) =>

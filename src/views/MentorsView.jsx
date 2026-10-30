@@ -7,7 +7,7 @@ import {
   Globe,
   Link2,
 } from "lucide-react";
-import { Avatar, Dialog, EmptyState, PageHeading } from "../components/ui";
+import { Avatar, Dialog, EmptyState } from "../components/ui";
 function publicLink(value) {
   try {
     const url = new URL(value);
@@ -30,13 +30,13 @@ export function MentorsView({ mentors = [], courses = [], onSelectCourse }) {
     : [];
   return (
     <section className="space-y-7">
-      <PageHeading
-        eyebrow="PERSONAS QUE TE IMPULSAN"
-        title="Aprende de la experiencia."
-        description="Conoce a tu mentor asignado, su trayectoria y sus programas."
-        icon={GraduationCap}
-      />
-      <div className="relative max-w-sm">
+      <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+        <div className="border-l-[3px] border-brand py-1 pl-4 sm:pl-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">Personas que te impulsan</p>
+          <h1 className="mt-2 text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-[28px]">Aprende de la experiencia.</h1>
+          <p className="mt-2 max-w-xl text-xs leading-6 text-subtle">Conoce a tu mentor, su trayectoria y los programas que imparte.</p>
+        </div>
+      <div className="relative w-full shrink-0 sm:max-w-72 lg:w-64">
         <Search
           size={16}
           className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-subtle"
@@ -47,9 +47,10 @@ export function MentorsView({ mentors = [], courses = [], onSelectCourse }) {
           placeholder="Buscar por nombre o especialidad..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
-          className="w-full !pl-10 !text-xs"
+          className="w-full !min-h-9 !rounded-xl !py-2 !pl-10 !text-[11px]"
         />
       </div>
+      </header>
       {!visible.length ? (
         <EmptyState
           icon={GraduationCap}
@@ -57,22 +58,22 @@ export function MentorsView({ mentors = [], courses = [], onSelectCourse }) {
           description="Tu mentor se mostrará aquí cuando administración lo asigne."
         />
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),340px))] gap-4">
           {visible.map((mentor) => (
             <article
               key={mentor.id}
-              className="group relative flex flex-col overflow-hidden rounded-[22px] border border-line bg-surface shadow-panel transition hover:-translate-y-1 hover:border-brand/25"
+              className="group relative flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel transition hover:-translate-y-0.5 hover:border-brand/30"
             >
-              <div className="h-20 border-b border-brand-line/30 bg-linear-to-br from-brand-soft to-elevated" />
-              <div className="flex flex-1 flex-col p-5 pt-0">
-                <div className="relative -mt-8 mb-4 flex w-fit rounded-full bg-surface p-1.5">
+              <div className="h-14 border-b border-brand-line/30 bg-linear-to-br from-brand-soft to-elevated" />
+              <div className="flex flex-1 flex-col px-4 pb-4">
+                <div className="relative -mt-6 mb-3 flex w-fit rounded-full bg-surface p-1">
                   <Avatar
                     name={mentor.name}
                     src={mentor.avatar}
-                    className="size-16 !text-xl"
+                    className="size-12 !text-lg"
                   />
                 </div>
-                <h2 className="text-lg font-bold">{mentor.name}</h2>
+                <h2 className="text-base font-bold tracking-tight">{mentor.name}</h2>
                 <p className="mt-1 text-[11px] font-semibold text-brand">
                   {mentor.role}
                 </p>
@@ -81,13 +82,13 @@ export function MentorsView({ mentors = [], courses = [], onSelectCourse }) {
                     {mentor.company}
                   </p>
                 )}
-                <p className="mt-4 mb-5 line-clamp-3 text-xs leading-6 text-subtle">
+                <p className="my-3 line-clamp-3 text-[11px] leading-5 text-subtle">
                   {mentor.bio ||
                     "Este mentor aún no ha completado su biografía."}
                 </p>
-                <div className="mt-auto border-t border-line pt-4">
+                <div className="mt-auto border-t border-line pt-3">
                   <button
-                    className="flex w-full items-center justify-between text-xs font-bold text-brand"
+                    className="flex w-full items-center justify-between rounded-lg bg-brand-soft/60 px-3 py-2.5 text-[11px] font-semibold text-brand transition-colors hover:bg-brand-soft"
                     onClick={() => setSelected(mentor)}
                   >
                     Ver perfil y programas

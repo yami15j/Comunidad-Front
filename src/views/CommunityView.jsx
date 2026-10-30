@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  MessageSquare,
   Heart,
   MessageCircle,
   Share2,
@@ -74,27 +73,26 @@ export function CommunityView({ threads, user }) {
       : threadList.filter((t) => t.category === selectedChannel);
 
   return (
-    <div className="flex flex-col gap-7">
+    <div className="flex flex-col gap-5">
       {/* Header */}
-      <div className="flex justify-between items-start flex-wrap gap-4">
-        <div>
-          <div className="flex items-center gap-2 [margin-bottom:6px]">
-            <span className="badge badge-emerald">
-              <MessageSquare size={14} />
+      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+        <div className="border-l-[3px] border-brand py-1 pl-4 sm:pl-5">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">
               <span>Red Privada de Empresarios</span>
             </span>
           </div>
-          <h1 className="text-2xl sm:text-[28px] font-extrabold text-ink">
+          <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-[28px]">
             Comunidad & Mesa Redonda de Tracción
           </h1>
-          <p className="text-muted text-[14px] mt-1">
+          <p className="mt-2 max-w-xl text-xs leading-6 text-subtle">
             Resuelve cuellos de botella con fundadores que enfrentan los mismos
             retos comerciales y operativos.
           </p>
         </div>
 
         <button
-          className="btn btn-primary gap-2"
+          className="btn btn-primary self-start shrink-0 !min-h-9 !rounded-xl !px-4 !py-2 !text-xs lg:self-center"
           onClick={() => setShowNewPostModal(true)}
         >
           <Plus size={16} />
@@ -103,26 +101,13 @@ export function CommunityView({ threads, user }) {
       </div>
 
       {/* Selector de Canales */}
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-elevated/40 p-2">
         {channels.map((ch) => (
           <button
             key={ch}
             onClick={() => setSelectedChannel(ch)}
-            style={{
-              border:
-                selectedChannel === ch
-                  ? "1px solid var(--brand-celeste)"
-                  : "1px solid var(--border-subtle)",
-              backgroundColor:
-                selectedChannel === ch
-                  ? "var(--brand-celeste-subtle)"
-                  : "var(--bg-surface)",
-              color:
-                selectedChannel === ch
-                  ? "var(--brand-celeste)"
-                  : "var(--text-muted)",
-            }}
-            className="[padding:8px_16px] [border-radius:var(--radius-full)] text-[13px] font-semibold cursor-pointer whitespace-nowrap"
+            aria-pressed={selectedChannel === ch}
+            className={'shrink-0 rounded-xl border px-3 py-2 text-[11px] font-semibold transition-colors ' + (selectedChannel === ch ? 'border-brand bg-brand text-on-brand shadow-sm' : 'border-line bg-surface text-subtle hover:border-brand/40 hover:text-brand')}
           >
             {ch === "all" ? "Todos los Debates" : `#${ch}`}
           </button>
@@ -132,16 +117,16 @@ export function CommunityView({ threads, user }) {
       {/* Lista de Hilos de Discusión */}
       <div className="flex flex-col gap-4">
         {filteredThreads.map((thread) => (
-          <div key={thread.id} className="card [padding:22px_24px]">
-            <div className="flex justify-between items-start mb-3">
+          <div key={thread.id} className="rounded-2xl border border-line bg-surface p-4 shadow-panel transition-colors hover:border-brand/25 sm:p-5 [&_.btn]:!min-h-8 [&_.btn]:!rounded-lg [&_.btn]:!px-3 [&_.btn]:!py-1.5 [&_.btn]:!text-[11px]">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-3">
                 <img
                   src={thread.authorAvatar}
                   alt={thread.author}
-                  className="[width:40px] [height:40px] rounded-full object-cover"
+                  className="size-9 shrink-0 rounded-full border border-line object-cover"
                 />
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[14px] font-bold text-ink">
                       {thread.author}
                     </span>
@@ -162,15 +147,15 @@ export function CommunityView({ threads, user }) {
               )}
             </div>
 
-            <h3 className="text-[16px] font-bold text-ink mb-2 [line-height:1.4]">
+            <h3 className="mb-2 text-sm font-bold leading-6 tracking-tight text-ink">
               {thread.title}
             </h3>
-            <p className="text-[14px] text-muted [line-height:1.6] mb-4">
+            <p className="mb-4 text-xs leading-6 text-muted">
               {thread.content}
             </p>
 
-            <div className="flex justify-between items-center pt-3 [border-top:1px_solid_var(--border-subtle)]">
-              <div className="flex gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
+              <div className="flex flex-wrap gap-2">
                 <button
                   className={
                     `btn btn-sm ${thread.likedByMe ? "btn-primary" : "btn-secondary"}` +

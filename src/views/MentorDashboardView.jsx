@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from "react";
 import {
   BookOpen,
+  ArrowUpRight,
+  CalendarDays,
+  Clock3,
   CheckCircle2,
-  HelpCircle,
   MessageSquare,
   Radio,
   Send,
-  Sparkles,
-  TrendingUp,
   Users,
 } from "lucide-react";
 
@@ -68,6 +68,10 @@ export function MentorDashboardView({
         )[0],
     [liveClasses],
   );
+  const enrolledCount = featuredLive
+    ? courses.find(course => String(course.id) === String(featuredLive.courseId))?.activeStudents
+      ?? students.filter(student => String(student.courseId) === String(featuredLive.courseId)).length
+    : 0;
 
   const handleSendReply = async (questionId) => {
     if (!replyText.trim() || !onAnswerQuestion) return;
@@ -86,102 +90,44 @@ export function MentorDashboardView({
 
   return (
     <div className="flex flex-col gap-7">
-      <button
-        className="btn btn-primary"
-        onClick={() => onNavigate("mentor-courses")}
-      >
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <section className="border-l-[3px] border-brand pl-4 py-1 sm:pl-5">
+        <div className="mb-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">Panel académico del mentor</span>
+          {user.company && <span className="rounded-full border border-line bg-surface px-2.5 py-1 text-[10px] font-medium text-subtle">{user.company}</span>}
+        </div>
+        <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-[28px]">Tu panel, {user.name}</h1>
+        <p className="mt-2 max-w-xl text-xs leading-6 text-subtle sm:text-sm">Revisa tus cursos, acompaña a tus estudiantes y sigue su avance.</p>
+      </section>
+      <button className="btn btn-primary self-start shrink-0 !min-h-9 !max-w-full !rounded-xl !px-4 !py-2 !text-xs !font-semibold transition-shadow hover:shadow-md lg:self-center" onClick={() => onNavigate('mentor-courses')}>
         Gestionar mis cursos y estudiantes
       </button>
-      <section>
-        <div className="flex items-center gap-2 mb-2 flex-wrap">
-          <span className="badge badge-emerald">
-            <Sparkles size={13} />
-            <span>Panel académico del mentor</span>
-          </span>
-          <span className="text-[13px] text-muted">
-            {user.company || "Perfil profesional"}
-          </span>
-        </div>
-        <h1 className="text-2xl sm:text-[28px] font-extrabold [letter-spacing:-0.02em] text-ink">
-          Panel del Mentor: {user.name}
-        </h1>
-        <p className="text-muted text-[15px] mt-1">
-          Datos calculados desde tus cursos, matrículas y actividad académica en
-          Supabase.
-        </p>
-      </section>
-
-      <section className="grid grid-cols-2 xl:grid-cols-4 [gap:14px]">
-        <div className="stat-card">
-          <div className="stat-icon-wrapper">
-            <Users size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{stats.activeStudents || 0}</div>
-            <div className="stat-label">Alumnos Activos</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrapper">
-            <TrendingUp size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{stats.averageProgress || 0}%</div>
-            <div className="stat-label">Progreso Promedio</div>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon-wrapper">
-            <HelpCircle size={20} />
-          </div>
-          <div>
-            <div className="stat-value">{stats.questionsPending || 0}</div>
-            <div className="stat-label">Dudas por Responder</div>
-          </div>
-        </div>
+      </div>
+      <section className="grid grid-cols-2 gap-3.5 xl:grid-cols-4">
+        <div className="stat-card"><div><div className="stat-value">{stats.activeStudents || 0}</div><div className="stat-label">Alumnos Activos</div></div></div>
+        <div className="stat-card"><div><div className="stat-value">{stats.averageProgress || 0}%</div><div className="stat-label">Progreso Promedio</div></div></div>
+        <div className="stat-card"><div><div className="stat-value">{stats.questionsPending || 0}</div><div className="stat-label">Dudas por Responder</div></div></div>
       </section>
 
       {featuredLive ? (
-        <section className="live-banner">
-          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6 items-center">
-            <div>
-              <span className="badge badge-live mb-3">
-                <Radio size={14} />
-                <span>
-                  {featuredLive.effectiveStatus === "live"
-                    ? "SESIÓN EN VIVO"
-                    : "PRÓXIMA SESIÓN"}
-                </span>
+        <section className="overflow-hidden rounded-2xl border border-brand-line bg-gradient-to-br from-brand-soft to-surface p-5 sm:p-6">
+          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+            <div className="min-w-0 flex-1">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-surface/80 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-brand">
+                <Radio size={12} />{featuredLive.effectiveStatus === 'live' ? 'En vivo ahora' : 'Próxima sesión'}
               </span>
-              <h2 className="text-[22px] font-extrabold text-ink">
-                {featuredLive.title}
-              </h2>
-              <p className="text-muted text-[14px] mt-2">
-                {featuredLive.subtitle}
-              </p>
-              <div className="text-muted text-[13px] [margin-top:14px]">
-                {featuredLive.date} • {featuredLive.time} •{" "}
-                {featuredLive.duration} • {featuredLive.attendeesCount || 0}{" "}
-                estudiantes matriculados
+              <h2 className="mt-3 text-xl font-extrabold tracking-tight text-ink">{featuredLive.title}</h2>
+              <p className="mt-1 text-xs text-subtle">{featuredLive.subtitle}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted">
+                <span className="inline-flex items-center gap-1.5"><CalendarDays size={13} className="text-brand" />{featuredLive.date}</span>
+                <span className="inline-flex items-center gap-1.5"><Clock3 size={13} className="text-brand" />{featuredLive.time} · {featuredLive.duration}</span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-2.5 py-1 font-semibold"><Users size={13} className="text-brand" />{enrolledCount} {enrolledCount === 1 ? 'estudiante matriculado' : 'estudiantes matriculados'}</span>
               </div>
             </div>
-            <div className="[background:var(--bg-surface-elevated)] [border:1px_solid_var(--border-medium)] [border-radius:var(--radius-md)] [padding:22px] text-center">
-              <div className="text-[12px] text-brand font-bold mb-3">
-                ACCESO PROTEGIDO CON LIVEKIT
-              </div>
-              <button
-                className="btn btn-primary w-full"
-
-                onClick={() => onOpenLiveSession(featuredLive)}
-              >
-                <Radio size={16} />
-                <span>
-                  {featuredLive.effectiveStatus === "live"
-                    ? "Entrar como anfitrión"
-                    : "Abrir sala de la sesión"}
-                </span>
-              </button>
-            </div>
+            <button className="btn btn-primary !min-h-10 shrink-0 !rounded-xl !px-5 !py-2.5 !text-xs"
+              onClick={() => onOpenLiveSession(featuredLive)}>
+              <Radio size={15} />Acceso a la clase<ArrowUpRight size={14} />
+            </button>
           </div>
         </section>
       ) : (
@@ -199,12 +145,12 @@ export function MentorDashboardView({
         </section>
       )}
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-6">
-        <div className="card">
-          <div className="flex justify-between items-center [margin-bottom:18px] gap-3">
+      <section className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <MessageSquare size={18} className="text-brand" />
-              <h3 className="text-[17px] font-bold text-ink">
+              <h3 className="text-sm font-bold tracking-tight text-ink">
                 Dudas de estudiantes
               </h3>
             </div>
@@ -218,12 +164,12 @@ export function MentorDashboardView({
               {replyError}
             </div>
           )}
-          <div className="flex flex-col [gap:14px]">
+          <div className="flex flex-col gap-3">
             {questions.length ? (
               questions.map((question) => (
                 <article
                   key={question.id}
-                  className="p-4 [border-radius:var(--radius-md)] [background:var(--bg-surface-elevated)] [border:1px_solid_var(--border-subtle)]"
+                  className="rounded-xl border border-line bg-elevated/40 p-4"
                 >
                   <div className="flex justify-between items-center gap-3">
                     <div className="flex items-center [gap:10px]">
@@ -311,39 +257,41 @@ export function MentorDashboardView({
                 </article>
               ))
             ) : (
-              <EmptyState>
-                No existen preguntas registradas en tus cursos.
-              </EmptyState>
+              <div className="flex min-h-36 flex-col items-center justify-center rounded-xl border border-dashed border-line bg-elevated/30 p-5 text-center">
+                <span className="mb-3 grid size-9 place-items-center rounded-xl bg-brand-soft text-brand"><MessageSquare size={17} /></span>
+                <p className="text-xs font-semibold text-ink">No hay dudas por aquí</p>
+                <p className="mt-1 max-w-64 text-[11px] leading-5 text-subtle">Las preguntas de tus estudiantes aparecerán en este espacio para que puedas responderlas.</p>
+              </div>
             )}
           </div>
         </div>
 
-        <div className="card">
-          <div className="flex justify-between items-center [margin-bottom:18px]">
+        <div className="rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <BookOpen size={18} className="text-brand" />
-              <h3 className="text-[17px] font-bold text-ink">
+              <h3 className="text-sm font-bold tracking-tight text-ink">
                 Cursos asignados
               </h3>
             </div>
-            <span className="text-[12px] text-subtle">
-              {stats.assignedCourses || 0} cursos
+            <span className="rounded-full bg-elevated px-2.5 py-1 text-[10px] font-semibold text-subtle">
+              {courses.length} {courses.length === 1 ? 'curso' : 'cursos'}
             </span>
           </div>
-          <div className="flex flex-col [gap:14px]">
+          <div className="flex flex-col gap-3">
             {courses.length ? (
               courses.map((course) => (
                 <article
                   key={course.id}
-                  className="p-4 [border-radius:var(--radius-md)] [background:var(--bg-surface-elevated)] [border:1px_solid_var(--border-subtle)]"
+                  className="rounded-xl border border-line bg-elevated/40 p-4"
                 >
                   <h4 className="text-[14px] font-bold text-ink">
                     {course.title}
                   </h4>
-                  <div className="text-[12px] text-subtle [margin-top:5px]">
-                    {course.totalModulesCount || 0} módulos •{" "}
-                    {course.totalLessonsCount || 0} lecciones •{" "}
-                    {course.activeStudents || 0} estudiantes
+                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-medium text-subtle">
+                    <span className="rounded-md bg-surface px-2 py-1">{course.totalModulesCount || 0} módulos</span>
+                    <span className="rounded-md bg-surface px-2 py-1">{course.totalLessonsCount || 0} lecciones</span>
+                    <span className="inline-flex items-center gap-1 rounded-md bg-brand-soft px-2 py-1 text-brand"><Users size={11} />{course.activeStudents || 0} {course.activeStudents === 1 ? 'estudiante' : 'estudiantes'}</span>
                   </div>
                   <div className="progress-bar-container [height:6px] mt-3">
                     <div
@@ -363,19 +311,20 @@ export function MentorDashboardView({
         </div>
       </section>
 
-      <section className="card">
-        <div className="flex items-center gap-2 [margin-bottom:18px]">
+      <section className="rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
           <CheckCircle2 size={18} className="text-brand" />
-          <h3 className="text-[17px] font-bold text-ink">
+          <h3 className="text-sm font-bold tracking-tight text-ink">
             Progreso de estudiantes por curso
           </h3>
+          <span className="ml-auto rounded-full bg-elevated px-2.5 py-1 text-[10px] font-semibold text-subtle">{students.length} inscripciones</span>
         </div>
         {students.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 2xl:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
             {students.map((student) => (
               <article
                 key={`${student.id}:${student.courseId}`}
-                className="[padding:14px] [border:1px_solid_var(--border-subtle)] [border-radius:var(--radius-md)] [background:var(--bg-deep)]"
+                className="rounded-xl border border-line bg-elevated/40 p-4"
               >
                 <div className="flex [gap:10px] items-center">
                   <StudentAvatar student={student} />
@@ -395,8 +344,8 @@ export function MentorDashboardView({
                   />
                 </div>
                 <div className="text-[11px] text-muted [margin-top:5px]">
-                  {student.completedLessons} de {student.totalLessons} lecciones
-                  • {student.progressPercent}%
+                  <span>{student.completedLessons} de {student.totalLessons} lecciones</span>
+                  <span className="float-right font-bold text-brand">{student.progressPercent}%</span>
                 </div>
               </article>
             ))}

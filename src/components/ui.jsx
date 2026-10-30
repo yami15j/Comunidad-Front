@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowRight, BookOpen, CheckCircle2, Play, X } from "lucide-react";
 export function Brand({ light = false, compact = false }) {
   return (
@@ -119,19 +120,17 @@ export function EmptyState({
     </div>
   );
 }
-export function Metric({ label, value, icon: Icon, detail }) {
+export function Metric({ label, value, detail }) {
   return (
-    <article className="rounded-2xl border border-line bg-surface p-5 shadow-panel">
-      <div className="mb-5 flex items-center justify-between gap-3">
-        <span className="text-xs font-semibold text-muted">{label}</span>
-        <span className="flex size-9 items-center justify-center rounded-xl bg-brand-soft text-brand">
-          <Icon size={17} strokeWidth={1.7} />
-        </span>
+    <article className="group relative overflow-hidden rounded-xl border border-line bg-surface p-3 shadow-panel transition-colors hover:border-brand/30 sm:px-4 sm:py-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold leading-4 text-muted">{label}</span>
       </div>
-      <div className="text-[30px] leading-none font-extrabold tracking-[-0.05em] text-ink">
+      <div className="text-2xl leading-none font-extrabold tracking-tight tabular-nums text-ink">
         {value}
       </div>
-      {detail && <p className="mt-2 text-[11px] text-subtle">{detail}</p>}
+      {detail && <p className="mt-1.5 text-[10px] leading-4 text-subtle">{detail}</p>}
+      <div aria-hidden="true" className="absolute inset-x-4 bottom-0 h-0.5 rounded-t-full bg-brand/15 transition-colors group-hover:bg-brand/40 sm:inset-x-5" />
     </article>
   );
 }
@@ -162,8 +161,8 @@ export function CourseCard({ course, onSelect }) {
   const liveOnly = course.accessType === "live";
   const available = course.totalLessonsCount > 0 || liveOnly;
   return (
-    <article className="group flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-line bg-surface shadow-panel transition duration-200 hover:-translate-y-1 hover:border-brand/25 hover:shadow-md">
-      <div className="relative h-40 overflow-hidden bg-elevated sm:h-44">
+    <article className="group flex w-full min-w-0 max-w-sm flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel transition duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md">
+      <div className="relative h-36 overflow-hidden bg-elevated sm:h-40">
         <img
           src={course.thumbnail}
           alt=""
@@ -172,7 +171,7 @@ export function CourseCard({ course, onSelect }) {
         />
         <div className="absolute inset-0 bg-linear-to-t from-slate-950/35 to-transparent" />
         <span className="absolute top-3 left-3 rounded-lg border border-line bg-surface/95 px-2.5 py-1 text-[10px] font-bold text-muted backdrop-blur-sm">
-          {course.category || "Programa"}
+          {course.category && course.category !== "Sin categoría" ? course.category : "Programa de formación"}
         </span>
         {course.progressPercent === 100 && (
           <span className="absolute right-3 bottom-3 rounded-full bg-surface p-1.5 text-brand">
@@ -180,11 +179,10 @@ export function CourseCard({ course, onSelect }) {
           </span>
         )}
       </div>
-      <div className="flex flex-1 flex-col p-5">
-        <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-subtle">
-          <span>{course.totalModulesCount || 0} módulos</span>
-          <span className="size-0.5 rounded-full bg-line-strong" />
-          <span>{course.totalLessonsCount || 0} lecciones</span>
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <div className="mb-3 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold text-subtle">
+          <span className="rounded-md bg-elevated px-2 py-1">{course.totalModulesCount || 0} {course.totalModulesCount === 1 ? 'módulo' : 'módulos'}</span>
+          <span className="rounded-md bg-elevated px-2 py-1">{course.totalLessonsCount || 0} {course.totalLessonsCount === 1 ? 'lección' : 'lecciones'}</span>
           {course.estimatedMinutes > 0 && (
             <>
               <span className="size-0.5 rounded-full bg-line-strong" />
@@ -192,13 +190,13 @@ export function CourseCard({ course, onSelect }) {
             </>
           )}
         </div>
-        <h3 className="line-clamp-2 text-[15px] leading-6 font-bold tracking-tight">
+        <h3 className="line-clamp-2 text-base leading-6 font-bold tracking-tight text-ink">
           {course.title}
         </h3>
-        <p className="mt-2 line-clamp-2 text-xs leading-5 text-subtle">
+        <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-subtle">
           {course.tagline}
         </p>
-        <div className="mt-5 mb-5 flex items-center gap-2.5">
+        <div className="my-4 flex items-center gap-2.5">
           <Avatar
             name={course.mentorName}
             src={course.mentorAvatar}
@@ -213,7 +211,7 @@ export function CourseCard({ course, onSelect }) {
             </p>
           </div>
         </div>
-        <div className="mt-auto space-y-4 border-t border-line pt-4">
+        <div className="mt-auto space-y-3 border-t border-line pt-3">
           {liveOnly ? (
             <p className="text-xs font-semibold text-brand">
               Acceso a clases en vivo
@@ -230,7 +228,7 @@ export function CourseCard({ course, onSelect }) {
             />
           )}
           <button
-            className="btn btn-secondary w-full"
+            className={`btn w-full !min-h-9 !rounded-xl !py-2 !text-xs ${available ? "btn-primary" : "btn-secondary !border-dashed !bg-elevated/50"}`}
             disabled={!available}
             onClick={() => onSelect(course)}
           >
@@ -297,7 +295,7 @@ export function Dialog({
     };
   }, [open]);
   if (!open) return null;
-  return (
+  const dialog = (
     <div
       className="modal-backdrop"
       onMouseDown={(event) => {
@@ -323,4 +321,5 @@ export function Dialog({
       </section>
     </div>
   );
+  return typeof document === "undefined" ? dialog : createPortal(dialog, document.body);
 }

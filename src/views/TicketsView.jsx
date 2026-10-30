@@ -103,7 +103,7 @@ export function TicketsView({ user, searchTerm = "" }) {
         </div>)} 
       </aside>
       <div className="ticket-conversation">
-        {!selected ? <p>Selecciona un ticket para ver sus detalles.</p> : <>
+        {!selected ? <div className="flex min-h-40 flex-1 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-brand-soft/30 to-surface p-4 text-center"><span className="mb-2 rounded-full border border-brand-line bg-brand-soft px-2.5 py-1 text-[9px] font-semibold text-brand">Estamos para ayudarte</span><h2 className="text-sm font-semibold text-ink">Tu espacio de soporte</h2><p className="mt-2 max-w-xs text-xs leading-6 text-subtle">Selecciona un ticket de la lista para consultar sus detalles y continuar la conversación.</p></div> : <>
           <h2>{selected.subject}</h2><p>{statusLabel[selected.status]}</p>
 
           {support && !selected.assigned_to && selected.status !== "closed" && <button className="btn btn-primary" disabled={busy} onClick={() => perform(options => api.tickets.claim(selected.id, options))}>Tomar ticket</button>}
@@ -140,7 +140,7 @@ function CreateTicket({ busy, onCreate }) {
     const input = new FormData(form);
     const subject = input.get("subject").trim(), message = input.get("message").trim();
     if (subject && message) onCreate({ subject, message }).then(saved => { if (saved) form.reset(); });
-  }}><h2>Nueva consulta</h2><label>Asunto<input name="subject" required maxLength={200} /></label><label>Mensaje<textarea name="message" required maxLength={2000} rows={3} /></label><button className="btn btn-primary" disabled={busy}>Crear ticket</button></form>;
+  }}><h2>Nueva consulta</h2><label>Asunto<input name="subject" placeholder="Describe brevemente tu consulta" required maxLength={200} /></label><label>Mensaje<textarea name="message" placeholder="Cuéntanos qué necesitas y los detalles para ayudarte" required maxLength={2000} rows={3} /></label><button className="btn btn-primary" disabled={busy}>Crear ticket</button></form>;
 }
 
 function Conversation({ ticket, user, busy, onSend, revision, mutation }) {

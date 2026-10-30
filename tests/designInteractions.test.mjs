@@ -38,7 +38,7 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
   const mount = (Component, props) =>
     React.act(async () => root.render(React.createElement(Component, props)));
   const button = (text) =>
-    [...container.querySelectorAll("button")].find((node) =>
+    [...window.document.body.querySelectorAll("button")].find((node) =>
       node.textContent.includes(text),
     );
   const click = (node) =>
@@ -61,6 +61,84 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
     });
   }
   try {
+    await t.test('admin enrolls a student in multiple courses and retries only failed enrollments', async () => {
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      api.administration.access = async () => ({ items: [], total: 0 });
+      const requests = [];
+      let failSecond = true;
+      await mount(AdminView, {
+        currentView: 'admin-users', currentUserId: 'admin',
+        courses: [{ id: 'one', title: 'Curso Uno' }, { id: 'two', title: 'Curso Dos' }],
+        users: [{ id: 'student', fullName: 'Estudiante Prueba', role: 'estudiante', mentorId: 'mentor' },
+          { id: 'mentor', fullName: 'Mentor Único', role: 'mentor' }],
+        liveClasses: [], mentors: [],
+        onAssignUserToCourse: async (id, role, courseId) => {
+          requests.push([id, role, courseId]);
+          if (courseId === 'two' && failSecond) throw new Error('Error de conexión');
+        },
+      });
+      await click(button('Cursos del estudiante'));
+      const fieldset = window.document.body.querySelector('fieldset');
+      assert.ok(fieldset);
+      const boxes = fieldset.querySelectorAll('input[type="checkbox"]');
+      await click(boxes[0]);
+      await click(boxes[1]);
+      assert.match(window.document.body.textContent, /2 seleccionados/);
+      await click(button('Listo'));
+      await click(button('Matricular en 2 cursos'));
+      assert.deepEqual(requests, [['student', 'estudiante', 'one'], ['student', 'estudiante', 'two']]);
+      assert.match(window.document.body.textContent, /matriculado en 1 curso/);
+      assert.match(window.document.body.textContent, /Curso Dos: Error de conexión/);
+      await click(button('Cursos del estudiante'));
+      const currentBoxes = window.document.body.querySelectorAll('fieldset input[type="checkbox"]');
+      assert.equal(currentBoxes[0].checked, true);
+      assert.equal(currentBoxes[0].disabled, true);
+      assert.equal(currentBoxes[1].checked, true);
+      assert.match(window.document.body.textContent, /Matriculado/);
+      await click(button('Listo'));
+      assert.equal(window.document.body.querySelector('select[aria-label="Mentor de Estudiante Prueba"]').value, 'mentor');
+      failSecond = false;
+      await click(button('Matricular en 1 curso'));
+      assert.deepEqual(requests.at(-1), ['student', 'estudiante', 'two']);
+      assert.equal(requests.filter(request => request[2] === 'one').length, 1);
+      assert.match(window.document.body.textContent, /2 cursos matriculados/);
+      assert.equal(button('Matricular en 0 cursos').disabled, true);
+    });
+    await t.test('admin course picker restores paginated real enrollments and distinguishes suspended and expired access', async () => {
+      await React.act(async () => root.render(null));
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const pages = [];
+      const rows = [
+        { student_id: 'student', course_id: 'one', status: 'active', access_type: 'content' },
+        { student_id: 'student', course_id: 'two', status: 'suspended' },
+        { student_id: 'student', course_id: 'three', status: 'active', expires_at: '2000-01-01T00:00:00Z' },
+      ];
+      api.administration.access = async ({ page }) => {
+        pages.push(page);
+        return { items: page === 0 ? rows.slice(0, 1) : rows.slice(1), total: 3 };
+      };
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      await mount(AdminView, { currentView: 'admin-users', courses: [
+        { id: 'one', title: 'Activo' }, { id: 'two', title: 'Suspendido' },
+        { id: 'three', title: 'Vencido' }, { id: 'four', title: 'Disponible' },
+      ], users: [{ id: 'student', role: 'estudiante', fullName: 'Alumna' }], mentors: [], liveClasses: [] });
+      assert.deepEqual(pages, [0, 1]);
+      assert.match(window.document.body.textContent, /1 curso matriculado/);
+      await click(button('Cursos del estudiante'));
+      const boxes = window.document.body.querySelectorAll('fieldset input');
+      assert.equal(boxes[0].checked, true);
+      assert.equal(boxes[0].disabled, true);
+      assert.equal(boxes[1].checked, false);
+      assert.equal(boxes[1].disabled, true);
+      assert.equal(boxes[2].disabled, true);
+      assert.equal(boxes[3].disabled, false);
+      assert.match(window.document.body.textContent, /Contenido y grabaciones/);
+      assert.match(window.document.body.textContent, /Matriculado/);
+      await input(window.document.body.querySelector('input[aria-label="Buscar cursos para Alumna"]'), 'Disponible');
+      assert.equal(window.document.body.querySelectorAll('fieldset input').length, 1);
+      await click(button('Listo'));
+    });
     await t.test(
       "login submits the same authenticated credentials and password visibility works",
       async () => {
@@ -74,18 +152,18 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
           },
         });
         await input(
-          container.querySelector('input[type="email"]'),
+          window.document.body.querySelector('input[type="email"]'),
           "student@example.com",
         );
         await input(
-          container.querySelector('input[type="password"]'),
+          window.document.body.querySelector('input[type="password"]'),
           "password-for-test",
         );
         await click(
-          container.querySelector('button[aria-label="Mostrar contraseña"]'),
+          window.document.body.querySelector('button[aria-label="Mostrar contraseña"]'),
         );
         assert.equal(
-          container.querySelector('input[autocomplete="current-password"]')
+          window.document.body.querySelector('input[autocomplete="current-password"]')
             .type,
           "text",
         );
@@ -130,7 +208,7 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
         assert.ok(button("Mesa de soporte"));
         assert.equal(button("Accesos por programa"), undefined);
         assert.equal(
-          container.querySelector('[aria-current="page"]').textContent,
+          window.document.body.querySelector('[aria-current="page"]').textContent,
           "Mesa de soporte",
         );
       },
@@ -159,8 +237,8 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
             selected = course.id;
           },
         });
-        await input(container.querySelector('input[type="search"]'), "Finance");
-        assert.equal(container.querySelectorAll("article").length, 1);
+        await input(window.document.body.querySelector('input[type="search"]'), "Finance");
+        assert.equal(window.document.body.querySelectorAll("article").length, 1);
         await click(button("Comenzar programa"));
         assert.equal(selected, "course-0");
       },
@@ -187,7 +265,7 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
           },
         });
         await click(button("Editar perfil"));
-        const name = [...container.querySelectorAll("label")]
+        const name = [...window.document.body.querySelectorAll("label")]
           .find((label) => label.textContent.startsWith("Nombre completo"))
           .querySelector("input");
         await input(name, "Updated Student");
@@ -200,7 +278,7 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
         );
         assert.equal(submitted.name, "Updated Student");
         assert.match(
-          container.querySelector('[role="status"]').textContent,
+          window.document.body.querySelector('[role="status"]').textContent,
           /correctamente/,
         );
         assert.ok(button("Editar perfil"));
@@ -227,9 +305,9 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
           });
         }
         await mount(SearchHarness, {});
-        await click(container.querySelector('[aria-label="Abrir búsqueda"]'));
+        await click(window.document.body.querySelector('[aria-label="Abrir búsqueda"]'));
         await input(
-          container.querySelector('input[type="search"]'),
+          window.document.body.querySelector('input[type="search"]'),
           "liderazgo",
         );
         await click(button("Programa de liderazgo"));
@@ -257,9 +335,9 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
           });
         }
         const openMenu = () =>
-          click(container.querySelector('[aria-label="Abrir menú de perfil"]'));
+          click(window.document.body.querySelector('[aria-label="Abrir menú de perfil"]'));
         const themeSwitch = () =>
-          container.querySelector('[role="switch"][aria-label="Modo oscuro"]');
+          window.document.body.querySelector('[role="switch"][aria-label="Modo oscuro"]');
         for (const role of ["student", "mentor", "admin", "soporte"]) {
           // Un valor antiguo/inválido conserva el aspecto claro predeterminado.
           localStorage.setItem("traction_theme", "invalid");
@@ -331,7 +409,7 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
           lessonId: "lesson-0",
         });
         assert.equal(
-          container.querySelector("h2").textContent,
+          window.document.body.querySelector("h2").textContent,
           "Second lesson",
         );
       },
@@ -359,13 +437,17 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
           ),
         );
         assert.equal(closed, 1);
+        const dialog = window.document.body.querySelector('[role="dialog"]');
+        assert.ok(dialog);
+        assert.equal(dialog.parentElement.parentElement, window.document.body);
+        assert.equal(container.contains(dialog), false);
         await mount(Dialog, {
           open: false,
           title: "Keyboard test",
           onClose: () => {},
         });
         assert.equal(window.document.body.style.overflow, "");
-        assert.equal(container.querySelector('[role="dialog"]'), null);
+        assert.equal(window.document.body.querySelector('[role="dialog"]'), null);
       },
     );
   } finally {
