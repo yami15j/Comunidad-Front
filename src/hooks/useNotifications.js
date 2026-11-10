@@ -9,7 +9,7 @@ export function useNotifications(userId, role, enabled) {
   const reload = useCallback(
     async (signal) => {
       const current = ++revision.current;
-      if (!enabled || !userId || role === "soporte") return;
+      if (!enabled || !userId) return;
       try {
         const items = await api.notifications.list({ signal });
         if (!signal?.aborted && current === revision.current)
@@ -26,21 +26,24 @@ export function useNotifications(userId, role, enabled) {
     [enabled, userId, role],
   );
   useEffect(() => {
-    if (!enabled || !userId || role === "soporte") return;
+    if (!enabled || !userId) return;
     const controller = new AbortController();
     // Remote subscription: state updates occur only after the awaited API response.
     // eslint-disable-next-line react/set-state-in-effect
     reload(controller.signal);
     const timer = setInterval(() => {
       if (!document.hidden) reload(controller.signal);
-    }, 15000);
+    }, 3000);
     const focus = () => reload(controller.signal);
     window.addEventListener("focus", focus);
+    const visible = () => { if (!document.hidden) reload(controller.signal); };
+    document.addEventListener("visibilitychange", visible);
     return () => {
       invalidate();
       controller.abort();
       clearInterval(timer);
       window.removeEventListener("focus", focus);
+      document.removeEventListener("visibilitychange", visible);
     };
   }, [reload, enabled, userId, role, invalidate]);
   const markRead = async (ids) => {
@@ -64,7 +67,7 @@ export function useNotifications(userId, role, enabled) {
         setState((previous) => ({ ...previous, userId, error: error.message }));
     }
   };
-  const visible = enabled && role !== "soporte" && state.userId === userId;
+  const visible = enabled && state.userId === userId;
   return {
     notifications: visible ? state.items : [],
     notificationError: visible ? state.error : "",

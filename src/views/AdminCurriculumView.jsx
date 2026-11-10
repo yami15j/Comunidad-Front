@@ -17,6 +17,8 @@ export function AdminCurriculumView({
   embedded = false,
   mentorMode = false,
 }) {
+  const [panel, setPanel] = useState("outline");
+  const [resourceMode, setResourceMode] = useState("link");
   const [courseId, setCourseId] = useState(initialCourseId || "");
   const [loadedData, setData] = useState(null);
   const [courseForm, setCourseForm] = useState(null);
@@ -43,6 +45,7 @@ export function AdminCurriculumView({
     const next = await api.administration.curriculum(id, { signal });
     if (signal?.aborted) return;
     if (reset) {
+      setPanel("outline");
       setError("");
       setSuccess("");
       setModuleId("");
@@ -115,6 +118,8 @@ export function AdminCurriculumView({
     );
   }
   function editLesson(module, lesson) {
+    setPanel("lesson");
+    setResourceLessonId(lesson.id);
     setModuleId(module.id);
     setEditingLesson(lesson.id);
     setLessonForm({
@@ -128,7 +133,7 @@ export function AdminCurriculumView({
     });
   }
   return (
-    <section className={`academic-workspace grid gap-5 ${embedded ? "curriculum-editor !gap-3" : ""}`}>
+    <section className={`academic-workspace curriculum-editor grid ${embedded ? "!gap-3" : "!gap-4"}`}>
       {embedded && <div className="rounded-xl border border-brand-line bg-brand-soft/50 px-4 py-3">
         <p className="text-[10px] font-bold uppercase tracking-widest text-brand">Prepara tu clase</p>
         <p className="mt-1 text-xs text-subtle">Organiza los módulos, crea las lecciones y adjunta sus materiales.</p>
@@ -138,8 +143,12 @@ export function AdminCurriculumView({
           <span className="rounded-full bg-surface px-2 py-1">{lessons.filter(lesson => lesson.is_published).length} publicadas</span>
         </div>}
       </div>}
-      {!embedded && <h1>Editor de cursos, modulos y lecciones</h1>}
-      {!embedded && <label>
+      {!embedded && <header className="border-l-[3px] border-brand py-1 pl-4 sm:pl-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">Contenido académico</p>
+        <h1 className="mt-2 text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-[28px]">Editor de cursos, módulos y lecciones</h1>
+        <p className="mt-2 max-w-xl text-xs leading-6 text-subtle">Organiza tus programas, prepara las lecciones y publica sus materiales.</p>
+      </header>}
+      {!embedded && <div className="flex flex-col justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 sm:flex-row sm:items-end"><label className="w-full sm:max-w-md">
         Curso o programa
         <select
           value={courseId}
@@ -157,14 +166,28 @@ export function AdminCurriculumView({
             </option>
           ))}
         </select>
-      </label>}
+      </label>
+        {data && <div className="flex flex-wrap gap-2 text-[10px] font-semibold text-subtle">
+          <span className="rounded-full bg-elevated px-2.5 py-1.5">{data.modules.length} módulos</span>
+          <span className="rounded-full bg-elevated px-2.5 py-1.5">{lessons.length} lecciones</span>
+          <span className="rounded-full bg-brand-soft px-2.5 py-1.5 text-brand">{lessons.filter(lesson => lesson.is_published).length} publicadas</span>
+        </div>}
+      </div>}
       {error && <p role="alert">{error}</p>}
-      {success && <p role="status">{success}</p>}
+      {success && <p role="status" className="rounded-xl border border-success-line bg-success-soft px-3 py-2 text-xs text-success">{success}</p>}
       {courseId && !data && !error && <p>Cargando contenido...</p>}
       {data && (
-        <>
-          {!mentorMode && <details className="card" open={embedded || undefined}>
-            <summary>Datos del curso y profesor asignado</summary>
+        <div className="grid min-w-0 items-start gap-4">
+          <nav aria-label="Secciones del editor" className="flex flex-wrap gap-1 rounded-2xl border border-line bg-surface p-1.5">
+            {[{ id: "outline", label: "Contenido del curso" }, { id: "materials", label: "Materiales" }, ...(!mentorMode ? [{ id: "settings", label: "Datos del curso" }] : [])].map(tab => {
+              const active = panel === tab.id || (tab.id === "outline" && ["module", "lesson"].includes(panel));
+              return <button key={tab.id} type="button" disabled={busy} aria-current={active ? "page" : undefined} onClick={() => setPanel(tab.id)} className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition ${active ? "bg-brand text-white shadow-sm" : "text-muted hover:bg-elevated"}`}>{tab.label}</button>;
+            })}
+          </nav>
+          {["module", "lesson"].includes(panel) && <div className="flex flex-wrap items-center justify-between gap-2"><button type="button" disabled={busy} className="text-xs font-semibold text-brand hover:underline" onClick={() => setPanel("outline")}>Volver al contenido del curso</button><p className="text-xs text-subtle">{data.course.title}{panel === "lesson" && moduleId ? " / " + data.modules.find(m => m.id === moduleId)?.title : ""}</p></div>}
+          {!mentorMode && panel === "settings" && <article className="card">
+            <h2>Datos del curso y mentor responsable</h2>
+            <p className="text-xs leading-5 text-subtle">Configura la presentación del programa. Sus módulos y lecciones se editan en Contenido del curso.</p>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -253,9 +276,10 @@ export function AdminCurriculumView({
                 Guardar curso
               </button>
             </form>
-          </details>}
-          <article className="card">
-            <h2>{editingModule ? "Editar modulo" : "Crear modulo"}</h2>
+          </article>}
+          {panel === "module" && <article className="card">
+            <h2>{editingModule ? "Editar módulo" : "Crear módulo"}</h2>
+            <p className="text-xs text-subtle">Un módulo agrupa las lecciones de un mismo tema.</p>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -266,6 +290,7 @@ export function AdminCurriculumView({
                     editingModule,
                   );
                   setEditingModule(null);
+                  setPanel("outline");
                 }, "Modulo guardado.");
               }}
             >
@@ -281,14 +306,14 @@ export function AdminCurriculumView({
                 />
               </label>
               <label>
-                Orden (desde 0)
+                Posición en la lista
                 <input
                   type="number"
-                  min={0}
+                  min={1}
                   required
-                  value={moduleForm.position}
+                  value={Number(moduleForm.position) + 1}
                   onChange={(e) =>
-                    setModuleForm({ ...moduleForm, position: e.target.value })
+                    setModuleForm({ ...moduleForm, position: Number(e.target.value) - 1 })
                   }
                 />
               </label>
@@ -313,18 +338,19 @@ export function AdminCurriculumView({
                 </button>
               )}
             </form>
-          </article>
-          <article className="card">
-            <h2>Contenido registrado</h2>
-            {!data.modules.length && <p>Este curso aun no tiene modulos.</p>}
+          </article>}
+          {panel === "outline" && <article className="card">
+            <div className="flex justify-end"><button type="button" className="btn btn-primary" disabled={busy} onClick={() => { setEditingModule(null); setModuleForm({ title: "", position: Math.max(-1, ...data.modules.map(m => m.position)) + 1 }); setPanel("module"); }}>Crear módulo</button></div>
+            {!data.modules.length && <p className="rounded-xl border border-dashed border-line p-5 text-xs text-subtle">Empieza creando un módulo. Después podrás agregar sus lecciones.</p>}
             {data.modules.map((module) => (
-              <section key={module.id}>
-                <h3>
-                  {module.position}. {module.title}
+              <section key={module.id} className="rounded-xl border border-line bg-elevated/30 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2"><h3>
+                  Módulo {module.position + 1}: {module.title}
                 </h3>
                 <button
                   className="btn btn-secondary"
                   onClick={() => {
+                    setPanel("module");
                     setEditingModule(module.id);
                     setModuleForm({
                       title: module.title,
@@ -332,18 +358,21 @@ export function AdminCurriculumView({
                     });
                   }}
                 >
-                  Editar modulo
+                  Editar módulo
                 </button>
+                </div>
+                <p className="mt-1 text-[11px] text-subtle">{module.lessons.length} {module.lessons.length === 1 ? "lección" : "lecciones"}</p>
+                {!module.lessons.length && <p className="py-4 text-xs text-subtle">Agrega la primera lección para vincular su video.</p>}
                 {module.lessons.map((lesson) => (
                   <div
                     key={lesson.id}
-                    className="p-3 [border-bottom:1px_solid_var(--border-subtle)]"
+                    className="mt-3 rounded-lg border border-line bg-surface p-3"
                   >
-                    <strong>
-                      {lesson.position}. {lesson.title}
+                    <strong className="text-xs font-semibold text-ink">
+                      Lección {lesson.position + 1}: {lesson.title}
                     </strong>
-                    <p>
-                      {lesson.is_published ? "Publicada" : "Borrador"} |{" "}
+                    <p className="my-2 !text-[10px] !text-subtle">
+                      <span className={`mr-2 rounded-full px-2 py-0.5 font-semibold ${lesson.is_published ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}>{lesson.is_published ? "Publicada" : "Borrador"}</span>
                       {lesson.duration_minutes} min | {lesson.resources.length}{" "}
                       recursos
                     </p>
@@ -351,15 +380,18 @@ export function AdminCurriculumView({
                       className="btn btn-secondary"
                       onClick={() => editLesson(module, lesson)}
                     >
-                      Editar leccion
+                      Editar lección
                     </button>
+                    <button type="button" disabled={busy} className="ml-3 text-xs font-semibold text-brand hover:underline" onClick={() => { setResourceLessonId(lesson.id); setPanel("materials"); }}>Materiales</button>
                   </div>
                 ))}
+                <button type="button" className="mt-3 rounded-xl border border-dashed border-brand-line px-3 py-2 text-xs font-semibold text-brand hover:bg-brand-soft" disabled={busy} onClick={() => { selectModule(module.id); setPanel("lesson"); }}>Agregar lección a este módulo</button>
               </section>
             ))}
-          </article>
-          <article className="card">
-            <h2>{editingLesson ? "Editar leccion" : "Crear leccion"}</h2>
+          </article>}
+          {panel === "lesson" && <article className="card lesson-editor-card w-full max-w-4xl">
+            <h2>{editingLesson ? "Editar lección" : "Crear lección"}</h2>
+            <p className="text-xs leading-5 text-subtle">Completa el título, selecciona el video del curso y decide si la lección está lista para estudiantes.</p>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -384,6 +416,7 @@ export function AdminCurriculumView({
                   );
                   setEditingLesson(null);
                   setLessonForm(blankLesson(Number(lessonForm.position) + 1));
+                  setPanel("outline");
                 }, "Leccion guardada. Solo las publicadas se muestran al estudiante.");
               }}
             >
@@ -438,7 +471,7 @@ export function AdminCurriculumView({
               <label>
                 Texto de la leccion
                 <textarea
-                  rows={7}
+                  rows={3}
                   aria-label="Texto de la lección"
                   maxLength={100000}
                   value={lessonForm.content}
@@ -448,7 +481,7 @@ export function AdminCurriculumView({
                 />
               </label>
               <label>
-                Video publicado del mismo curso
+                Video principal de esta lección
                 <select
                   value={lessonForm.videoId || ""}
                   onChange={(e) =>
@@ -483,14 +516,14 @@ export function AdminCurriculumView({
                 />
               </label>
               <label>
-                Orden (desde 0)
+                Posición en la lista
                 <input
                   required
                   type="number"
-                  min={0}
-                  value={lessonForm.position}
+                  min={1}
+                  value={Number(lessonForm.position) + 1}
                   onChange={(e) =>
-                    setLessonForm({ ...lessonForm, position: e.target.value })
+                    setLessonForm({ ...lessonForm, position: Number(e.target.value) - 1 })
                   }
                 />
               </label>
@@ -520,9 +553,10 @@ export function AdminCurriculumView({
                 </button>
               )}
             </form>
-          </article>
-          <article className="card">
-            <h2>Materiales descargables y complementarios</h2>
+          </article>}
+          {panel === "materials" && <article className="card">
+            <h2>Materiales de la lección</h2>
+            <p className="text-xs leading-5 text-subtle">Adjunta documentos o enlaces de apoyo. El video principal se asigna al editar la lección.</p>
             <label>
               Leccion
               <select
@@ -539,7 +573,11 @@ export function AdminCurriculumView({
             </label>
             {resourceLessonId && (
               <>
-                <form
+                <div className="mt-4 flex flex-wrap gap-2" aria-label="Tipo de material">
+                  <button type="button" aria-pressed={resourceMode === "link"} onClick={() => setResourceMode("link")} className={`rounded-xl px-3 py-2 text-xs font-semibold ${resourceMode === "link" ? "bg-brand text-white" : "bg-elevated text-muted"}`}>Agregar enlace</button>
+                  <button type="button" aria-pressed={resourceMode === "file"} onClick={() => setResourceMode("file")} className={`rounded-xl px-3 py-2 text-xs font-semibold ${resourceMode === "file" ? "bg-brand text-white" : "bg-elevated text-muted"}`}>Subir documento</button>
+                </div>
+                {resourceMode === "link" && <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     action(async () => {
@@ -607,8 +645,8 @@ export function AdminCurriculumView({
                   <button className="btn btn-primary" disabled={busy}>
                     Guardar enlace
                   </button>
-                </form>
-                <form
+                </form>}
+                {resourceMode === "file" && <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     action(
@@ -639,7 +677,7 @@ export function AdminCurriculumView({
                   <button className="btn btn-primary" disabled={busy || !file}>
                     Subir material
                   </button>
-                </form>
+                </form>}
                 {(
                   lessons.find((l) => l.id === resourceLessonId)?.resources ||
                   []
@@ -669,8 +707,8 @@ export function AdminCurriculumView({
                 ))}
               </>
             )}
-          </article>
-        </>
+          </article>}
+        </div>
       )}
     </section>
   );

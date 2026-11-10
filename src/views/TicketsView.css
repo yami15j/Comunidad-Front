@@ -1,7 +1,7 @@
 @reference "../index.css";
 @layer components {
   .tickets-page {
-    @apply grid w-full max-w-4xl gap-5;
+    @apply grid w-full max-w-6xl gap-5;
   }
   .tickets-heading {
     @apply flex flex-wrap items-center justify-between gap-4;
@@ -16,7 +16,7 @@
     @apply mt-2 max-w-xl text-xs leading-6 text-subtle;
   }
   .tickets-layout {
-    @apply grid items-start gap-4 md:grid-cols-[220px_minmax(0,1fr)];
+    @apply grid items-start gap-5 md:grid-cols-[270px_minmax(0,1fr)];
   }
   .tickets-list {
     @apply grid max-h-[60dvh] gap-2 overflow-y-auto;
@@ -52,13 +52,13 @@
     @apply bg-surface/80 text-brand;
   }
   .ticket-create {
-    @apply grid w-full gap-3 rounded-2xl border border-line bg-surface p-4 shadow-panel sm:p-5;
+    @apply grid w-full items-start gap-2.5 rounded-2xl border border-line bg-surface p-3 shadow-panel sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] sm:p-4;
   }
   .ticket-create h2 {
-    @apply mb-1 border-b border-line pb-3 text-sm font-bold tracking-tight;
+    @apply text-sm font-bold tracking-tight sm:col-span-2;
   }
   .ticket-create > button {
-    @apply w-fit justify-self-end;
+    @apply w-fit justify-self-end sm:col-span-2;
   }
   .tickets-page label {
     @apply grid gap-1.5 text-[11px] font-semibold text-muted;
@@ -123,6 +123,63 @@
     @apply px-3 py-2 text-[11px];
   }
   .ticket-create textarea {
-    @apply min-h-16;
+    @apply h-14 min-h-14;
+  }
+  .support-toolbar { @apply flex flex-wrap items-center gap-3; }
+  .support-toolbar > input { @apply min-w-48 flex-1 bg-surface; }
+  .support-toolbar > select { @apply rounded-xl border border-line bg-surface px-3 py-2.5 text-xs; }
+  .support-tabs { @apply flex flex-wrap gap-1 rounded-xl border border-line bg-surface/60 p-1; }
+  .support-tabs button { @apply flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-subtle transition hover:bg-brand-soft; }
+  .support-tabs button[aria-pressed=true] { @apply bg-brand text-white shadow-sm; }
+  .support-tabs button span { @apply rounded-md bg-elevated/60 px-1.5 py-0.5 text-ink; }
+  .ticket-labels { @apply flex flex-wrap gap-1; }
+  .ticket-labels:empty { @apply hidden; }
+  .ticket-labels em { @apply rounded-md bg-brand-soft px-2 py-1 text-[10px] font-medium not-italic text-brand; }
+  .support-detail-heading { @apply flex items-start justify-between gap-3 border-b border-line pb-4; }
+  .support-resolved { @apply rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700; }
+  .ticket-select > span[data-status=resolved] { @apply bg-emerald-50 text-emerald-700; }
+  .ticket-select > span[data-status=open] { @apply bg-amber-50 text-amber-700; }
+  .support-fixed-workspace {
+    @apply h-dvh min-h-0 overflow-hidden;
+  }
+  .support-fixed-workspace > header { @apply shrink-0; }
+  .support-fixed-workspace .content-body {
+    @apply flex min-h-0 flex-1 flex-col overflow-hidden py-4;
+  }
+  .support-fixed-workspace .tickets-page {
+    @apply flex min-h-0 flex-1 flex-col gap-3 overflow-hidden;
+  }
+  .support-fixed-workspace .tickets-heading,
+  .support-fixed-workspace .support-toolbar { @apply shrink-0; }
+  .support-fixed-workspace .tickets-layout {
+    @apply min-h-0 flex-1 overflow-hidden;
+  }
+  .support-fixed-workspace .tickets-list {
+    @apply max-h-full min-h-0 content-start overflow-hidden;
+  }
+  .support-ticket-pagination {
+    @apply flex items-center justify-between gap-1 py-1 text-[10px] text-subtle;
+  }
+  .support-ticket-pagination .btn { @apply px-2 text-[10px]; }
+  .support-fixed-workspace .ticket-conversation {
+    @apply h-full min-h-0 overflow-y-auto overscroll-contain;
+  }
+  .support-fixed-workspace .ticket-conversation > * { @apply shrink-0; }
+  .support-fixed-workspace .ticket-messages {
+    @apply min-h-20 max-h-none flex-1 shrink overflow-y-auto overscroll-contain content-start;
+  }
+  .support-fixed-workspace .ticket-reply { @apply gap-2 pt-2; }
+  .support-fixed-workspace .ticket-reply textarea { @apply h-16 min-h-12 resize-none; }
+  @media (max-width: 767px) {
+    .support-fixed-workspace .tickets-heading h1 { @apply text-lg; }
+    .support-fixed-workspace .tickets-heading p { @apply hidden; }
+    .support-fixed-workspace .tickets-layout { @apply grid-cols-[120px_minmax(0,1fr)] gap-2; }
+    .support-fixed-workspace .ticket-conversation { @apply gap-2 p-2; }
+    .support-fixed-workspace .ticket-item { @apply relative; }
+    .support-fixed-workspace .ticket-delete { @apply absolute right-0 bottom-0 mr-0 size-7; }
+    .support-fixed-workspace .ticket-select { @apply p-2; }
+    .support-ticket-pagination { @apply flex-wrap justify-center; }
+    .support-fixed-workspace .support-toolbar { @apply gap-2; }
+    .support-fixed-workspace .support-toolbar > input { @apply min-w-0 w-32; }
   }
 }

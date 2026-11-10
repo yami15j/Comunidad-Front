@@ -1,3 +1,4 @@
+import { RecordingPlayer } from "../components/RecordingPlayer";
 import { EnrollmentStudentFields } from "../components/EnrollmentStudentFields";
 import { Dialog } from "../components/ui";
 import { AdminCurriculumView } from "./AdminCurriculumView";
@@ -167,7 +168,7 @@ export function MentorCoursesView({
               Cerrar video
             </button>
             <h2>{playing.title}</h2>
-            <video src={playing.url} controls autoPlay className="w-full" />
+            <RecordingPlayer src={playing.url} controls autoPlay className="w-full" />
           </section>
         </div>
       )}

@@ -9,9 +9,11 @@ import {
   Radio,
   RefreshCw,
   ArrowUpRight,
+  MessageSquare,
 } from "lucide-react";
 import { Dialog, EmptyState } from "./ui";
 const icons = {
+  support: MessageSquare,
   live: Radio,
   content: BookOpen,
   resource: FileText,

@@ -1,3 +1,5 @@
+import { RecordingPlayer } from "../components/RecordingPlayer";
+import { isVimeoPlayer } from "../services/videoSource";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   CheckCircle2,
@@ -394,7 +396,7 @@ export function CoursePlayerView({
               <div className="[min-height:360px] grid [place-items:center] text-muted">
                 Preparando video seguro…
               </div>
-            ) : videoSource ? (
+            ) : isVimeoPlayer(videoSource) ? (<RecordingPlayer src={videoSource} title={currentLesson?.title} />) : videoSource ? (
               <video
                 ref={videoRef}
                 onLoadedMetadata={(e) => {

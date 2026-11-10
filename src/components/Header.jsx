@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Bell,
   Search,
   Menu,
   ChevronDown,
@@ -12,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { Avatar } from "./ui";
+import { NotificationBell } from "./NotificationBell";
 import {
   navigationForRole,
   pageForView,
@@ -23,6 +23,7 @@ export function Header({
   currentView,
   onOpenNotifications,
   unreadCount,
+  notifications = [],
   theme = "light",
   onToggleTheme,
   onNavigate,
@@ -219,21 +220,7 @@ export function Header({
             </div>
           )}
         </div>
-        <button
-          className="icon-button relative"
-          onClick={onOpenNotifications}
-          aria-label={
-            "Notificaciones" +
-            (unreadCount ? ", " + unreadCount + " sin leer" : "")
-          }
-        >
-          <Bell size={19} strokeWidth={1.7} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 flex min-w-4 items-center justify-center rounded-full border-2 border-surface bg-brand px-0.5 text-[8px] leading-3 font-bold text-on-brand">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
+        <NotificationBell userId={user?.id} notifications={notifications} unreadCount={unreadCount} onOpen={onOpenNotifications} />
         <div className="hidden h-7 w-px bg-line sm:block" />
         <div ref={profile} className="relative">
           <button

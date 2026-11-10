@@ -61,6 +61,122 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
     });
   }
   try {
+    await t.test('administrator supervises all tickets and conversations without editing controls', async () => {
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const { TicketsView } = await server.ssrLoadModule('/src/views/TicketsView.jsx');
+      api.tickets.list = async () => [{ id: 'supervised', subject: 'Student request', student_id: 'student', student_name: 'Ana Student', agent_name: 'Agent Maria', assigned_to: 'other-agent', status: 'in_progress', created_at: '2026-11-05T12:00:00Z' }];
+      api.tickets.messages = async () => [{ id: 'message', sender_id: 'student', sender_name: 'Ana Student', body: 'Conversation to supervise', created_at: '2026-11-05T12:00:00Z' }];
+      await mount(TicketsView, { user: { id: 'admin', role: 'admin' } });
+      assert.match(container.textContent, /Supervisión de soporte/);
+      await click(button('Student request'));
+      assert.match(container.textContent, /Agent Maria/);
+      assert.match(container.textContent, /Conversation to supervise/);
+      assert.equal(container.querySelector('.ticket-reply'), null);
+      assert.equal(container.querySelector('.ticket-create'), null);
+      assert.equal(container.querySelector('.ticket-delete'), null);
+      assert.equal(button('Marcar como resuelto'), undefined);
+      assert.equal(button('Tomar ticket'), undefined);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('support receives notifications and refreshes when the tab becomes visible', async () => {
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const { useNotifications } = await server.ssrLoadModule('/src/hooks/useNotifications.js');
+      let calls = 0;
+      api.notifications.list = async () => { calls++; return [{ id: 'support:ticket:message', title: 'Student replied', read: false }]; };
+      function Inbox() {
+        const { notifications } = useNotifications('agent', 'soporte', true);
+        return React.createElement('p', null, notifications.map(item => item.title).join(','));
+      }
+      await mount(Inbox, {});
+      assert.match(container.textContent, /Student replied/);
+      const before = calls;
+      await React.act(async () => document.dispatchEvent(new window.Event('visibilitychange')));
+      assert.ok(calls > before);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('notification bubble shows new arrivals once and opens the notification center', async () => {
+      const { NotificationBell } = await server.ssrLoadModule('/src/components/NotificationBell.jsx');
+      let opened = 0;
+      const first = { id: 'first', title: 'New support reply', read: false };
+      const props = { userId: 'student', notifications: [first], unreadCount: 1, onOpen: () => { opened++; } };
+      await mount(NotificationBell, props);
+      assert.match(container.querySelector('[role="status"]').textContent, /New support reply/);
+      await click(container.querySelector('button[aria-label="Cerrar aviso de notificación"]'));
+      await mount(NotificationBell, { ...props, notifications: [{ ...first }] });
+      assert.equal(container.querySelector('[role="status"]'), null);
+      await mount(NotificationBell, { ...props, notifications: [{ id: 'second', title: 'Case resolved', read: false }, first], unreadCount: 2 });
+      assert.match(container.querySelector('[role="status"]').textContent, /Case resolved/);
+      await click(button('Pulsa para ver tus avisos'));
+      assert.equal(opened, 1);
+      assert.equal(container.querySelector('[role="status"]'), null);
+      await mount(NotificationBell, { ...props, userId: 'other', notifications: [] });
+      assert.equal(container.querySelector('[role="status"]'), null);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('a student notification opens its own saved ticket conversation', async () => {
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const { TicketsView } = await server.ssrLoadModule('/src/views/TicketsView.jsx');
+      api.tickets.list = async () => [{ id: 'target', subject: 'My support case', student_id: 'student', status: 'in_progress', created_at: '2026-11-05T12:00:00Z' }];
+      api.tickets.messages = async id => { assert.equal(id, 'target'); return [{ id: 'reply', sender_id: 'agent', body: 'Support reply', created_at: '2026-11-05T12:00:00Z' }]; };
+      await mount(TicketsView, { user: { id: 'student', role: 'student' }, initialTicketId: 'target' });
+      assert.match(container.querySelector('.ticket-conversation').textContent, /Support reply/);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('support filters tickets, persists labels, and resolves while retaining a read-only conversation', async () => {
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const { TicketsView } = await server.ssrLoadModule('/src/views/TicketsView.jsx');
+      let rows = [
+        { id: 'pending', subject: 'Access problem', status: 'in_progress', assigned_to: 'agent', student_id: 'student', labels: [], created_at: '2026-11-05T12:00:00Z' },
+        { id: 'done', subject: 'Previous case', status: 'resolved', assigned_to: 'agent', student_id: 'student', labels: ['Courses'], created_at: '2026-11-04T12:00:00Z' },
+      ];
+      api.tickets.list = async () => rows;
+      api.tickets.messages = async () => [{ id: 'message', sender_id: 'student', sender_name: 'Student', body: 'Saved conversation', created_at: '2026-11-05T12:00:00Z' }];
+      const labelWrites = [];
+      api.tickets.labels = async (id, labels) => { labelWrites.push({ id, labels }); rows = rows.map(row => row.id === id ? { ...row, labels } : row); return rows.find(row => row.id === id); };
+      api.tickets.resolve = async id => { rows = rows.map(row => row.id === id ? { ...row, status: 'resolved' } : row); return rows.find(row => row.id === id); };
+      await mount(TicketsView, { user: { id: 'agent', role: 'soporte' } });
+      assert.ok(button('Access problem'));
+      assert.equal(button('Previous case'), undefined);
+      await click(button('Access problem'));
+      assert.match(container.textContent, /Saved conversation/);
+      await click(button('Etiquetar'));
+      await input(document.querySelector('[role="dialog"] input'), 'Access, Urgent');
+      await React.act(async () => document.querySelector('[role="dialog"] form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      assert.deepEqual(JSON.parse(JSON.stringify(labelWrites)), [{ id: 'pending', labels: ['Access', 'Urgent'] }]);
+      await click(button('Marcar como resuelto'));
+      assert.equal(document.querySelector('.ticket-reply'), null);
+      assert.match(container.textContent, /Saved conversation/);
+      await click(button('Resueltos'));
+      assert.ok(button('Previous case'));
+      assert.ok(button('Access problem'));
+      await React.act(async () => root.render(null));
+    });
+    await t.test('user deletion requires confirmation, allows cancellation and protects own account', async () => {
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      api.administration.access = async () => ({ items: [], total: 0 });
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const removed = [];
+      let fail = true;
+      await mount(AdminView, { currentView: 'admin-users', currentUserId: 'admin', courses: [], liveClasses: [], mentors: [],
+        users: [{ id: 'admin', fullName: 'Administradora', role: 'admin' }, { id: 'target', fullName: 'Cuenta de prueba', role: 'mentor' }],
+        onDeleteUser: async id => { if (fail) throw new Error('No se pudo eliminar'); removed.push(id); } });
+      const control = name => window.document.body.querySelector(`button[aria-label="Eliminar usuario: ${name}"]`);
+      assert.equal(control('Administradora').disabled, true);
+      await click(control('Cuenta de prueba'));
+      assert.deepEqual(removed, []);
+      await click(button('Cancelar'));
+      assert.deepEqual(removed, []);
+      assert.equal(window.document.body.querySelector('[role="dialog"]'), null);
+      await click(control('Cuenta de prueba'));
+      await click(button('Eliminar definitivamente'));
+      assert.match(window.document.body.querySelector('[role="dialog"]').textContent, /No se pudo eliminar/);
+      assert.deepEqual(removed, []);
+      fail = false;
+      await click(button('Eliminar definitivamente'));
+      assert.deepEqual(removed, ['target']);
+      assert.equal(window.document.body.querySelector('[role="dialog"]'), null);
+      await React.act(async () => root.render(null));
+    });
     await t.test('admin enrolls a student in multiple courses and retries only failed enrollments', async () => {
       const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
       const { api } = await server.ssrLoadModule('/src/services/api.js');

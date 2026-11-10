@@ -1,11 +1,33 @@
 export const MAX_VIDEO_BYTES = 2 * 1024 ** 3;
 
-export async function uploadVideoFile(url, file, signal, transfer = fetch) {
+export function transferVideoWithProgress(url, options, onProgress) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    const abort = () => request.abort();
+    const cleanup = () => options.signal?.removeEventListener('abort', abort);
+    if (options.signal?.aborted) { reject(new DOMException('Cancelado', 'AbortError')); return; }
+    request.open(options.method, url);
+    Object.entries(options.headers).forEach(([key, value]) => request.setRequestHeader(key, value));
+    request.upload.onprogress = event => {
+      if (event.lengthComputable) onProgress(Math.round(event.loaded / event.total * 100));
+    };
+    request.onload = () => { cleanup(); resolve(new Response(request.responseText || null, { status: request.status })); };
+    request.onerror = () => { cleanup(); reject(new TypeError('Error de conexión')); };
+    request.onabort = () => { cleanup(); reject(new DOMException('Cancelado', 'AbortError')); };
+    options.signal?.addEventListener('abort', abort, { once: true });
+    request.send(options.body);
+  });
+}
+
+export async function uploadVideoFile(url, file, signal, transfer = fetch, onProgress) {
   if (file.size > MAX_VIDEO_BYTES)
     throw new Error('El video supera el límite de 2 GB del almacenamiento. Reduce su tamaño antes de subirlo.');
   let response;
   try {
-    response = await transfer(url, {
+    const send = onProgress && transfer === fetch
+      ? (target, options) => transferVideoWithProgress(target, options, onProgress)
+      : transfer;
+    response = await send(url, {
       method: 'PUT', headers: { 'Content-Type': file.type || 'video/mp4' },
       body: file, signal,
     });

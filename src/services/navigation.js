@@ -97,6 +97,7 @@ export const NAVIGATION = {
           icon: ShieldCheck,
         },
         { id: "admin-notifications", label: "Avisos y eventos", icon: Bell },
+        { id: "admin-support", label: "Supervisión de soporte", icon: LifeBuoy },
       ],
     },
   ],

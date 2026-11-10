@@ -61,3 +61,11 @@ The redesigned login, app shell, student dashboard, program cards, library, cale
 All roles can enable or disable **Modo oscuro** from the profile menu. This replaces the former membership action. Surfaces, fields, text, alerts and dialogs use the same theme; the sky blue branding is retained. The preference is stored locally in this browser, restored before the app renders, and synchronized across tabs. Signing out does not reset it. This changes appearance only and does not change course access.
 
 Run npm test for the existing API/access regressions plus DOM interaction checks for login, role navigation, search, course selection, profile saving, lesson completion and modal keyboard behavior. npm run build compiles Tailwind into the production CSS; there is no runtime CSS CDN dependency.
+
+## Grabaciones por archivo o Vimeo
+
+En **Agendar Vivos & Replays > Publicar grabaci?n**, el administrador puede elegir archivo desde computadora o enlace de Vimeo, seleccionar curso, t?tulo y opcionalmente una clase. El enlace se registra como grabaci?n lista; no se descarga ni se copia el archivo de Vimeo a Supabase. Se reproduce dentro de la videoteca, biblioteca y lecciones que lo tengan asociado.
+
+La API actualizada permite guardar enlaces incluso con el esquema original, mediante una referencia reservada en los metadatos existentes. La migración **20261106000100_vimeo_recordings.sql** es opcional para este flujo. Reinicia la API para usar el cambio. Se conserva el flujo de archivos y sus límites. Los estudiantes necesitan matrícula activa, no vencida y modalidad full/content para reproducir; live no concede grabaciones. Los enlaces de reproducción se entregan después de autorizar en la API.
+
+Los enlaces privados no listados conservan el c?digo h de Vimeo. El propietario debe permitir incrustar en el dominio de Traction desde Vimeo; un video privado o bloqueado por dominio puede impedir la reproducci?n. Vimeo aloja el video y controla sus permisos externos. No hay reanudaci?n de posici?n autom?tica para el reproductor Vimeo. Publicar por enlace est? reservado a administradores; los permisos existentes de subida de archivos de mentores se conservan.

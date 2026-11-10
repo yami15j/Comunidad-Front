@@ -111,10 +111,11 @@ test('delivery: login, dashboard, course, lesson, history, library, live and adm
     const editor = window.document.body.querySelector('[role="dialog"]');
     assert.ok(editor);
     assert.doesNotMatch(editor.textContent, /Datos del curso y profesor asignado/);
-    assert.match(editor.textContent, /Crear modulo/);
-    assert.match(editor.textContent, /Crear leccion/);
-    assert.match(editor.textContent, /Materiales descargables y complementarios/);
+    assert.match(editor.textContent, /Crear módulo/);
+    assert.equal(editor.querySelector('form'), null, 'outline does not mix creation forms');
+    await click('Crear módulo');
     const moduleForm = editor.querySelector('form');
+    assert.equal(moduleForm.querySelector('input[type="number"]').value, '1');
     await React.act(async () => {
       const input = moduleForm.querySelector('input');
       Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, 'Contenido del mentor');
@@ -123,6 +124,13 @@ test('delivery: login, dashboard, course, lesson, history, library, live and adm
     await React.act(async () => moduleForm.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
     assert.deepEqual(savedModule, { courseId: 'uno', title: 'Contenido del mentor', position: 0 });
     assert.match(editor.textContent, /Modulo guardado/);
+    assert.equal(editor.querySelector('form'), null);
+    await click('Agregar lección a este módulo');
+    assert.match(editor.textContent, /Crear lección/);
+    assert.equal(editor.querySelectorAll('form').length, 1);
+    await click('Volver al contenido del curso');
+    await click('Materiales');
+    assert.match(editor.textContent, /Materiales de la lección/);
     await React.act(async () => editor.querySelector('button[aria-label="Cerrar"]').click());
     await click('Clases en vivo');
     assert.match(host.textContent, /Gestionar mis clases en vivo/);

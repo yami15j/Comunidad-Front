@@ -1,3 +1,4 @@
+import { RecordingPlayer } from "../components/RecordingPlayer";
 import React, { useState } from "react";
 import {
   Film,
@@ -160,7 +161,7 @@ export function ReplaysView({ replays = [], onNavigate, onPlay }) {
       >
         {playing && (
           <>
-            <video
+            <RecordingPlayer
               src={playing.url}
               controls
               autoPlay

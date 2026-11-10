@@ -480,10 +480,13 @@
     @apply space-y-0;
   }
   .curriculum-editor .card {
-    @apply space-y-3 rounded-2xl border border-line p-4 shadow-none;
+    @apply space-y-3 rounded-2xl border border-line bg-surface p-4 shadow-panel;
   }
   .curriculum-editor h2 {
-    @apply text-sm font-bold tracking-tight;
+    @apply flex items-center gap-2.5 rounded-xl bg-elevated/50 px-3 py-2.5 text-sm font-bold tracking-tight;
+  }
+  .curriculum-step {
+    @apply inline-flex size-6 shrink-0 items-center justify-center rounded-lg border border-brand-line bg-brand-soft text-[9px] font-bold tabular-nums text-brand;
   }
   .curriculum-editor h3 {
     @apply text-xs font-semibold;
@@ -501,13 +504,29 @@
   .curriculum-editor input:not([type="checkbox"]):not([type="file"]),
   .curriculum-editor select,
   .curriculum-editor textarea {
-    @apply rounded-xl px-3 py-2 text-xs;
+    @apply rounded-xl bg-elevated/30 px-3 py-2 text-xs focus:border-brand;
   }
   .curriculum-editor textarea {
     @apply min-h-20;
   }
   .curriculum-editor .btn {
     @apply min-h-9 rounded-xl px-3 py-2 text-[11px];
+  }
+  .curriculum-editor .lesson-editor-card form {
+    @apply gap-x-4 gap-y-2.5;
+  }
+  .curriculum-editor .lesson-editor-card input:not([type="checkbox"]):not([type="file"]),
+  .curriculum-editor .lesson-editor-card select {
+    @apply h-9 min-h-9 rounded-lg px-3 py-1.5 text-xs;
+  }
+  .curriculum-editor .lesson-editor-card textarea {
+    @apply min-h-0 resize-y rounded-lg px-3 py-2 text-xs;
+  }
+  .curriculum-editor .lesson-editor-card textarea[aria-label="Resumen de la lección"] {
+    @apply h-16;
+  }
+  .curriculum-editor .lesson-editor-card textarea[aria-label="Texto de la lección"] {
+    @apply h-24;
   }
   [role="alert"] {
     @apply rounded-xl border border-danger-line bg-danger-soft px-4 py-3 text-sm text-danger;
@@ -520,6 +539,9 @@
   }
   .video-screen-wrapper video {
     @apply h-full w-full object-contain;
+  }
+  .video-screen-wrapper iframe {
+    @apply absolute inset-0 h-full w-full rounded-none border-0;
   }
   .modules-sidebar {
     @apply overflow-hidden rounded-2xl border border-line bg-surface shadow-panel xl:sticky xl:top-24;

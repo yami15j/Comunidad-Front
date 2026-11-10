@@ -22,6 +22,7 @@ export const ROLE_VIEWS = {
     "profile",
   ],
   admin: [
+    "admin-support",
     "admin-curriculum",
     "admin-access",
     "admin-mentors",
@@ -42,13 +43,13 @@ export const canReadTicket = (ticket, user) =>
   Boolean(
     ticket &&
     ticket.status !== "closed" &&
-    (user.role === "soporte"
+    (user.role === "admin" || (user.role === "soporte"
       ? ticket.assigned_to === user.id
-      : user.role === "student" && ticket.student_id === user.id),
+      : user.role === "student" && ticket.student_id === user.id)),
   );
 export const visibleTickets = (tickets, user) =>
   tickets.filter((ticket) =>
-    user.role === "soporte"
+    user.role === "admin" ? true : user.role === "soporte"
       ? !ticket.assigned_to || ticket.assigned_to === user.id
       : ticket.student_id === user.id,
   );

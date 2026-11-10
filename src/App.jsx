@@ -44,6 +44,7 @@ import { RecordingUpload } from "./components/RecordingUpload";
 import { TicketsView } from "./views/TicketsView";
 
 const VIEW_PATHS = {
+  "admin-support": "/administrador/soporte",
   "admin-curriculum": "/administrador/contenido",
   "admin-access": "/administrador/accesos",
   "admin-mentors": "/administrador/mentores",
@@ -140,6 +141,7 @@ export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(hasSession);
   const [isBootstrapping, setIsBootstrapping] = useState(hasSession);
   const [appError, setAppError] = useState("");
+  const [notificationTicketId, setNotificationTicketId] = useState(null);
 
   const [currentRole, setCurrentRole] = useState(() => {
     return localStorage.getItem("traction_auth_role") || "student";
@@ -821,6 +823,12 @@ export function App() {
 
   const handleNotificationClick = (notif) => {
     markNotificationsRead([notif.id]);
+    if (notif.type === "support" && ["student", "soporte"].includes(currentRole)) {
+      setNotificationTicketId(notif.ticketId);
+      handleNavigate("tickets");
+      setIsNotificationsOpen(false);
+      return;
+    }
     const generation = authGeneration.current;
     loadApplicationData(
       { ...user, role: currentRole === "student" ? "estudiante" : currentRole },
@@ -1037,7 +1045,7 @@ export function App() {
 
       {/* Main Content Area */}
       <div
-        className={`main-content-wrapper ${!isSidebarOpen ? "sidebar-collapsed" : ""}`}
+        className={`main-content-wrapper ${!isSidebarOpen ? "sidebar-collapsed" : ""} ${currentRole === "soporte" && currentView === "tickets" ? "support-fixed-workspace" : ""}`}
       >
         <Header
           user={user}
@@ -1053,6 +1061,7 @@ export function App() {
           }
           onOpenNotifications={() => setIsNotificationsOpen(true)}
           unreadCount={unreadNotificationsCount}
+          notifications={notifications}
           theme={theme}
           onToggleTheme={toggleTheme}
           onNavigate={handleNavigate}
@@ -1098,9 +1107,8 @@ export function App() {
               </button>
             </div>
           )}
-          {currentView === "tickets" &&
-            (currentRole === "soporte" || currentRole === "student") && (
-              <TicketsView key={user.id} user={user} searchTerm={searchTerm} />
+          {((currentView === "tickets" && ["soporte", "student"].includes(currentRole)) || (currentView === "admin-support" && currentRole === "admin")) && (
+              <TicketsView key={`${user.id}:${notificationTicketId || ""}`} user={user} searchTerm={searchTerm} initialTicketId={notificationTicketId} />
             )}
           {/* Vista: Dashboard de Estudiante */}
           {currentView === "dashboard" && (
@@ -1183,7 +1191,7 @@ export function App() {
 
           {/* Vista: Videoteca de Replays (Grabaciones) */}
           {currentRole === "mentor" && currentView === "replays" && (
-              <RecordingUpload
+              <RecordingUpload allowExternal={user?.role === "admin"}
                 showLinkEditor={false}
                 courses={courses}
                 liveClasses={liveClasses}
@@ -1247,27 +1255,7 @@ export function App() {
             />
           )}
 
-          {currentRole === "admin" && currentView === "admin-live" && (
-            <RecordingUpload
-              onSessionUpdated={(updated) =>
-                setLiveClasses((current) =>
-                  current.map((session) =>
-                    session.id === updated.id
-                      ? adaptLiveSession(updated, courses)
-                      : session,
-                  ),
-                )
-              }
-              courses={courses}
-              liveClasses={liveClasses}
-              onUploaded={(video) =>
-                setReplays((current) => [
-                  adaptVideo(video, courses),
-                  ...current,
-                ])
-              }
-            />
-          )}
+
           {currentView === "admin-mentors" && (
             <MentorsView
               mentors={users
@@ -1319,11 +1307,36 @@ export function App() {
             currentView === "admin-live" ||
             currentView === "admin-users") && (
             <AdminView
+              recordingPanel={currentRole === "admin" && currentView === "admin-live" ? (
+                <RecordingUpload
+                  allowExternal
+                  courses={courses}
+                  liveClasses={liveClasses}
+                  onSessionUpdated={(updated) =>
+                    setLiveClasses(rows => rows.map(row => row.id === updated.id ? adaptLiveSession(updated, courses) : row))
+                  }
+                  onUploaded={(video) =>
+                    setReplays(rows => [adaptVideo(video, courses), ...rows.filter(row => row.id !== video.id)])
+                  }
+                />
+              ) : null}
               courses={courses}
               liveClasses={liveClasses}
               onEditCurriculum={openCurriculum}
               onAddCourse={handleAddCourse}
               onAddLiveClass={handleAddLiveClass}
+              onDeleteLiveClass={async (id) => {
+                const generation = authGeneration.current;
+                await api.liveSessions.remove(id);
+                if (generation !== authGeneration.current) return;
+                setLiveClasses(rows => rows.filter(row => row.id !== id));
+              }}
+              onUpdateLiveClass={async (id, input) => {
+                const generation = authGeneration.current;
+                const updated = await api.liveSessions.update(id, input);
+                if (generation !== authGeneration.current) return;
+                setLiveClasses(rows => rows.map(row => row.id === id ? adaptLiveSession(updated, courses) : row));
+              }}
               mentors={mentors}
               users={users}
               dashboard={adminDashboard}
@@ -1335,6 +1348,22 @@ export function App() {
               onUpdateUserRole={handleUpdateUserRole}
               onAssignUserToCourse={handleAssignUserToCourse}
               onCreateUser={handleCreateUser}
+              onEditUser={async (id, input) => {
+                const generation = authGeneration.current;
+                const saved = await api.users.update(id, input);
+                if (generation !== authGeneration.current) return;
+                setUsers(rows => rows.map(row => row.id === id ? { ...row, ...saved } : row));
+                if (id === user.id) setUser(previous => ({ ...previous, ...adaptUser(saved), stats: previous.stats }));
+                await refreshAdminDashboard();
+              }}
+              onDeleteUser={async (id) => {
+                const generation = authGeneration.current;
+                await api.users.remove(id);
+                if (generation !== authGeneration.current) return;
+                setUsers(rows => rows.filter(row => row.id !== id).map(row => row.mentorId === id ? { ...row, mentorId: null } : row));
+                try { await loadApplicationData({ ...user, role: "admin" }, generation); }
+                catch { setAppError("La cuenta se eliminó, pero no se pudo actualizar todo el panel. Recarga la página."); }
+              }}
               currentView={currentView}
               onNavigate={handleNavigate}
             />

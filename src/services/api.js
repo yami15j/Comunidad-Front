@@ -168,6 +168,8 @@ export const api = {
       }),
   },
   tickets: {
+    resolve: (id, options) => request(`/tickets/${id}/resolve`, { ...options, method: "POST" }),
+    labels: (id, labels, options) => request(`/tickets/${id}/labels`, { ...options, method: "POST", body: JSON.stringify({ labels }) }),
     remove: (id, options) => request(`/tickets/${id}`, { ...options, method: "DELETE" }),
     list: (options) => request("/tickets", options),
     create: (input, options) =>
@@ -226,6 +228,7 @@ export const api = {
       }),
   },
   liveSessions: {
+    remove: (id) => request(`/live-sessions/${id}`, { method: "DELETE" }),
     update: (id, input) => request('/live-sessions/' + id, { method: 'PATCH', body: JSON.stringify(input) }),
     updateLink: (id, joinUrl, details = {}) =>
       request("/live-sessions/" + id + "/link", {
@@ -288,6 +291,8 @@ export const api = {
       }),
   },
   users: {
+    update: (id, input) => request(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    remove: (id) => request(`/users/${id}`, { method: 'DELETE' }),
     assignMentor: (id, mentorId) => request(`/users/${id}/mentor`, { method: "PATCH", body: JSON.stringify({ mentorId }) }),
     list: (options) => request("/users", options),
     create: (input) =>

@@ -268,10 +268,15 @@ export function Dialog({
     if (!open) return;
     const previous = document.activeElement;
     const overflow = document.body.style.overflow;
+      const paddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      if (scrollbarWidth > 0 && document.documentElement.clientWidth > 0) {
+        document.body.style.paddingRight = `${parseFloat(window.getComputedStyle(document.body).paddingRight || "0") + scrollbarWidth}px`;
+      }
     document.body.style.overflow = "hidden";
     const selector =
       'button:not(:disabled),a[href],input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]';
-    panel.current?.querySelector(selector)?.focus();
+      panel.current?.querySelector(selector)?.focus({ preventScroll: true });
     function keydown(event) {
       if (event.key === "Escape") close.current();
       if (event.key === "Tab") {
@@ -290,8 +295,9 @@ export function Dialog({
     document.addEventListener("keydown", keydown);
     return () => {
       document.body.style.overflow = overflow;
+        document.body.style.paddingRight = paddingRight;
       document.removeEventListener("keydown", keydown);
-      if (previous?.isConnected) previous.focus();
+        if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, [open]);
   if (!open) return null;

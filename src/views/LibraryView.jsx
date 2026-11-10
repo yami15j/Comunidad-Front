@@ -1,3 +1,4 @@
+import { RecordingPlayer } from "../components/RecordingPlayer";
 import React, { useMemo, useState } from "react";
 import {
   FileText,
@@ -220,7 +221,7 @@ export function LibraryView({
         className="max-w-4xl"
       >
         {playing && (
-          <video
+          <RecordingPlayer
             controls
             autoPlay
             src={playing.url}
