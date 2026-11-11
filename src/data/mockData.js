@@ -709,7 +709,8 @@ export const communityThreads = [
     content: "Estamos buscando contratar nuestro primer SDR dedicado a outbound en México y Colombia. ¿Recomiendan salario base 70% y variable 30% basado en reuniones calificadas, o fijar metas por contratos cerrados?",
     category: "Ventas B2B",
     likes: 24,
-    commentsCount: 11,
+    identityRole: "student",
+    comments: [],
     timeAgo: "Hace 2 horas",
     isPinned: true
   },
@@ -723,7 +724,8 @@ export const communityThreads = [
     content: "Quiero compartir una victoria del equipo: implementamos el framework de la clase de Sofía de propuesta de 1 página y las firmas se aceleraron drásticamente. Menos aprobaciones legales en los clientes corporativos.",
     category: "Casos de Éxito",
     likes: 47,
-    commentsCount: 19,
+    identityRole: "student",
+    comments: [],
     timeAgo: "Hace 6 horas",
     isPinned: false
   }

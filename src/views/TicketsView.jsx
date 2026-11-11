@@ -1,3 +1,4 @@
+import { RoleBadge } from "../components/RoleBadge";
 import React, { useEffect, useRef, useState } from "react";
 import { MessageSquare, RefreshCw, Trash2 } from "lucide-react";
 import { api } from "../services/api";
@@ -107,7 +108,7 @@ export function TicketsView({ user, searchTerm = "" }) {
           <h2>{selected.subject}</h2><p>{statusLabel[selected.status]}</p>
 
           {support && !selected.assigned_to && selected.status !== "closed" && <button className="btn btn-primary" disabled={busy} onClick={() => perform(options => api.tickets.claim(selected.id, options))}>Tomar ticket</button>}
-          {selected.status === "closed" ? <p>Este ticket está cerrado. Su conversación se eliminó permanentemente.</p> : canReadTicket(selected, user) ? <Conversation key={`${user.id}:${selected.id}`} ticket={selected} user={user} busy={busy} onSend={body => perform(options => api.tickets.send(selected.id, body, options))} revision={revision} mutation={mutation} /> : <p>Toma este ticket para acceder a su conversación.</p>}
+          {selected.status === "closed" ? <p>Este ticket está cerrado. Su conversación se eliminó permanentemente.</p> : canReadTicket(selected, user) ? <Conversation key={`${user.id}:${selected.id}`} ticket={selected} user={user} busy={busy} onSend={async body => { let sent; const saved = await perform(async options => { sent = await api.tickets.send(selected.id, body, options); }); return saved ? sent : null; }} revision={revision} mutation={mutation} /> : <p>Toma este ticket para acceder a su conversación.</p>}
           {support && canReadTicket(selected, user) && <button className="btn btn-secondary" disabled={busy} onClick={() => {
             if (window.confirm("¿Cerrar este ticket? Todos sus mensajes se eliminarán permanentemente. Esta acción no se puede deshacer.")) perform(async options => {
               const result = await api.tickets.close(selected.id, options);
@@ -143,7 +144,7 @@ function CreateTicket({ busy, onCreate }) {
   }}><h2>Nueva consulta</h2><label>Asunto<input name="subject" placeholder="Describe brevemente tu consulta" required maxLength={200} /></label><label>Mensaje<textarea name="message" placeholder="Cuéntanos qué necesitas y los detalles para ayudarte" required maxLength={2000} rows={3} /></label><button className="btn btn-primary" disabled={busy}>Crear ticket</button></form>;
 }
 
-function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
+export function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -171,8 +172,8 @@ function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
     {!loading && !error && !messages.length && <p>No hay mensajes.</p>}
     {messages.map(message => {
       const own = message.sender_id === user.id;
-      const sender = own ? "Tú" : user.role === "soporte" && message.sender_id === ticket.student_id ? message.sender_name?.trim() || "Estudiante" : "Soporte";
-      return <article key={message.id} className={own ? "own-message" : ""}><strong>{sender}</strong><p>{message.body}</p><small>{new Date(message.created_at).toLocaleString("es-EC")}</small></article>;
+      const sender = own ? "Tú" : message.sender_name?.trim() || (message.sender_id === ticket.student_id ? "Estudiante" : "Participante");
+      return <article key={message.id} className={own ? "own-message" : ""}><header className="flex flex-wrap items-center gap-2"><strong>{sender}</strong><RoleBadge role={message.sender_role} /></header><p>{message.body}</p><small>{new Date(message.created_at).toLocaleString("es-EC")}</small></article>;
     })}
-  </div><form className="ticket-reply" onSubmit={async event => { event.preventDefault(); if (body.trim()) { if (await onSend(body.trim())) setBody(""); } }}><label>Respuesta<textarea value={body} onChange={event => setBody(event.target.value)} required maxLength={2000} rows={3} /></label><button className="btn btn-primary" disabled={busy || !body.trim()}>Enviar respuesta</button></form></>;
+  </div><form className="ticket-reply" onSubmit={async event => { event.preventDefault(); if (body.trim()) { const sent = await onSend(body.trim()); if (sent) { if (sent.id) setMessages(rows => [...rows.filter(row => row.id !== sent.id), sent]); setBody(""); } } }}><label>Respuesta<textarea aria-label="Respuesta" value={body} onChange={event => setBody(event.target.value)} required maxLength={2000} rows={3} /></label><button className="btn btn-primary" disabled={busy || !body.trim()}>Enviar respuesta</button></form></>;
 }

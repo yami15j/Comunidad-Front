@@ -1,3 +1,4 @@
+import { RoleBadge } from "../components/RoleBadge";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   CheckCircle2,
@@ -798,7 +799,7 @@ export function CoursePlayerView({
                       {question.mentorReply && (
                         <div className="[margin-top:10px] p-3 [border-radius:var(--radius-sm)] [background:var(--brand-celeste-subtle)] text-ink text-[12px] [line-height:1.5]">
                           <strong className="text-brand">
-                            Respuesta del mentor:{" "}
+                            Respuesta del mentor:{" "}<RoleBadge role="mentor" />{" "}
                           </strong>
                           {question.mentorReply}
                         </div>

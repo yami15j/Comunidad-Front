@@ -61,3 +61,22 @@ The redesigned login, app shell, student dashboard, program cards, library, cale
 All roles can enable or disable **Modo oscuro** from the profile menu. This replaces the former membership action. Surfaces, fields, text, alerts and dialogs use the same theme; the sky blue branding is retained. The preference is stored locally in this browser, restored before the app renders, and synchronized across tabs. Signing out does not reset it. This changes appearance only and does not change course access.
 
 Run npm test for the existing API/access regressions plus DOM interaction checks for login, role navigation, search, course selection, profile saving, lesson completion and modal keyboard behavior. npm run build compiles Tailwind into the production CSS; there is no runtime CSS CDN dependency.
+
+## Real community and private messages
+
+The login has no test menu. Community (`/comunidad`) loads persisted API debates for students, mentors and administrators. Empty databases show an empty state. Posts, replies and explicit liked/unliked state are saved by the backend; failed writes retain the draft. The feed shows the latest 100 debates and latest 200 replies per debate.
+
+Messages (`/mensajes`) is available only to students and mentors. Contacts come from the current personal assignment in `iam.student_mentors`, including assignments with no previous messages. A student without an assignment sees guidance to contact administration. Administrators and support cannot read this private chat. Each read/send includes the selected mentor ID, which the database compares with the current locked assignment; stale assignments are rejected. History is isolated by student/mentor pair. Conversations refresh every 3 seconds and contacts every 5 seconds; logout/account/contact changes cancel requests.
+
+| Identity | Label | Color |
+| --- | --- | --- |
+| Support | soporte | Yellow |
+| Mentor | mentor | Green |
+| Administrator | administrador | Blue |
+| Student or unknown | No staff badge | — |
+
+Names and badges come from actual profile metadata. Plans and job titles do not determine staff identity. Support remains a separate ticket workflow. No forum or message data is stored in browser localStorage, and no example content or synthetic replies are supplied.
+
+Use the existing local Supabase project `comunidad-del-intercambio` and real provisioned accounts. The backend includes two reviewed additive migrations: `20261111000000_legacy_communication_prerequisites.sql` then `20261111000100_real_communications.sql`. Commit the prerequisite migration before applying communications. Do not replay historical pending migrations indiscriminately on a legacy database: unrelated support/live/video changes require separate review. Legacy academic screens may report their own schema gaps; communication uses independent API requests and never masks those failures with fabricated data.
+
+For the verified local runtime, use API port 3100 and frontend 5180 to avoid unrelated listeners. In PowerShell, set `$env:VITE_API_URL='http://127.0.0.1:3100'` for the frontend process, then run `npm run dev -- --host 127.0.0.1 --port 5180 --strictPort`. Open `http://127.0.0.1:5180/comunidad` or `/mensajes` and authenticate with an existing account. Backend uses `PORT=3100`; service credentials remain server-only.

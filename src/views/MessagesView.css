@@ -1,0 +1,117 @@
+.messages-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+.messages-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+  gap: 20px;
+}
+.messages-contacts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.message-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  text-align: left;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.message-contact[aria-pressed="true"] {
+  border-color: var(--brand-celeste);
+  background: var(--brand-celeste-subtle);
+}
+.messages-conversation {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--bg-surface);
+}
+.messages-log {
+  height: 400px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  margin: 16px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.private-message {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-elevated);
+  margin-right: 25px;
+}
+.private-message--own {
+  margin-right: 0;
+  margin-left: 25px;
+}
+.private-message header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+}
+.private-message p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 8px 0;
+}
+.private-message time {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+.messages-compose,
+.messages-compose label {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.messages-compose label {
+  font-size: 12px;
+  font-weight: 600;
+}
+.messages-compose textarea {
+  resize: vertical;
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--bg-surface);
+  color: var(--text-main);
+}
+.messages-empty {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--text-muted);
+  padding: 24px;
+}
+@media (max-width: 700px) {
+  .messages-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .messages-contacts {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .messages-conversation {
+    padding: 14px;
+  }
+  .messages-log {
+    height: 340px;
+  }
+}

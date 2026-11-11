@@ -1,295 +1,323 @@
-import React, { useState } from "react";
-import {
-  Heart,
-  MessageCircle,
-  Share2,
-  Plus,
-  Pin,
-  Send,
-  X,
-} from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Heart, MessageCircle, Plus, Send, RefreshCw } from "lucide-react";
+import { Avatar, Dialog } from "../components/ui";
+import { RoleBadge } from "../components/RoleBadge";
+import { api } from "../services/api";
 
-export function CommunityView({ threads, user }) {
-  const [threadList, setThreadList] = useState(threads);
-  const [selectedChannel, setSelectedChannel] = useState("all");
-  const [showNewPostModal, setShowNewPostModal] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newCategory, setNewCategory] = useState("Ventas B2B");
-  const [newContent, setNewContent] = useState("");
-
-  const channels = [
-    "all",
-    "Ventas B2B",
-    "Finanzas",
-    "Casos de Éxito",
-    "Liderazgo",
-  ];
-
-  const handleLike = (threadId) => {
-    setThreadList((prev) =>
-      prev.map((t) => {
-        if (t.id === threadId) {
-          const isLiked = t.likedByMe;
-          return {
-            ...t,
-            likedByMe: !isLiked,
-            likes: isLiked ? t.likes - 1 : t.likes + 1,
-          };
-        }
-        return t;
-      }),
-    );
-  };
-
-  const handleCreatePost = (e) => {
-    e.preventDefault();
-    if (!newTitle.trim() || !newContent.trim()) return;
-
-    const newThread = {
-      id: Date.now().toString(),
-      author: user.name,
-      authorRole: `${user.title} • ScaleTech`,
-      authorAvatar: user.avatar,
-      badge: user.plan.toUpperCase(),
-      title: newTitle,
-      category: newCategory,
-      content: newContent,
-      timeAgo: "Hace unos segundos",
-      likes: 1,
-      replies: 0,
-      likedByMe: true,
-      isPinned: false,
-    };
-
-    setThreadList([newThread, ...threadList]);
-    setNewTitle("");
-    setNewContent("");
-    setShowNewPostModal(false);
-  };
-
-  const filteredThreads =
-    selectedChannel === "all"
-      ? threadList
-      : threadList.filter((t) => t.category === selectedChannel);
-
+const channels = ["Ventas B2B", "Finanzas", "Casos de Éxito", "Liderazgo"];
+export function CommunityView({ user }) {
+  const [threads, setThreads] = useState([]),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState("");
+  const [revision, setRevision] = useState(0),
+    [channel, setChannel] = useState("all"),
+    [expanded, setExpanded] = useState(null);
+  const [open, setOpen] = useState(false),
+    [title, setTitle] = useState(""),
+    [content, setContent] = useState(""),
+    [category, setCategory] = useState(channels[0]),
+    [reply, setReply] = useState("");
+  const [busy, setBusy] = useState(false),
+    [mutationError, setMutationError] = useState("");
+  const lifetime = useRef(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    lifetime.current = controller;
+    async function load() {
+      setThreads([]); setLoading(true); setError("");
+      try { const rows = await api.forums.list({signal:controller.signal}); if (!controller.signal.aborted) setThreads(rows); }
+      catch(failure) { if (!controller.signal.aborted) setError(failure.message); }
+      finally { if (!controller.signal.aborted) setLoading(false); }
+    }
+    load();
+    return () => controller.abort();
+  }, [user.id, revision]);
+  async function mutate(action, onSuccess) {
+    const controller = lifetime.current;
+    if (!controller || controller.signal.aborted || busy) return;
+    setBusy(true);
+    setMutationError("");
+    try {
+      const row = await action({ signal: controller.signal });
+      if (controller.signal.aborted) return;
+      setThreads((rows) =>
+        [row, ...rows.filter((item) => item.id !== row.id)].sort((a, b) =>
+          String(b.createdAt || "").localeCompare(String(a.createdAt || "")),
+        ),
+      );
+      onSuccess?.();
+    } catch (failure) {
+      if (!controller.signal.aborted) setMutationError(failure.message);
+    } finally {
+      if (!controller.signal.aborted) setBusy(false);
+    }
+  }
   return (
-    <div className="flex flex-col gap-5">
-      {/* Header */}
-      <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
-        <div className="border-l-[3px] border-brand py-1 pl-4 sm:pl-5">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">
-              <span>Red Privada de Empresarios</span>
-            </span>
-          </div>
-          <h1 className="text-2xl font-extrabold leading-tight tracking-tight text-ink sm:text-[28px]">
-            Comunidad & Mesa Redonda de Tracción
-          </h1>
-          <p className="mt-2 max-w-xl text-xs leading-6 text-subtle">
-            Resuelve cuellos de botella con fundadores que enfrentan los mismos
-            retos comerciales y operativos.
+    <section className="flex min-w-0 flex-col gap-5">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-extrabold text-ink">Comunidad</h1>
+          <p className="mt-2 text-xs leading-6 text-subtle">
+            Comparte consultas y experiencias con estudiantes, mentores y
+            administración.
+          </p>
+          <p className="text-xs text-subtle">
+            Últimos 100 debates · hasta 200 respuestas recientes por debate
           </p>
         </div>
-
-        <button
-          className="btn btn-primary self-start shrink-0 !min-h-9 !rounded-xl !px-4 !py-2 !text-xs lg:self-center"
-          onClick={() => setShowNewPostModal(true)}
-        >
-          <Plus size={16} />
-          <span>Iniciar Nuevo Debate</span>
-        </button>
-      </div>
-
-      {/* Selector de Canales */}
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-line bg-elevated/40 p-2">
-        {channels.map((ch) => (
+        <div className="flex flex-wrap gap-2">
           <button
-            key={ch}
-            onClick={() => setSelectedChannel(ch)}
-            aria-pressed={selectedChannel === ch}
-            className={'shrink-0 rounded-xl border px-3 py-2 text-[11px] font-semibold transition-colors ' + (selectedChannel === ch ? 'border-brand bg-brand text-on-brand shadow-sm' : 'border-line bg-surface text-subtle hover:border-brand/40 hover:text-brand')}
+            className="btn btn-secondary"
+            disabled={loading || busy}
+            onClick={() => setRevision((v) => v + 1)}
           >
-            {ch === "all" ? "Todos los Debates" : `#${ch}`}
+            <RefreshCw size={14} />
+            Actualizar
+          </button>
+          <button
+            className="btn btn-primary"
+            disabled={loading || Boolean(error)}
+            onClick={() => {
+              setOpen(true);
+              setMutationError("");
+            }}
+          >
+            <Plus size={15} />
+            Iniciar Nuevo Debate
+          </button>
+        </div>
+      </header>
+      <nav aria-label="Canales del foro" className="flex flex-wrap gap-2">
+        {["all", ...channels].map((value) => (
+          <button
+            key={value}
+            className="btn btn-secondary"
+            aria-pressed={channel === value}
+            onClick={() => setChannel(value)}
+          >
+            {value === "all" ? "Todos los debates" : value}
           </button>
         ))}
-      </div>
-
-      {/* Lista de Hilos de Discusión */}
-      <div className="flex flex-col gap-4">
-        {filteredThreads.map((thread) => (
-          <div key={thread.id} className="rounded-2xl border border-line bg-surface p-4 shadow-panel transition-colors hover:border-brand/25 sm:p-5 [&_.btn]:!min-h-8 [&_.btn]:!rounded-lg [&_.btn]:!px-3 [&_.btn]:!py-1.5 [&_.btn]:!text-[11px]">
-            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <img
+      </nav>
+      {loading && <p role="status">Cargando debates…</p>}
+      {error && (
+        <p role="alert">
+          {error}{" "}
+          <button
+            className="btn btn-secondary"
+            onClick={() => setRevision((v) => v + 1)}
+          >
+            Reintentar
+          </button>
+        </p>
+      )}
+      {mutationError && !open && <p role="alert">{mutationError}</p>}
+      {!loading &&
+        !error &&
+        !threads.filter((row) => channel === "all" || row.category === channel)
+          .length && (
+          <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-subtle">
+            No hay debates para mostrar. Inicia la primera conversación.
+          </p>
+        )}
+      {!loading &&
+        !error &&
+        threads
+          .filter((row) => channel === "all" || row.category === channel)
+          .map((thread) => (
+            <article
+              key={thread.id}
+              className="min-w-0 rounded-2xl border border-line bg-surface p-4 sm:p-5"
+            >
+              <header className="flex items-center gap-3">
+                <Avatar
                   src={thread.authorAvatar}
-                  alt={thread.author}
-                  className="size-9 shrink-0 rounded-full border border-line object-cover"
+                  name={thread.author || "Participante"}
+                  className="size-9"
                 />
-                <div>
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[14px] font-bold text-ink">
-                      {thread.author}
-                    </span>
-                    <span className="badge badge-emerald text-[11px] [padding:2px_6px]">
-                      {thread.badge}
-                    </span>
+                    <strong className="text-sm">
+                      {thread.author || "Participante"}
+                    </strong>
+                    <RoleBadge role={thread.identityRole} />
                   </div>
-                  <div className="text-[11px] text-subtle">
-                    {thread.authorRole} • {thread.timeAgo}
-                  </div>
+                  <p className="mt-1 text-[11px] text-subtle">
+                    {thread.category} ·{" "}
+                    {thread.createdAt
+                      ? new Date(thread.createdAt).toLocaleString("es-EC")
+                      : ""}
+                  </p>
                 </div>
-              </div>
-
-              {thread.isPinned && (
-                <span className="badge badge-amber text-[11px]">
-                  <Pin size={11} /> Destacado
-                </span>
-              )}
-            </div>
-
-            <h3 className="mb-2 text-sm font-bold leading-6 tracking-tight text-ink">
-              {thread.title}
-            </h3>
-            <p className="mb-4 text-xs leading-6 text-muted">
-              {thread.content}
-            </p>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-              <div className="flex flex-wrap gap-2">
+              </header>
+              <h2 className="mt-4 break-words text-base font-bold">
+                {thread.title}
+              </h2>
+              <p className="my-3 whitespace-pre-wrap break-words text-sm leading-7 text-muted">
+                {thread.content}
+              </p>
+              <div className="flex flex-wrap gap-2 border-t border-line pt-3">
                 <button
-                  className={
-                    `btn btn-sm ${thread.likedByMe ? "btn-primary" : "btn-secondary"}` +
-                    " [gap:6px]"
+                  className="btn btn-secondary"
+                  aria-pressed={thread.likedByMe}
+                  disabled={busy}
+                  onClick={() =>
+                    mutate((options) =>
+                      api.forums.like(thread.id, !thread.likedByMe, options),
+                    )
                   }
-                  onClick={() => handleLike(thread.id)}
                 >
                   <Heart
                     size={14}
                     fill={thread.likedByMe ? "currentColor" : "none"}
                   />
-                  <span>{thread.likes} Aportes Útiles</span>
+                  {thread.likes} Aportes útiles
                 </button>
-
                 <button
-                  className="btn btn-secondary btn-sm [gap:6px]"
-                  onClick={() =>
-                    alert(`Abriendo respuestas del hilo "${thread.title}"...`)
-                  }
+                  className="btn btn-secondary"
+                  aria-expanded={expanded === thread.id}
+                  onClick={() => {
+                    setExpanded(expanded === thread.id ? null : thread.id);
+                    setReply("");
+                    setMutationError("");
+                  }}
                 >
                   <MessageCircle size={14} />
-                  <span>{thread.replies} Respuestas</span>
+                  {thread.commentsCount} Respuestas
                 </button>
               </div>
-
-              <button
-                className="btn btn-secondary btn-sm"
-                onClick={() => alert("Enlace copiado al portapapeles")}
-                title="Compartir debate"
-              >
-                <Share2 size={13} />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Modal para Crear Nuevo Post */}
-      {showNewPostModal && (
-        <div
-          className="modal-backdrop"
-          onClick={() => setShowNewPostModal(false)}
+              {expanded === thread.id && (
+                <section
+                  aria-label={"Respuestas a " + thread.title}
+                  className="mt-4 space-y-3 border-t border-line pt-4"
+                >
+                  {!thread.comments.length && (
+                    <p className="text-xs text-subtle">
+                      Todavía no hay respuestas.
+                    </p>
+                  )}
+                  {thread.comments.map((comment) => (
+                    <article
+                      key={comment.id}
+                      className="rounded-xl bg-elevated p-3"
+                    >
+                      <header className="flex flex-wrap items-center gap-2 text-xs">
+                        <strong>{comment.author || "Participante"}</strong>
+                        <RoleBadge role={comment.identityRole} />
+                      </header>
+                      <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6">
+                        {comment.content}
+                      </p>
+                    </article>
+                  ))}
+                  <form
+                    className="flex flex-col gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      if (reply.trim())
+                        mutate(
+                          (options) =>
+                            api.forums.reply(thread.id, reply.trim(), options),
+                          () => setReply(""),
+                        );
+                    }}
+                  >
+                    <label className="text-xs font-semibold">
+                      Tu respuesta
+                      <textarea
+                        aria-label={"Respuesta a " + thread.title}
+                        rows={3}
+                        maxLength={2000}
+                        className="mt-2 w-full rounded-xl border border-line bg-surface p-3"
+                        value={reply}
+                        onChange={(event) => setReply(event.target.value)}
+                      />
+                    </label>
+                    <button
+                      className="btn btn-primary self-start"
+                      disabled={busy || !reply.trim()}
+                    >
+                      Publicar respuesta
+                    </button>
+                  </form>
+                </section>
+              )}
+            </article>
+          ))}
+      <Dialog
+        open={open}
+        onClose={() => {
+          if (!busy) setOpen(false);
+        }}
+        title="Iniciar Nuevo Debate"
+        className="max-w-xl"
+      >
+        <form
+          className="flex flex-col gap-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (title.trim() && content.trim())
+              mutate(
+                (options) =>
+                  api.forums.create(
+                    { title: title.trim(), content: content.trim(), category },
+                    options,
+                  ),
+                () => {
+                  setTitle("");
+                  setContent("");
+                  setOpen(false);
+                  setChannel("all");
+                },
+              );
+          }}
         >
-          <div
-            className="modal-dialog [max-width:580px]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="[padding:18px_24px] bg-elevated [border-bottom:1px_solid_var(--border-subtle)] flex justify-between items-center">
-              <div>
-                <h3 className="text-[17px] font-extrabold text-ink">
-                  Iniciar Nueva Discusión Empresarial
-                </h3>
-                <p className="text-[12px] text-muted">
-                  Comparte una duda sobre tu proceso o un caso de éxito con los
-                  demás miembros.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowNewPostModal(false)}
-                className="[background:none] [border:none] text-muted cursor-pointer"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <form
-              onSubmit={handleCreatePost}
-              className="[padding:20px_24px] flex flex-col gap-4"
+          <label className="text-xs font-semibold">
+            Canal
+            <select
+              className="mt-2 w-full rounded-xl border border-line bg-elevated p-3"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
             >
-              <div>
-                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
-                  Canal / Temática
-                </label>
-                <select
-                  value={newCategory}
-                  onChange={(e) => setNewCategory(e.target.value)}
-                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] bg-elevated [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
-                >
-                  <option value="Ventas B2B">Ventas B2B & Prospección</option>
-                  <option value="Finanzas">Finanzas & Runway</option>
-                  <option value="Casos de Éxito">
-                    Casos de Éxito & Victorias
-                  </option>
-                  <option value="Liderazgo">Liderazgo & Equipos</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
-                  Título de la consulta o aporte
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: ¿Qué CRM recomiendan para un equipo de 3 vendedores?"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] bg-elevated [border:1px_solid_var(--border-medium)] text-ink text-[13px]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-[12px] font-bold text-subtle uppercase block [margin-bottom:6px]">
-                  Detalles y contexto de tu empresa
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Describe la situación actual, qué has intentado y qué sugerencias buscas..."
-                  value={newContent}
-                  onChange={(e) => setNewContent(e.target.value)}
-                  className="w-full [padding:10px_12px] [border-radius:var(--radius-sm)] bg-elevated [border:1px_solid_var(--border-medium)] text-ink text-[13px] [resize:vertical]"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end [gap:10px] [margin-top:10px]">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setShowNewPostModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary btn-sm">
-                  <Send size={14} />
-                  <span>Publicar Debate</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+              {channels.map((value) => (
+                <option key={value}>{value}</option>
+              ))}
+            </select>
+          </label>
+          <label className="text-xs font-semibold">
+            Título
+            <input
+              aria-label="Título del debate"
+              maxLength={200}
+              className="mt-2 w-full rounded-xl border border-line bg-elevated p-3"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              required
+            />
+          </label>
+          <label className="text-xs font-semibold">
+            Contenido
+            <textarea
+              aria-label="Contenido del debate"
+              maxLength={4000}
+              rows={5}
+              className="mt-2 w-full rounded-xl border border-line bg-elevated p-3"
+              value={content}
+              onChange={(event) => setContent(event.target.value)}
+              required
+            />
+          </label>
+          {mutationError && <p role="alert">{mutationError}</p>}
+          <button
+            className="btn btn-primary"
+            disabled={busy || !title.trim() || !content.trim()}
+          >
+            <Send size={14} />
+            {busy ? "Publicando…" : "Publicar Debate"}
+          </button>
+        </form>
+      </Dialog>
+    </section>
   );
 }
-
 export default CommunityView;
