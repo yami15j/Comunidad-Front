@@ -99,6 +99,17 @@ export function hasSession() {
 }
 
 export const api = {
+  forums: {
+    list: options => request('/forums/threads',options),
+    create: (input,options={}) => request('/forums/threads',{...options,method:'POST',body:JSON.stringify(input)}),
+    reply: (id,content,options={}) => request('/forums/threads/'+encodeURIComponent(id)+'/replies',{...options,method:'POST',body:JSON.stringify({content})}),
+    like: (id,liked,options={}) => request('/forums/threads/'+encodeURIComponent(id)+'/like',{...options,method:'PUT',body:JSON.stringify({liked})}),
+  },
+  mentorChat: {
+    conversations: options => request('/mentor-chat/conversations',options),
+    messages: (id,mentorId,options) => request('/mentor-chat/'+encodeURIComponent(id)+'/messages?mentorId='+encodeURIComponent(mentorId),options),
+    send: (id,body,mentorId,options={}) => request('/mentor-chat/'+encodeURIComponent(id)+'/messages',{...options,method:'POST',body:JSON.stringify({body,mentorId})}),
+  },
   administration: {
     curriculum: (id, options) =>
       request("/admin/courses/" + id + "/curriculum", options),

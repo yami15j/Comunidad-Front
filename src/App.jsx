@@ -1,7 +1,7 @@
 import { LoaderCircle } from "lucide-react";
 import { Brand, Dialog, EmptyState } from "./components/ui";
 import React, { useState, useEffect, useRef } from "react";
-import { communityThreads } from "./data/mockData";
+import { MessagesView } from "./views/MessagesView";
 import { api, clearSession, hasSession, saveSession } from "./services/api";
 import {
   adaptCourse,
@@ -60,6 +60,7 @@ const VIEW_PATHS = {
   library: "/biblioteca",
   mentors: "/mentores",
   community: "/comunidad",
+  messages: "/mensajes",
   profile: "/perfil",
   "admin-overview": "/administrador",
   "admin-courses": "/administrador/cursos",
@@ -1241,8 +1242,9 @@ export function App() {
           )}
 
           {/* Vista: Comunidad & Debates */}
+          {currentView === "messages" && <MessagesView key={user.id} user={user} />}
           {currentView === "community" && (
-            <CommunityView threads={communityThreads} user={user} />
+            <CommunityView key={user.id} user={user} />
           )}
 
           {/* Vista: Mi Perfil & Datos */}

@@ -1,3 +1,4 @@
+import { RoleBadge } from "../components/RoleBadge";
 import React, { useEffect, useRef, useState } from "react";
 import { MessageSquare, RefreshCw, Trash2 } from "lucide-react";
 import { api } from "../services/api";
@@ -132,7 +133,7 @@ export function TicketsView({ user, searchTerm = "", initialTicketId = null }) {
           {admin && <div className="grid gap-1 rounded-xl bg-elevated p-3 text-xs text-subtle"><p>Estudiante: <strong className="text-ink">{selected.student_name || "Estudiante"}</strong></p><p>Responsable: <strong className="text-ink">{selected.agent_name || "Sin asignar"}</strong></p><p>Creado: {new Date(selected.created_at).toLocaleString("es-EC")}</p><p className="text-brand">Vista de supervisión · Solo lectura</p></div>}
 
           {support && !selected.assigned_to && !isResolved(selected) && <button className="btn btn-primary" disabled={busy} onClick={() => perform(options => api.tickets.claim(selected.id, options))}>Tomar ticket</button>}
-          {selected.status === "closed" ? <p>Este ticket está cerrado. Su conversación se eliminó permanentemente.</p> : canReadTicket(selected, user) ? <Conversation key={`${user.id}:${selected.id}`} ticket={selected} user={user} busy={busy} onSend={body => perform(options => api.tickets.send(selected.id, body, options))} revision={revision} mutation={mutation} /> : <p>Toma este ticket para acceder a su conversación.</p>}
+          {selected.status === "closed" ? <p>Este ticket está cerrado. Su conversación se eliminó permanentemente.</p> : canReadTicket(selected, user) ? <Conversation key={`${user.id}:${selected.id}`} ticket={selected} user={user} busy={busy} onSend={async body => { let sent; const saved = await perform(async options => { sent = await api.tickets.send(selected.id, body, options); }); return saved ? sent : null; }} revision={revision} mutation={mutation} /> : <p>Toma este ticket para acceder a su conversación.</p>}
           {support && canReadTicket(selected, user) && !isResolved(selected) && <button className="btn btn-primary" disabled={busy} onClick={() => perform(options => api.tickets.resolve(selected.id, options))}>Marcar como resuelto</button>}
           {selected.status === "resolved" && <p className="support-resolved">Caso resuelto. El historial de la conversación se conserva.</p>}
         </>}
@@ -177,7 +178,7 @@ function CreateTicket({ busy, onCreate }) {
   }}><h2>Nueva consulta</h2><label>Asunto<input name="subject" placeholder="Describe brevemente tu consulta" required maxLength={200} /></label><label>Mensaje<textarea name="message" placeholder="Cuéntanos qué necesitas y los detalles para ayudarte" required maxLength={2000} rows={3} /></label><button className="btn btn-primary" disabled={busy}>Crear ticket</button></form>;
 }
 
-function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
+export function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
   const [messages, setMessages] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -206,8 +207,8 @@ function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
     {!loading && !error && !messages.length && <p>No hay mensajes.</p>}
     {messages.map(message => {
       const own = message.sender_id === user.id;
-      const sender = own ? "Tú" : message.sender_id === ticket.student_id ? message.sender_name?.trim() || "Estudiante" : ticket.agent_name || "Soporte";
-      return <article key={message.id} className={own ? "own-message" : ""}><strong>{sender}</strong><p>{message.body}</p><small>{new Date(message.created_at).toLocaleString("es-EC")}</small></article>;
+      const sender = own ? "Tú" : message.sender_name?.trim() || (message.sender_id === ticket.student_id ? "Estudiante" : "Participante");
+      return <article key={message.id} className={own ? "own-message" : ""}><header className="flex flex-wrap items-center gap-2"><strong>{sender}</strong><RoleBadge role={message.sender_role} /></header><p>{message.body}</p><small>{new Date(message.created_at).toLocaleString("es-EC")}</small></article>;
     })}
   </div>{user.role !== "admin" && !isResolved(ticket) && <form className="ticket-reply" onSubmit={async event => {
     event.preventDefault();
@@ -215,9 +216,13 @@ function Conversation({ ticket, user, busy, onSend, revision, mutation }) {
     sending.current = true;
     const submitted = body;
     try {
-      if (await onSend(submitted.trim())) setBody(current => current === submitted ? "" : current);
+      const sent = await onSend(submitted.trim());
+      if (sent) {
+        if (sent.id) setMessages(rows => [...rows.filter(row => row.id !== sent.id), sent]);
+        setBody(current => current === submitted ? "" : current);
+      }
     } finally { sending.current = false; }
-  }}><label>Respuesta<textarea value={body} onChange={event => setBody(event.target.value)} onKeyDown={event => {
+  }}><label>Respuesta<textarea aria-label="Respuesta" value={body} onChange={event => setBody(event.target.value)} onKeyDown={event => {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
       if (!event.repeat) event.currentTarget.form.requestSubmit();

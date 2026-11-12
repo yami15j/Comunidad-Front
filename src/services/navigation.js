@@ -36,6 +36,7 @@ export const NAVIGATION = {
         { id: "library", label: "Biblioteca", icon: Library },
         { id: "mentors", label: "Nuestros mentores", icon: GraduationCap },
         { id: "community", label: "Comunidad", icon: MessageSquare },
+        { id: "messages", label: "Mensajes", icon: MessageSquare },
         { id: "tickets", label: "Centro de soporte", icon: LifeBuoy },
       ],
     },
@@ -60,6 +61,7 @@ export const NAVIGATION = {
       items: [
         { id: "mentor-notifications", label: "Avisos y eventos", icon: Bell },
         { id: "community", label: "Comunidad", icon: MessageSquare },
+        { id: "messages", label: "Mensajes", icon: MessageSquare },
       ],
     },
   ],
@@ -98,6 +100,7 @@ export const NAVIGATION = {
         },
         { id: "admin-notifications", label: "Avisos y eventos", icon: Bell },
         { id: "admin-support", label: "Supervisión de soporte", icon: LifeBuoy },
+        { id: "community", label: "Comunidad", icon: MessageSquare },
       ],
     },
   ],
