@@ -1,117 +1,44 @@
-.messages-page {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  min-width: 0;
-}
-.messages-layout {
-  display: grid;
-  grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
-  gap: 20px;
-}
-.messages-contacts {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.message-contact {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding: 14px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  background: var(--bg-surface);
-  text-align: left;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-.message-contact[aria-pressed="true"] {
-  border-color: var(--brand-celeste);
-  background: var(--brand-celeste-subtle);
-}
-.messages-conversation {
-  min-width: 0;
-  padding: 20px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  background: var(--bg-surface);
-}
-.messages-log {
-  height: 400px;
-  overflow: auto;
-  overscroll-behavior: contain;
-  margin: 16px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.private-message {
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border-subtle);
-  background: var(--bg-surface-elevated);
-  margin-right: 25px;
-}
-.private-message--own {
-  margin-right: 0;
-  margin-left: 25px;
-}
-.private-message header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  font-size: 12px;
-}
-.private-message p {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: 13px;
-  line-height: 1.8;
-  margin: 8px 0;
-}
-.private-message time {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-.messages-compose,
-.messages-compose label {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.messages-compose label {
-  font-size: 12px;
-  font-weight: 600;
-}
-.messages-compose textarea {
-  resize: vertical;
-  border: 1px solid var(--border-medium);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--bg-surface);
-  color: var(--text-main);
-}
-.messages-empty {
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--text-muted);
-  padding: 24px;
-}
-@media (max-width: 700px) {
-  .messages-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .messages-contacts {
-    flex-direction: row;
-    flex-wrap: wrap;
-  }
-  .messages-conversation {
-    padding: 14px;
-  }
-  .messages-log {
-    height: 340px;
-  }
+﻿@reference "../index.css";
+@layer components {
+ .messages-workspace { @apply h-dvh min-h-0 overflow-hidden; }
+ .messages-workspace > header { @apply shrink-0; }
+ .messages-workspace .content-body { @apply flex min-h-0 flex-1 flex-col overflow-hidden py-4; }
+ .messages-page { @apply flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden; }
+ .messages-page > header { @apply shrink-0 border-l-[3px] border-brand py-1 pl-4; }
+ .messages-page > header h1 { @apply text-xl font-extrabold tracking-tight; }
+ .messages-page > header p { @apply mt-1 text-xs leading-5 text-subtle; }
+ .messages-layout { @apply grid min-h-0 flex-1 gap-4 overflow-hidden md:grid-cols-[230px_minmax(0,1fr)]; }
+ .messages-contacts { @apply flex min-h-0 flex-col gap-2 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface p-3 shadow-panel; }
+ .messages-contacts-title { @apply shrink-0 px-1 pb-2 pt-1 text-sm font-bold tracking-tight; }
+ .message-contact { @apply flex shrink-0 items-center gap-3 rounded-xl border border-transparent bg-surface p-3 text-left text-xs transition [overflow-wrap:anywhere] hover:border-brand-line focus-visible:outline-2 focus-visible:outline-brand; }
+ .message-contact[aria-pressed=true] { @apply border-brand-line bg-brand-soft; }
+ .messages-conversation { @apply flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel; }
+ .messages-conversation-heading { @apply flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3; }
+ .messages-conversation-heading h2 { @apply text-sm font-bold tracking-tight; }
+ .messages-profile-button { @apply inline-flex items-center gap-1.5 rounded-full border border-brand-line bg-brand-soft px-3 py-2 text-[11px] font-semibold text-brand transition hover:border-brand; }
+ .messages-day { @apply my-1 flex shrink-0 items-center gap-3 text-[9px] text-subtle before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line; }
+ .messages-day span { @apply rounded-full bg-elevated px-3 py-1.5; }
+ .messages-row { @apply flex shrink-0 items-start gap-2; }
+ .messages-row--own { @apply flex-row-reverse; }
+ .messages-conversation > [role=status], .messages-conversation > [role=alert] { @apply shrink-0 px-4 py-2 text-xs; }
+ .messages-log { @apply flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-contain bg-elevated/30 p-4; }
+ .messages-log > p { @apply m-auto px-4 py-6 text-center text-xs leading-6 text-subtle; }
+ .private-message { @apply w-fit min-w-0 max-w-[85%] self-start rounded-2xl rounded-tl-sm border border-line bg-surface px-4 py-3; }
+ .private-message--own { @apply self-end rounded-tl-2xl rounded-tr-sm border-brand-line bg-brand-soft; }
+ .private-message header { @apply flex flex-wrap items-center gap-2 text-[11px]; }
+ .private-message p { @apply my-2 whitespace-pre-wrap text-xs leading-6 [overflow-wrap:anywhere]; }
+ .private-message time { @apply block text-right text-[9px] text-subtle; }
+ .messages-compose { @apply flex shrink-0 items-center gap-3 border-t border-line bg-elevated/20 p-3 sm:p-4; }
+ .messages-compose label { @apply flex min-w-0 flex-1 flex-col gap-1.5 text-[11px] font-semibold text-muted; }
+ .messages-compose textarea { @apply h-14 min-h-0 w-full resize-none overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface px-4 py-4 text-xs font-normal text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/10; }
+ .messages-compose .btn { @apply size-12 min-h-0 shrink-0 rounded-full p-0 text-xs; }
+ .messages-empty { @apply m-auto p-5 text-center text-xs leading-6 text-subtle; }
+ @media (max-width: 767px) {
+  .messages-layout { @apply grid-rows-[auto_minmax(0,1fr)] gap-2; }
+  .messages-contacts { @apply max-h-24 flex-row overflow-x-auto; }
+  .messages-contacts-title { @apply sr-only; }
+  .message-contact { @apply max-w-52 gap-1 px-3 py-2; }
+  .messages-compose { @apply gap-2 p-2; }
+  .messages-compose .btn { @apply px-2 text-[10px]; }
+ }
 }

@@ -1,3 +1,4 @@
+import { Link, Upload, Check } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { recordingErrorMessage } from "../services/recordingFeedback";
 import { api } from "../services/api";
@@ -142,15 +143,48 @@ export function RecordingUpload({
   }
   return (
     <section className="academic-workspace card mb-6 !space-y-4 !rounded-2xl !p-4 sm:!p-5 [&_label]:!gap-1.5 [&_label]:!text-[11px] [&_input:not([type=file])]:!rounded-xl [&_input:not([type=file])]:!px-3 [&_input:not([type=file])]:!py-2.5 [&_input:not([type=file])]:!text-xs [&_select]:!rounded-xl [&_select]:!px-3 [&_select]:!py-2.5 [&_select]:!text-xs [&_.btn]:!min-h-9 [&_.btn]:!rounded-xl [&_.btn]:!px-4 [&_.btn]:!py-2 [&_.btn]:!text-xs">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-5"><div className="flex items-center gap-3"><div><p className="mb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-brand">Contenido del curso</p><h2 className="!text-lg font-bold tracking-tight">Publicar grabación</h2><p className="mt-1 text-xs text-subtle">Una nueva clase, disponible a su ritmo.</p></div></div><span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-elevated/50 px-3 py-1.5 text-[10px] font-medium text-muted">Acceso por matrícula</span></div>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4"><div className="flex items-center gap-3"><div><p className="mb-1 text-[9px] font-bold uppercase tracking-[0.18em] text-brand">Contenido del curso</p><h2 className="!text-lg font-bold tracking-tight">Publicar grabación</h2><p className="mt-1 text-xs text-subtle">Comparte una clase grabada con tus estudiantes.</p></div></div><span className="inline-flex items-center gap-1.5 text-subtle text-[10px] font-medium text-muted">Acceso por matrícula</span></div>
         {message && <div ref={feedbackRef} role={messageType === "error" ? "alert" : "status"} aria-live="polite" aria-atomic="true" className={`flex items-start rounded-xl border px-3 py-2 md:col-span-2 ${messageType === "success" ? "w-fit max-w-full border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : messageType === "error" ? "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300" : "border-brand-line bg-brand-soft text-brand"}`}>
 
           <div className="min-w-0"><p className="!text-xs !leading-5 font-semibold">{messageType === "success" ? "¡Grabación guardada!" : messageType === "error" ? "No se pudo guardar la grabación" : "Publicando grabación"}</p>{messageType !== "success" && <p className="mt-0.5 !text-[11px] !leading-5">{message}</p>}{savedRecording && messageType === "success" && <p className="mt-0.5 break-words !text-[11px] !leading-4">{savedRecording.title} · {savedRecording.course}</p>}</div>
         </div>}
-      <form onSubmit={upload} className="!mt-5 grid !gap-x-5 !gap-y-5">
-        {busy && uploadProgress !== null && <div className="md:col-span-2"><div className="mb-1 flex justify-between text-xs text-brand"><span>{uploadProgress === 100 ? "Verificando archivo…" : "Subiendo video"}</span><span>{uploadProgress}%</span></div><progress aria-label="Progreso de subida del video" max="100" value={uploadProgress} className="h-2 w-full overflow-hidden rounded-full accent-sky-500" /></div>}
-        {allowExternal && <fieldset className="min-w-0 md:col-span-2"><legend className="mb-3 text-xs font-semibold text-ink">¿Cómo quieres compartir la clase?</legend><div className="grid gap-3 sm:grid-cols-2">{[{ value: "vimeo", label: "Enlace de video", description: "Pega el enlace y publica tu clase" }, { value: "file", label: "Desde tu computadora", description: "Sube un archivo de video" }].map(option => <label key={option.value} className={`relative !flex cursor-pointer !flex-row items-center gap-2 rounded-xl border !px-3 !py-2.5 transition-all focus-within:ring-2 focus-within:ring-brand/40 ${source === option.value ? "border-brand bg-brand-soft shadow-sm" : "border-line bg-surface hover:border-brand/40 hover:bg-elevated/50"} ${busy ? "pointer-events-none opacity-60" : ""}`}><input className="sr-only" type="radio" name="recording-source" value={option.value} checked={source === option.value} disabled={busy} onChange={() => { setSource(option.value); setMessage(""); setSavedRecording(null); }} /><span className="min-w-0 flex-1"><span className="block text-xs font-bold text-ink">{option.label}</span><span className="mt-0.5 block text-[10px] font-normal leading-4 text-subtle">{option.description}</span></span></label>)}</div></fieldset>}
-        {source === "vimeo" && <div className="min-w-0 rounded-2xl border border-brand-line bg-brand-soft/30 p-4 md:col-span-2"><label>Enlace de video<div className="relative mt-1"><input required type="url" maxLength={2048} disabled={busy} className="w-full !bg-surface" placeholder="Pega el enlace de tu video" value={externalUrl} onChange={e => setExternalUrl(e.target.value)} /></div></label><p className="mt-2 text-[11px] font-normal leading-5 text-subtle">El video se verá dentro de la plataforma.</p></div>}
+      <form onSubmit={upload} className="!mt-4 !grid !grid-cols-1 !gap-5 lg:!grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        {busy && uploadProgress !== null && <div className="lg:col-span-2"><div className="mb-1 flex justify-between text-xs text-brand"><span>{uploadProgress === 100 ? "Verificando archivo…" : "Subiendo video"}</span><span>{uploadProgress}%</span></div><progress aria-label="Progreso de subida del video" max="100" value={uploadProgress} className="h-2 w-full overflow-hidden rounded-full accent-sky-500" /></div>}
+
+        <div className="min-w-0 space-y-4 rounded-xl bg-elevated/30 p-4">
+        {allowExternal && <fieldset className="min-w-0"><legend className="mb-2 text-[11px] font-semibold text-muted">¿Cómo quieres compartir la clase?</legend><div className="grid grid-cols-2 gap-1 rounded-xl bg-elevated p-1">{[{ value: "vimeo", label: "Enlace de video", description: "Pega el enlace y publica tu clase" }, { value: "file", label: "Desde tu computadora", description: "Sube un archivo de video" }].map(option => <label key={option.value} className={`relative !flex cursor-pointer !flex-row items-center gap-2 rounded-lg border !px-3 !py-2 transition-all focus-within:ring-2 focus-within:ring-brand/40 ${source === option.value ? "border-transparent bg-surface shadow-sm" : "border-transparent bg-transparent hover:bg-surface/60"} ${busy ? "pointer-events-none opacity-60" : ""}`}><input className="sr-only" type="radio" name="recording-source" value={option.value} checked={source === option.value} disabled={busy} onChange={() => { setSource(option.value); setMessage(""); setSavedRecording(null); }} /><span className={"shrink-0 " + (source === option.value ? "text-brand" : "text-subtle")}>{option.value === "vimeo" ? <Link size={16} /> : <Upload size={16} />}</span><span className="min-w-0 flex-1"><span className="block text-xs font-bold text-ink">{option.label}</span></span></label>)}</div></fieldset>}
+        {source === "vimeo" && <div className="min-w-0"><label>Enlace de video<div className="relative mt-1"><input required type="url" maxLength={2048} disabled={busy} className="w-full !bg-surface" placeholder="https://vimeo.com/..." value={externalUrl} onChange={e => setExternalUrl(e.target.value)} /></div></label><p className="mt-2 text-[11px] font-normal leading-5 text-subtle">El video se verá dentro de la plataforma.</p></div>}
+        {source === "file" && <label className="cursor-pointer rounded-xl border border-dashed border-brand-line bg-brand-soft/30 p-4 transition-colors hover:bg-brand-soft/60 focus-within:ring-2 focus-within:ring-brand/40">
+          <span className="text-xs font-semibold text-ink">Selecciona tu video</span>
+          <span className="text-[10px] font-normal text-subtle">Elige el archivo de la clase para compartirlo con tus estudiantes.</span>
+          <input
+            required
+            type="file"
+            accept="video/*"
+            aria-label="Elegir video para subir"
+            className="mt-2 block w-full min-w-0 cursor-pointer text-xs text-muted file:mr-3 file:cursor-pointer file:rounded-xl file:border file:border-brand file:bg-brand file:px-5 file:py-3 file:text-xs file:font-bold file:text-white file:shadow-sm hover:file:brightness-95 disabled:cursor-wait disabled:opacity-60"
+            disabled={busy}
+            onChange={(e) => setFile(e.target.files[0] || null)}
+          />
+        </label>
+        }
+        {source === "file" && file && <p className="text-xs text-subtle">Tamaño: {(file.size / 1024 ** 2).toFixed(1)} MB. Máximo del contenedor: 2 GB; también aplica el límite global de Supabase.</p>}
+
+          <p className="flex items-center gap-1.5 text-[10px] text-subtle"><Check size={12} className="text-brand" />El video se vincula al curso que selecciones.</p>
+        </div>
+        <div className="min-w-0 space-y-3"><div><p className="text-xs font-bold text-ink">Datos de la grabación</p><p className="mt-1 text-[10px] text-subtle">Define el título y el curso donde aparecerá.</p></div>
+        <label className="!grid">
+          Título de la grabación
+          <input
+            required
+            minLength={3}
+            placeholder="Ej. Auditoría: introducción y conceptos clave"
+            disabled={busy}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full [padding:10px]"
+          />
+        </label>
         <label>
           Curso
           <select
@@ -189,36 +223,11 @@ export function RecordingUpload({
               ))}
           </select>
         </label>
-        <label className="md:col-span-2">
-          Título de la grabación
-          <input
-            required
-            minLength={3}
-            placeholder="Ej. Auditoría: introducción y conceptos clave"
-            disabled={busy}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full [padding:10px]"
-          />
-        </label>
-        {source === "file" && <label className="cursor-pointer rounded-xl border border-dashed border-brand-line bg-brand-soft/30 p-4 transition-colors hover:bg-brand-soft/60 focus-within:ring-2 focus-within:ring-brand/40">
-          <span className="text-xs font-semibold text-ink">Selecciona tu video</span>
-          <span className="text-[10px] font-normal text-subtle">Elige el archivo de la clase para compartirlo con tus estudiantes.</span>
-          <input
-            required
-            type="file"
-            accept="video/*"
-            aria-label="Elegir video para subir"
-            className="mt-2 block w-full min-w-0 cursor-pointer text-xs text-muted file:mr-3 file:cursor-pointer file:rounded-xl file:border file:border-brand file:bg-brand file:px-5 file:py-3 file:text-xs file:font-bold file:text-white file:shadow-sm hover:file:brightness-95 disabled:cursor-wait disabled:opacity-60"
-            disabled={busy}
-            onChange={(e) => setFile(e.target.files[0] || null)}
-          />
-        </label>
-        }
-        {source === "file" && file && <p className="text-xs text-subtle">Tamaño: {(file.size / 1024 ** 2).toFixed(1)} MB. Máximo del contenedor: 2 GB; también aplica el límite global de Supabase.</p>}
-        <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-line bg-elevated/40 p-4 sm:flex-row sm:items-center md:col-span-2">
+
+        </div>
+        <div className="flex flex-col items-start justify-between gap-4 border-t border-line pt-4 sm:flex-row sm:items-center lg:col-span-2">
           <div className="flex items-start gap-2"><p className="max-w-md text-[11px] leading-5 text-subtle">{source === "vimeo" ? "Al guardar, aparecerá en las grabaciones del curso para estudiantes con acceso." : "La clase estará disponible cuando termine de subir el archivo."}</p></div>
-          <button className="btn btn-primary w-full shrink-0 !gap-2 !px-5 !py-3 shadow-sm transition hover:shadow-md sm:w-auto" disabled={busy}>
+          <button className="btn btn-primary w-full shrink-0 !gap-2 !px-4 !py-2 shadow-sm transition hover:shadow-md sm:w-auto" disabled={busy}>
             {busy ? "Guardando..." : "Publicar grabación"}
           </button>
         </div>

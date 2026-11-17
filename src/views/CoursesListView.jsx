@@ -8,6 +8,7 @@ export function CoursesListView({ courses = [], onSelectCourse }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
   const categories = [
     ...new Set(courses.map((course) => course.category).filter(Boolean)),
   ];
@@ -25,6 +26,9 @@ export function CoursesListView({ courses = [], onSelectCourse }) {
         (status === "completed" && course.progressPercent === 100) ||
         (status === "new" && !course.progressPercent)),
   );
+  const totalPages = Math.max(1, Math.ceil(filtered.length / 8));
+  const currentPage = Math.min(page, totalPages);
+  const pageCourses = filtered.slice((currentPage - 1) * 8, currentPage * 8);
   return (
     <section className="space-y-7">
       <header className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -47,7 +51,7 @@ export function CoursesListView({ courses = [], onSelectCourse }) {
             className="w-full !min-h-9 !rounded-xl !border-line !bg-surface !py-2 !pl-10 !text-xs focus:!border-brand"
             placeholder="Buscar por programa o mentor..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           />
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -55,7 +59,7 @@ export function CoursesListView({ courses = [], onSelectCourse }) {
             aria-label="Filtrar por categoría"
             className="min-w-0 flex-1 !min-h-9 !rounded-xl !py-2 !text-[11px] sm:max-w-48 sm:flex-none"
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
+            onChange={(event) => { setCategory(event.target.value); setPage(1); }}
           >
             <option value="all">Todas las categorías</option>
             {categories.map((value) => (
@@ -68,7 +72,7 @@ export function CoursesListView({ courses = [], onSelectCourse }) {
             aria-label="Filtrar por progreso"
             className="min-w-0 flex-1 !min-h-9 !rounded-xl !py-2 !text-[11px] sm:max-w-44 sm:flex-none"
             value={status}
-            onChange={(event) => setStatus(event.target.value)}
+            onChange={(event) => { setStatus(event.target.value); setPage(1); }}
           >
             <option value="all">Todos los estados</option>
             <option value="progress">En progreso</option>
@@ -84,8 +88,8 @@ export function CoursesListView({ courses = [], onSelectCourse }) {
         <p>Tu formación, a tu ritmo</p>
       </div>
       {filtered.length ? (
-        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>article]:max-w-none">
-          {filtered.map((course) => (
+        <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 [&>article]:max-w-none [&>article>div:first-child]:!h-24 [&>article>div:last-child]:!p-2.5 [&_article_h3]:!text-sm [&_article_h3]:!leading-5 [&_article_.my-4]:!my-1.5 [&_article_.mb-3]:!mb-1.5 [&_article_.mt-3]:!mt-1.5 [&_article_p.leading-5]:!leading-4 [&_article_.space-y-3]:!space-y-1.5 [&_article_.pt-3]:!pt-2 [&_article_.btn]:!min-h-8 [&_article_.btn]:!py-1.5 [&_article_.btn]:!text-[11px]">
+          {pageCourses.map((course) => (
             <CourseCard
               key={course.id}
               course={course}
@@ -122,6 +126,7 @@ export function CoursesListView({ courses = [], onSelectCourse }) {
           }
         />
       )}
+      {filtered.length > 8 && <nav aria-label="Páginas de mis programas" className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-[11px] text-subtle"><p>{(currentPage - 1) * 8 + 1}?{Math.min(currentPage * 8, filtered.length)} de {filtered.length} programas</p><div className="flex items-center gap-3"><button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} className="rounded-lg border border-line bg-surface px-3 py-2 font-semibold text-brand disabled:opacity-40">Anterior</button><span aria-live="polite">{currentPage} de {totalPages}</span><button type="button" disabled={currentPage === totalPages} onClick={() => setPage(currentPage + 1)} className="rounded-lg border border-line bg-surface px-3 py-2 font-semibold text-brand disabled:opacity-40">Siguiente</button></div></nav>}
     </section>
   );
 }

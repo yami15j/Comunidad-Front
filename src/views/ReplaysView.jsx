@@ -1,5 +1,5 @@
-import { RecordingPlayer } from "../components/RecordingPlayer";
-import React, { useState } from "react";
+import { RecordingWatchView } from "../components/RecordingWatchView";
+import React, { useEffect, useState } from "react";
 import {
   Film,
   Play,
@@ -8,13 +8,14 @@ import {
   Clock3,
   LoaderCircle,
 } from "lucide-react";
-import { Dialog, EmptyState } from "../components/ui";
-export function ReplaysView({ replays = [], onNavigate, onPlay }) {
+import { EmptyState } from "../components/ui";
+export function ReplaysView({ replays = [], onNavigate, onPlay, compact = false, onViewingChange }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [playing, setPlaying] = useState(null);
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState("");
+  useEffect(() => { onViewingChange?.(Boolean(playing)); return () => onViewingChange?.(false); }, [Boolean(playing), onViewingChange]);
   const categories = [
     ...new Set(replays.map((item) => item.category).filter(Boolean)),
   ];
@@ -39,6 +40,7 @@ export function ReplaysView({ replays = [], onNavigate, onPlay }) {
       setBusy(null);
     }
   }
+  if (playing) return <RecordingWatchView key={playing.id} video={playing} onBack={() => setPlaying(null)} />;
   return (
     <section className="space-y-7">
       <header className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
@@ -93,7 +95,7 @@ export function ReplaysView({ replays = [], onNavigate, onPlay }) {
       </div>
       {error && <p role="alert">{error}</p>}
       {filtered.length ? (
-        <div className="grid gap-5 sm:grid-cols-2 2xl:grid-cols-3">
+        <div className={compact ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 [&>article]:!rounded-xl [&>article>button]:!aspect-auto [&>article>button]:!h-28 [&>article>div]:!p-3 [&_h3]:!text-xs [&_h3]:!leading-5 [&_h3]:line-clamp-2 [&_.mt-4]:!mt-2 [&_.pt-4]:!pt-2 [&_.size-12]:!size-8 [&_.top-3]:!top-2 [&_.left-3]:!left-2 [&_.bottom-3]:!bottom-2 [&_.right-3]:!right-2" : "grid gap-5 sm:grid-cols-2 2xl:grid-cols-3"}>
           {filtered.map((item) => (
             <article
               key={item.id}
@@ -153,38 +155,7 @@ export function ReplaysView({ replays = [], onNavigate, onPlay }) {
           description="No hay grabaciones publicadas que coincidan con tu búsqueda. Cuando se publique una clase de tus cursos, podrás volver a verla desde este espacio."
         />
       )}
-      <Dialog
-        open={!!playing}
-        onClose={() => setPlaying(null)}
-        title={playing?.title || "Grabación"}
-        className="max-w-4xl"
-      >
-        {playing && (
-          <>
-            <RecordingPlayer
-              src={playing.url}
-              controls
-              autoPlay
-              className="aspect-video w-full rounded-xl bg-slate-950"
-              onError={() =>
-                setError(
-                  "No se pudo reproducir el video. Vuelve a abrir la grabación.",
-                )
-              }
-            />
-            <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-subtle">
-              <span>{playing.mentor}</span>
-              <span>·</span>
-              <span>{playing.duration}</span>
-            </div>
-            {playing.description && (
-              <p className="mt-3 text-xs leading-6 text-muted">
-                {playing.description}
-              </p>
-            )}
-          </>
-        )}
-      </Dialog>
+
     </section>
   );
 }

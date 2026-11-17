@@ -273,7 +273,7 @@ export function CoursePlayerView({
 
   const handleCreateQuestion = async (event) => {
     event.preventDefault();
-    if (!currentLesson || !questionText.trim() || !onCreateLessonQuestion)
+    if (!currentLesson || questionState.saving || questionText.trim().length < 3 || !onCreateLessonQuestion)
       return;
     setQuestionState({ saving: true, error: "", success: "" });
     try {
@@ -740,6 +740,13 @@ export function CoursePlayerView({
                   <textarea
                     value={questionText}
                     onChange={(event) => setQuestionText(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+                      event.preventDefault();
+                      if (!event.repeat && !questionState.saving && questionText.trim().length >= 3) {
+                        event.currentTarget.form?.requestSubmit();
+                      }
+                    }}
                     rows={3}
                     maxLength={2000}
                     placeholder="Escribe una pregunta relacionada con esta lección..."

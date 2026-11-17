@@ -164,7 +164,7 @@ test("student library, calendar and Zoom access render real content and empty st
     );
     assert.match(accessAdmin, /Estudiante real/);
     assert.match(accessAdmin, /Solo clases en vivo/);
-    assert.match(accessAdmin, /Vigencia hasta/);
+    assert.match(accessAdmin, /Fecha de vencimiento/);
     assert.match(accessAdmin, /Suspendido/);
     const { AdminCurriculumView } = await server.ssrLoadModule(
       "/src/views/AdminCurriculumView.jsx",
@@ -176,7 +176,7 @@ test("student library, calendar and Zoom access render real content and empty st
       }),
     );
     assert.match(curriculumAdmin, /Mi curso asignado/);
-    assert.match(curriculumAdmin, /Editor de cursos/);
+    assert.match(curriculumAdmin, /Editor de contenido/);
   } finally {
     await server.close();
   }

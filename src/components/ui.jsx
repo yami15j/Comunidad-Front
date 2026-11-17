@@ -159,6 +159,7 @@ export function Progress({ value, label }) {
 }
 export function CourseCard({ course, onSelect }) {
   const liveOnly = course.accessType === "live";
+  const accessLabel = liveOnly ? "Solo clases en vivo" : course.accessType === "content" ? "Contenido y grabaciones" : "Acceso completo";
   const available = course.totalLessonsCount > 0 || liveOnly;
   return (
     <article className="group flex w-full min-w-0 max-w-sm flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-panel transition duration-200 hover:-translate-y-0.5 hover:border-brand/30 hover:shadow-md">
@@ -196,6 +197,7 @@ export function CourseCard({ course, onSelect }) {
         <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-subtle">
           {course.tagline}
         </p>
+        <div className="mt-3"><span className="inline-flex rounded-md bg-brand-soft px-2 py-1 text-[10px] font-bold text-brand">{accessLabel}</span><p className="mt-1.5 text-[10px] leading-5 text-subtle">{liveOnly ? "Incluye las sesiones en vivo. No incluye lecciones, materiales ni grabaciones." : course.accessType === "content" ? "Incluye lecciones, materiales y grabaciones. No incluye sesiones en vivo." : "Incluye lecciones, materiales, grabaciones y sesiones en vivo."}</p>{course.accessExpiresAt && <p className="mt-1 text-[10px] text-subtle">Disponible hasta {new Date(course.accessExpiresAt).toLocaleDateString("es-EC")}</p>}</div>
         <div className="my-4 flex items-center gap-2.5">
           <Avatar
             name={course.mentorName}

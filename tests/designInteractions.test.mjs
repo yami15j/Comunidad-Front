@@ -61,15 +61,83 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
     });
   }
   try {
+    await t.test('support can create reusable labels and custom states', async () => {
+      const { TicketOptionsDialog } = await server.ssrLoadModule('/src/components/TicketOptionsDialog.jsx');
+      const created = [];
+      await mount(TicketOptionsDialog, { open: true, onClose() {}, options: [], onCreate: async option => created.push(option) });
+      assert.equal(document.querySelector('[role="dialog"]'), null, 'configuration renders as a page instead of an overlay');
+      assert.ok(button('Volver a tickets'));
+      await input(document.querySelector('[aria-label="Nueva etiqueta"]'), 'Inscripciones');
+      await React.act(async () => document.querySelector('[aria-label="Nueva etiqueta"]').closest('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      await click(button('Mis estados'));
+      await input(document.querySelector('[aria-label="Estado personalizado"]'), 'Esperando respuesta');
+      await React.act(async () => document.querySelector('[aria-label="Estado personalizado"]').closest('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      assert.deepEqual(created, [{ kind: 'label', name: 'Inscripciones' }, { kind: 'status', name: 'Esperando respuesta' }]);
+      assert.equal(document.querySelector('[aria-label="Estado personalizado"]').value, '');
+      await mount(() => null, {});
+    });
+    await t.test('mentor progress tables filter actual enrollments and distinguish empty courses from completed learning', async () => {
+      const { MentorProgressTables } = await server.ssrLoadModule('/src/components/MentorProgressTables.jsx');
+      await mount(MentorProgressTables, { courses: [
+        { id: 'one', title: 'Auditoría', totalLessonsCount: 2, totalModulesCount: 1, activeStudents: 1, averageProgress: 50 },
+        { id: 'empty', title: 'Curso nuevo', totalLessonsCount: 0 },
+      ], students: [
+        { id: 'ana', fullName: 'Ana López', courseId: 'one', courseTitle: 'Auditoría', completedLessons: 2, totalLessons: 2, progressPercent: 100 },
+        { id: 'ana', fullName: 'Ana López', courseId: 'empty', courseTitle: 'Curso nuevo', completedLessons: 0, totalLessons: 0, progressPercent: 0 },
+        { id: 'bea', fullName: 'Beatriz', courseId: 'one', courseTitle: 'Auditoría', completedLessons: 0, totalLessons: 2, progressPercent: 0 },
+      ] });
+      const table = () => container.querySelector('table[aria-label="Progreso de estudiantes"]');
+      assert.equal(table().querySelectorAll('tbody tr').length, 3);
+      assert.match(table().textContent, /Completado/);
+      assert.match(table().textContent, /Sin lecciones/);
+      await input(container.querySelector('[aria-label="Buscar estudiante"]'), 'ana');
+      assert.equal(table().querySelectorAll('tbody tr').length, 2);
+      await input(container.querySelector('[aria-label="Filtrar estudiantes por curso"]'), 'one');
+      assert.equal(table().querySelectorAll('tbody tr').length, 1);
+      assert.match(table().textContent, /100%/);
+      await input(container.querySelector('[aria-label="Buscar estudiante"]'), 'sin coincidencias');
+      assert.match(table().textContent, /No hay estudiantes que coincidan/);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('recovery requires matching passwords before changing the verified account password', async () => {
+      const { PasswordRecoveryView, readPasswordRecovery } = await server.ssrLoadModule('/src/views/PasswordRecoveryView.jsx');
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const recovery = readPasswordRecovery({ pathname: '/recuperar-contrasena', search: '?challenge=' + 'a'.repeat(64), hash: '#type=recovery&access_token=test-token' });
+      let updated;
+      api.resetPassword = async (token, password, challenge) => { updated = { token, password, challenge }; };
+      await mount(PasswordRecoveryView, { recovery, onDone: () => {} });
+      let fields = container.querySelectorAll('input');
+      await input(fields[0], 'new-password'); await input(fields[1], 'different-password');
+      await React.act(async () => container.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      assert.equal(updated, undefined);
+      assert.match(container.textContent, /no coinciden/);
+      await input(fields[1], 'new-password');
+      await React.act(async () => container.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      assert.deepEqual(updated, { token: 'test-token', password: 'new-password', challenge: 'a'.repeat(64) });
+      assert.match(container.textContent, /Contraseña actualizada/);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('forgot password sends the entered email and shows the recovery confirmation', async () => {
+      const { LoginView } = await server.ssrLoadModule('/src/views/LoginView.jsx');
+      let requested;
+      await mount(LoginView, { onLogin: async () => {}, onRecover: async email => { requested = email; return { message: 'Si el correo está registrado, recibirás un enlace.' }; } });
+      await click(button('¿Olvidaste tu contraseña?'));
+      const dialog = document.querySelector('[role="dialog"]');
+      await input(dialog.querySelector('input[type="email"]'), 'user@example.com');
+      await React.act(async () => dialog.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      assert.equal(requested, 'user@example.com');
+      assert.match(dialog.textContent, /recibirás un enlace/);
+      await React.act(async () => root.render(null));
+    });
     await t.test('administrator supervises all tickets and conversations without editing controls', async () => {
       const { api } = await server.ssrLoadModule('/src/services/api.js');
       const { TicketsView } = await server.ssrLoadModule('/src/views/TicketsView.jsx');
       api.tickets.list = async () => [{ id: 'supervised', subject: 'Student request', student_id: 'student', student_name: 'Ana Student', agent_name: 'Agent Maria', assigned_to: 'other-agent', status: 'in_progress', created_at: '2026-11-05T12:00:00Z' }];
       api.tickets.messages = async () => [{ id: 'message', sender_id: 'student', sender_name: 'Ana Student', body: 'Conversation to supervise', created_at: '2026-11-05T12:00:00Z' }];
       await mount(TicketsView, { user: { id: 'admin', role: 'admin' } });
-      assert.match(container.textContent, /Supervisión de soporte/);
+      assert.ok(container.querySelector('input[aria-label="Buscar tickets"]'));
       await click(button('Student request'));
-      assert.match(container.textContent, /Agent Maria/);
+      assert.match(container.textContent, /Responsable: Soporte/);
       assert.match(container.textContent, /Conversation to supervise/);
       assert.equal(container.querySelector('.ticket-reply'), null);
       assert.equal(container.querySelector('.ticket-create'), null);
@@ -138,6 +206,9 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
       assert.ok(button('Access problem'));
       assert.equal(button('Previous case'), undefined);
       await click(button('Access problem'));
+      assert.equal(container.querySelector('.support-table-card'), null);
+      assert.equal(container.querySelector('input[aria-label="Buscar tickets"]'), null);
+      assert.ok(button('Volver a tickets'));
       assert.match(container.textContent, /Saved conversation/);
       await click(button('Etiquetar'));
       await input(document.querySelector('[role="dialog"] input'), 'Access, Urgent');
@@ -146,9 +217,190 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
       await click(button('Marcar como resuelto'));
       assert.equal(document.querySelector('.ticket-reply'), null);
       assert.match(container.textContent, /Saved conversation/);
+      await click(button('Volver a tickets'));
+      assert.ok(container.querySelector('.support-table-card'));
       await click(button('Resueltos'));
       assert.ok(button('Previous case'));
       assert.ok(button('Access problem'));
+      await React.act(async () => root.render(null));
+    });
+    await t.test('support resolves from the table without opening the chat', async () => {
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const { TicketsView } = await server.ssrLoadModule('/src/views/TicketsView.jsx');
+      let ticket = { id: 'quick', subject: 'Quick case', status: 'open', assigned_to: null, student_id: 'student', created_at: '2026-11-05T12:00:00Z' };
+      const calls = [];
+      api.tickets.list = async () => [ticket];
+      api.tickets.setStatus = async (id, status) => { calls.push([id, status]); ticket = { ...ticket, assigned_to: 'agent', status }; return ticket; };
+      await mount(TicketsView, { user: { id: 'agent', role: 'soporte' } });
+      const select = container.querySelector('select[aria-label="Cambiar estado: Quick case"]');
+      await React.act(async () => { select.value = 'resolved'; select.dispatchEvent(new window.Event('change', { bubbles: true })); });
+      assert.deepEqual(calls, [['quick', 'resolved']]);
+      assert.ok(container.querySelector('.support-table-card'));
+      assert.equal(button('Volver a tickets'), undefined);
+      await click(button('Resueltos'));
+      assert.ok(button('Quick case'));
+      const reopen = container.querySelector('select[aria-label="Cambiar estado: Quick case"]');
+      await React.act(async () => { reopen.value = 'open'; reopen.dispatchEvent(new window.Event('change', { bubbles: true })); });
+      assert.deepEqual(calls, [['quick', 'resolved'], ['quick', 'open']]);
+      await click(button('Pendientes'));
+      assert.ok(button('Quick case'));
+      await React.act(async () => root.render(null));
+    });
+    await t.test('admin stages role and mentor edits until Save and can cancel drafts', async () => {
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      api.administration.access = async () => ({ items: [], total: 0 });
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const writes = [];
+      await mount(AdminView, { currentView: 'admin-users', currentUserId: 'admin', courses: [], liveClasses: [], mentors: [],
+        users: [{ id: 'student', fullName: 'Student', email: 'student@example.com', role: 'estudiante' }, { id: 'mentor', fullName: 'Mentor', email: 'mentor@example.com', role: 'mentor' }],
+        onAssignMentor: async (...args) => writes.push(['mentor', ...args]), onUpdateUserRole: async (...args) => writes.push(['role', ...args]) });
+      const choose = async (selector, value) => React.act(async () => { const field = container.querySelector(selector); field.value = value; field.dispatchEvent(new window.Event('change', { bubbles: true })); });
+      await choose('select[aria-label="Mentor de Student"]', 'mentor');
+      assert.deepEqual(writes, []);
+      await click(button('Guardar'));
+      assert.deepEqual(writes, [['mentor', 'student', 'mentor']]);
+      const role = container.querySelector('tbody tr select');
+      await React.act(async () => { role.value = 'soporte'; role.dispatchEvent(new window.Event('change', { bubbles: true })); });
+      assert.equal(writes.length, 1);
+      await click(button('Cancelar'));
+      assert.equal(container.querySelector('tbody tr select').value, 'estudiante');
+      await React.act(async () => { const field = container.querySelector('tbody tr select'); field.value = 'soporte'; field.dispatchEvent(new window.Event('change', { bubbles: true })); });
+      await click(button('Guardar'));
+      assert.deepEqual(writes[1], ['role', 'student', 'soporte']);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('saved lesson details expose persisted text, video link and resource URLs', async () => {
+      await React.act(async () => root.render(null));
+      const { SavedLessonDetails } = await server.ssrLoadModule('/src/components/SavedLessonDetails.jsx');
+      const props = { lesson: { id: 'saved', title: 'Leccion', summary: 'Resumen guardado', content_text: 'Texto completo guardado', video_id: 'video', resources: [{ id: 'resource', title: 'Documento guardado', external_url: 'https://example.com/material.pdf', is_published: true }] }, video: { id: 'video', title: 'Grabacion guardada', external_url: 'https://vimeo.com/12345' } };
+      await mount(SavedLessonDetails, props);
+      assert.match(container.textContent, /Resumen guardado/);
+      assert.match(container.textContent, /Texto completo guardado/);
+      assert.equal(container.querySelector('a[href="https://vimeo.com/12345"]').textContent, 'https://vimeo.com/12345');
+      assert.ok(container.querySelector('a[href="https://example.com/material.pdf"]'));
+      await React.act(async () => root.render(null));
+      await mount(SavedLessonDetails, props);
+      assert.match(container.textContent, /Documento guardado/);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('lesson video selector loads published recordings and saves the selected video ID', async () => {
+      await React.act(async () => root.render(null));
+      const { AdminCurriculumView } = await server.ssrLoadModule('/src/views/AdminCurriculumView.jsx');
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      api.administration.curriculum = async () => ({ course: { id: 'course', title: 'Programa', description: '' }, modules: [{ id: 'module', title: 'Tema', position: 0, lessons: [] }], videos: [] });
+      api.videos.list = async () => [{ id: 'recording', title: 'Clase grabada real', courseId: 'course', status: 'ready' }, { id: 'other', title: 'Otro curso', courseId: 'other', status: 'ready' }, { id: 'pending', title: 'Sin publicar', courseId: 'course', status: 'pending' }];
+      const saved = [];
+      api.administration.saveLesson = async (...args) => saved.push(args);
+      await mount(AdminCurriculumView, { courses: [{ id: 'course', title: 'Programa' }], initialCourseId: 'course', embedded: true });
+      await click(button('+ Agregar lección'));
+      const select = container.querySelector('select[aria-label="Clase grabada para esta lección"]');
+      assert.ok(select);
+      assert.match(select.textContent, /Clase grabada real/);
+      assert.doesNotMatch(select.textContent, /Otro curso|Sin publicar/);
+      await React.act(async () => { select.value = 'recording'; select.dispatchEvent(new window.Event('change', { bubbles: true })); });
+      await input(container.querySelector('form input[required]'), 'Leccion grabada');
+      await React.act(async () => container.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      assert.equal(saved[0][1].videoId, 'recording');
+      await React.act(async () => root.render(null));
+    });
+    await t.test('live class access opens a separate dialog without expanding agenda entries', async () => {
+      await React.act(async () => root.render(null));
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      await mount(AdminView, { currentView: 'admin-live', courses: [], users: [], mentors: [], liveClasses: [{ id: 'live', title: 'Clase de prueba', scheduledAt: '2026-11-13T15:00:00Z', date: '13 nov 2026', time: '10:00', status: 'scheduled', badge: 'Programada', joinUrl: 'https://zoom.us/j/123456789', meetingId: '123456789', meetingPasscode: 'abc123' }] });
+      const access = container.querySelector('button[aria-label="Ver acceso a Zoom: Clase de prueba"]');
+      const entry = access.parentElement.parentElement;
+      const before = entry.textContent;
+      await click(access);
+      assert.equal(entry.textContent, before);
+      const dialog = document.querySelector('[role="dialog"]');
+      assert.match(dialog.textContent, /123456789/);
+      assert.match(dialog.textContent, /abc123/);
+      assert.equal(dialog.querySelector('a').getAttribute('href'), 'https://zoom.us/j/123456789');
+      await click(dialog.querySelector('button[aria-label="Cerrar"]'));
+      assert.equal(document.querySelector('[role="dialog"]'), null);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('student course cards explain assigned permissions', async () => {
+      await React.act(async () => root.render(null));
+      const { CourseCard } = await server.ssrLoadModule('/src/components/ui.jsx');
+      const opened = [];
+      await mount(CourseCard, { course: { id: 'live', title: 'Solo sesiones', accessType: 'live', totalLessonsCount: 0, mentorName: 'Mentor' }, onSelect: course => opened.push(course.id) });
+      assert.match(container.textContent, /Solo clases en vivo/);
+      assert.match(container.textContent, /No incluye lecciones, materiales ni grabaciones/);
+      await click(button('Ver clases'));
+      assert.deepEqual(opened, ['live']);
+      await mount(CourseCard, { course: { id: 'content', title: 'Curso grabado', accessType: 'content', totalLessonsCount: 1, mentorName: 'Mentor' }, onSelect: () => {} });
+      assert.match(container.textContent, /Contenido y grabaciones/);
+      assert.match(container.textContent, /No incluye sesiones en vivo/);
+      assert.ok(button('Comenzar programa'));
+      await React.act(async () => root.render(null));
+    });
+    await t.test('admin recording library lists published videos and plays the chosen recording', async () => {
+      await React.act(async () => root.render(null));
+      const { AdminRecordings } = await server.ssrLoadModule('/src/components/AdminRecordings.jsx');
+      const played = []; let refreshed = 0;
+      await mount(AdminRecordings, { recordings: [{ id: 'ready', title: 'Clase publicada', courseId: 'one', courseTitle: 'Programa uno', status: 'ready' }, { id: 'pending', title: 'Pendiente', status: 'uploading' }], courses: [{ id: 'one', title: 'Programa uno' }], onPlay: async video => { played.push(video.id); return { url: 'https://example.com/recording.mp4' }; }, onRefresh: async () => { refreshed++; } });
+      assert.match(container.textContent, /Clase publicada/);
+      assert.doesNotMatch(container.textContent, /Pendiente/);
+      await click(container.querySelector('button[aria-label="Reproducir Clase publicada"]'));
+      assert.deepEqual(played, ['ready']);
+      assert.equal(document.querySelector('[role="dialog"] video').getAttribute('src'), 'https://example.com/recording.mp4');
+      await click(document.querySelector('[role="dialog"] button[aria-label="Cerrar"]'));
+      await input(container.querySelector('input[type="search"]'), 'sin resultados');
+      assert.match(container.textContent, /No hay videos para estos filtros/);
+      await click(button('Actualizar'));
+      assert.equal(refreshed, 1);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('course creation opens a dedicated page and reports success only after saving', async () => {
+      await React.act(async () => root.render(null));
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const created = [];
+      await mount(AdminView, { currentView: 'admin-courses', courses: [], liveClasses: [], mentors: [], users: [], onAddCourse: async input => created.push(input) });
+      await click(button('Crear nuevo curso'));
+      const screen = container.querySelector('section[aria-label="Crear nuevo curso"]');
+      assert.ok(screen);
+      assert.equal(container.querySelector('.modal-backdrop'), null);
+      assert.ok(screen.querySelector('input[aria-label="Imagen del nuevo curso"]'));
+      const title = screen.querySelector('input[required]');
+      await input(title, 'Curso propio');
+      assert.equal(created.length, 0);
+      await React.act(async () => screen.querySelector('form').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true })));
+      assert.equal(created[0].title, 'Curso propio');
+      assert.equal(container.querySelector('section[aria-label="Crear nuevo curso"]'), null);
+      assert.match(container.textContent, /Curso creado correctamente/);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('Edit opens the selected course curriculum without changing its data', async () => {
+      await React.act(async () => root.render(null));
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const opened = [], edits = [];
+      await mount(AdminView, { currentView: 'admin-courses', courses: [{ id: 'existing', title: 'Curso original' }], liveClasses: [], mentors: [], users: [], onEditCurriculum: course => opened.push(course.id), onEditCourse: (...args) => edits.push(args) });
+      await click(button('Editar'));
+      assert.deepEqual(opened, ['existing']);
+      assert.deepEqual(edits, []);
+      assert.equal(container.querySelector('section[aria-label="Editar curso"]'), null);
+      await React.act(async () => root.render(null));
+    });
+    await t.test('course deletion requires confirmation and preserves failures for retry', async () => {
+      await React.act(async () => root.render(null));
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const removed = []; let fail = true;
+      await mount(AdminView, { currentView: 'admin-courses', courses: [{ id: 'course', title: 'Curso de prueba' }], liveClasses: [], mentors: [], users: [],
+        onDeleteCourse: async id => { if (fail) throw new Error('No se pudo borrar'); removed.push(id); } });
+      await click(container.querySelector('button[aria-label="Eliminar curso: Curso de prueba"]'));
+      assert.deepEqual(removed, []);
+      await click(button('Cancelar'));
+      assert.equal(document.querySelector('[role="dialog"]'), null);
+      await click(container.querySelector('button[aria-label="Eliminar curso: Curso de prueba"]'));
+      await click(button('Eliminar curso'));
+      assert.match(document.querySelector('[role="dialog"]').textContent, /No se pudo borrar/);
+      assert.deepEqual(removed, []);
+      fail = false;
+      await click(button('Eliminar curso'));
+      assert.deepEqual(removed, ['course']);
+      assert.equal(document.querySelector('[role="dialog"]'), null);
+      assert.match(document.body.textContent, /Curso eliminado correctamente/);
       await React.act(async () => root.render(null));
     });
     await t.test('user deletion requires confirmation, allows cancellation and protects own account', async () => {
@@ -194,39 +446,81 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
           if (courseId === 'two' && failSecond) throw new Error('Error de conexión');
         },
       });
-      await click(button('Cursos del estudiante'));
+      await click(button('Gestionar cursos'));
       const fieldset = window.document.body.querySelector('fieldset');
       assert.ok(fieldset);
       const boxes = fieldset.querySelectorAll('input[type="checkbox"]');
       await click(boxes[0]);
       await click(boxes[1]);
-      assert.match(window.document.body.textContent, /2 seleccionados/);
-      await click(button('Listo'));
-      await click(button('Matricular en 2 cursos'));
+      assert.equal(requests.length, 0);
+      assert.equal(window.document.body.querySelector('[role="dialog"]'), null);
+      await click(button('Guardar cambios'));
       assert.deepEqual(requests, [['student', 'estudiante', 'one'], ['student', 'estudiante', 'two']]);
-      assert.match(window.document.body.textContent, /matriculado en 1 curso/);
-      assert.match(window.document.body.textContent, /Curso Dos: Error de conexión/);
-      await click(button('Cursos del estudiante'));
+
       const currentBoxes = window.document.body.querySelectorAll('fieldset input[type="checkbox"]');
       assert.equal(currentBoxes[0].checked, true);
-      assert.equal(currentBoxes[0].disabled, true);
+      assert.equal(currentBoxes[0].disabled, false);
       assert.equal(currentBoxes[1].checked, true);
       assert.match(window.document.body.textContent, /Matriculado/);
-      await click(button('Listo'));
-      assert.equal(window.document.body.querySelector('select[aria-label="Mentor de Estudiante Prueba"]').value, 'mentor');
+
       failSecond = false;
-      await click(button('Matricular en 1 curso'));
+      await click(button('Guardar cambios'));
       assert.deepEqual(requests.at(-1), ['student', 'estudiante', 'two']);
       assert.equal(requests.filter(request => request[2] === 'one').length, 1);
-      assert.match(window.document.body.textContent, /2 cursos matriculados/);
-      assert.equal(button('Matricular en 0 cursos').disabled, true);
+      assert.match(window.document.body.textContent, /2matriculados/);
+      assert.equal(button('Guardar cambios').disabled, true);
+    });
+    await t.test('mentor assignment screen paginates courses and saves selections across pages', async () => {
+      await React.act(async () => root.render(null));
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      api.administration.access = async () => ({ items: [], total: 0 });
+      const writes = [];
+      await mount(AdminView, { currentView: 'admin-users', courses: Array.from({ length: 25 }, (_, index) => ({ id: String(index), title: 'Programa ' + index })),
+        users: [{ id: 'mentor', fullName: 'Mentor Catalogo', role: 'mentor' }], liveClasses: [], mentors: [],
+        onAssignUserToCourse: async (...args) => writes.push(args) });
+      await click(button('Gestionar cursos'));
+      assert.equal(container.querySelectorAll('fieldset input').length, 12);
+      await click(container.querySelector('fieldset input'));
+      await click(container.querySelector('button[aria-label="Página siguiente de cursos"]'));
+      await click(container.querySelector('fieldset input'));
+      assert.equal(writes.length, 0);
+      await click(button('Guardar cambios'));
+      assert.deepEqual(writes, [['mentor', 'mentor', '0'], ['mentor', 'mentor', '12']]);
+      await input(container.querySelector('input[aria-label="Buscar cursos para Mentor Catalogo"]'), 'Programa 24');
+      assert.equal(container.querySelectorAll('fieldset input').length, 1);
+      await click(button('Volver a usuarios'));
+      assert.ok(container.querySelector('.admin-users-table'));
+      await React.act(async () => root.render(null));
+    });
+    await t.test('admin can reactivate a suspended enrollment while preserving permissions and suspension count', async () => {
+      await React.act(async () => root.render(null));
+      const { api } = await server.ssrLoadModule('/src/services/api.js');
+      const { AdminView } = await server.ssrLoadModule('/src/views/AdminView.jsx');
+      const row = { id: 'enrollment', student_id: 'student', course_id: 'course', status: 'suspended', access_type: 'live', expires_at: null, suspension_count: 3 };
+      api.administration.access = async () => ({ items: [row], total: 1 });
+      const writes = [];
+      api.administration.updateAccess = async (id, input) => { writes.push([id, input]); return { ...row, status: 'active' }; };
+      await mount(AdminView, { currentView: 'admin-users', courses: [{ id: 'course', title: 'Suspendido editable' }], users: [{ id: 'student', role: 'estudiante', fullName: 'Estudiante' }], mentors: [], liveClasses: [] });
+      await click(button('Gestionar cursos'));
+      const checkbox = container.querySelector('fieldset input');
+      assert.equal(checkbox.disabled, false);
+      assert.match(container.textContent, /3 suspensiones/);
+      await click(checkbox);
+      assert.equal(writes.length, 0);
+      assert.match(container.textContent, /Por reactivar/);
+      await click(button('Guardar cambios'));
+      assert.deepEqual(writes, [['enrollment', { status: 'active', accessType: 'live', expiresAt: null }]]);
+      assert.match(container.textContent, /3 suspensiones/);
+      assert.equal(container.querySelector('fieldset input').checked, true);
+      await React.act(async () => root.render(null));
     });
     await t.test('admin course picker restores paginated real enrollments and distinguishes suspended and expired access', async () => {
       await React.act(async () => root.render(null));
       const { api } = await server.ssrLoadModule('/src/services/api.js');
       const pages = [];
       const rows = [
-        { student_id: 'student', course_id: 'one', status: 'active', access_type: 'content' },
+        { id: 'enrollment-one', student_id: 'student', course_id: 'one', status: 'active', access_type: 'content' },
         { student_id: 'student', course_id: 'two', status: 'suspended' },
         { student_id: 'student', course_id: 'three', status: 'active', expires_at: '2000-01-01T00:00:00Z' },
       ];
@@ -240,20 +534,29 @@ test("the Tailwind redesign preserves login, role navigation, course filtering, 
         { id: 'three', title: 'Vencido' }, { id: 'four', title: 'Disponible' },
       ], users: [{ id: 'student', role: 'estudiante', fullName: 'Alumna' }], mentors: [], liveClasses: [] });
       assert.deepEqual(pages, [0, 1]);
-      assert.match(window.document.body.textContent, /1 curso matriculado/);
-      await click(button('Cursos del estudiante'));
+      await click(button('Gestionar cursos'));
       const boxes = window.document.body.querySelectorAll('fieldset input');
       assert.equal(boxes[0].checked, true);
-      assert.equal(boxes[0].disabled, true);
+      assert.equal(boxes[0].disabled, false);
       assert.equal(boxes[1].checked, false);
-      assert.equal(boxes[1].disabled, true);
+      assert.equal(boxes[1].disabled, false);
       assert.equal(boxes[2].disabled, true);
       assert.equal(boxes[3].disabled, false);
       assert.match(window.document.body.textContent, /Contenido y grabaciones/);
       assert.match(window.document.body.textContent, /Matriculado/);
+      const removed = [];
+      api.administration.updateAccess = async (...args) => removed.push(args);
+      await click(boxes[0]);
+      assert.deepEqual(removed, []);
+      assert.match(window.document.body.textContent, /Por quitar/);
+      const save = button('Guardar cambios');
+      await click(save);
+      assert.deepEqual(removed, [['enrollment-one', { status: 'suspended', accessType: 'content', expiresAt: null }]]);
+      assert.match(window.document.body.textContent, /0matriculados/);
+
       await input(window.document.body.querySelector('input[aria-label="Buscar cursos para Alumna"]'), 'Disponible');
       assert.equal(window.document.body.querySelectorAll('fieldset input').length, 1);
-      await click(button('Listo'));
+      await click(button('Volver a usuarios'));
     });
     await t.test(
       "login submits the same authenticated credentials and password visibility works",

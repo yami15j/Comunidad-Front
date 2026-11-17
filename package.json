@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "start": "vite",
-    "dev": "vite",
+    "start": "node scripts/start.mjs",
+    "dev": "node scripts/start.mjs",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",

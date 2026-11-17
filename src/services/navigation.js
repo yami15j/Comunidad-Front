@@ -5,12 +5,12 @@ import {
   Film,
   Library,
   Users,
-  MessageSquare,
+  MessagesSquare,
+  LockKeyhole,
   LifeBuoy,
   GraduationCap,
   ShieldCheck,
   Bell,
-  FolderOpen,
   UserRound,
 } from "lucide-react";
 export const ROLE_LABELS = {
@@ -35,8 +35,18 @@ export const NAVIGATION = {
       items: [
         { id: "library", label: "Biblioteca", icon: Library },
         { id: "mentors", label: "Nuestros mentores", icon: GraduationCap },
-        { id: "community", label: "Comunidad", icon: MessageSquare },
-        { id: "messages", label: "Mensajes", icon: MessageSquare },
+      ],
+    },
+    {
+      label: "APRENDER EN COMUNIDAD",
+      items: [
+        { id: "community", label: "Foro de comunidad", icon: MessagesSquare },
+      ],
+    },
+    {
+      label: "ATENCIÓN PERSONAL",
+      items: [
+        { id: "messages", label: "Chat con mi mentor", icon: LockKeyhole },
         { id: "tickets", label: "Centro de soporte", icon: LifeBuoy },
       ],
     },
@@ -60,8 +70,13 @@ export const NAVIGATION = {
       label: "CONECTAR",
       items: [
         { id: "mentor-notifications", label: "Avisos y eventos", icon: Bell },
-        { id: "community", label: "Comunidad", icon: MessageSquare },
-        { id: "messages", label: "Mensajes", icon: MessageSquare },
+        { id: "community", label: "Foro de comunidad", icon: MessagesSquare },
+      ],
+    },
+    {
+      label: "CONVERSACIONES PRIVADAS",
+      items: [
+        { id: "messages", label: "Chat con estudiantes", icon: LockKeyhole },
       ],
     },
   ],
@@ -82,11 +97,6 @@ export const NAVIGATION = {
       label: "CONTENIDO Y PROGRAMAS",
       items: [
         { id: "admin-courses", label: "Cursos y programas", icon: BookOpen },
-        {
-          id: "admin-curriculum",
-          label: "Módulos y lecciones",
-          icon: FolderOpen,
-        },
         { id: "admin-live", label: "Clases y grabaciones", icon: Radio },
       ],
     },
@@ -100,7 +110,7 @@ export const NAVIGATION = {
         },
         { id: "admin-notifications", label: "Avisos y eventos", icon: Bell },
         { id: "admin-support", label: "Supervisión de soporte", icon: LifeBuoy },
-        { id: "community", label: "Comunidad", icon: MessageSquare },
+        { id: "community", label: "Foro de comunidad", icon: MessagesSquare },
       ],
     },
   ],
@@ -116,7 +126,7 @@ export const navigationForRole = (role) =>
 export const pageForView = (role, view) =>
   navigationForRole(role)
     .flatMap((group) => group.items)
-    .find((item) => item.id === view) || {
+    .find((item) => item.id === (role === "admin" && view === "admin-curriculum" ? "admin-courses" : view)) || {
     label: view === "course-player" ? "Aula de aprendizaje" : "Mi perfil",
     icon: UserRound,
   };

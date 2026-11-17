@@ -1,0 +1,54 @@
+﻿@reference "../index.css";
+@layer components {
+  .admin-users-card { container-type: inline-size; }
+  .admin-users-card .table-scroll { @apply overflow-visible rounded-none; }
+  .content-body .admin-users-table { @apply min-w-0 table-fixed; }
+  .admin-users-table th:nth-child(1) { width: 15%; }
+  .admin-users-table th:nth-child(2) { width: 18%; }
+  .admin-users-table th:nth-child(3) { width: 10%; }
+  .admin-users-table th:nth-child(4) { width: 13%; }
+  .admin-users-table th:nth-child(5) { width: 16%; }
+  .admin-users-table th:nth-child(6) { width: 20%; }
+  .admin-users-table th:nth-child(7) { width: 8%; }
+  .admin-users-table th { @apply whitespace-normal leading-4; }
+  .admin-users-table td { @apply align-top break-words; }
+  .admin-users-table td > * { @apply max-w-full; }
+  .admin-users-table select { @apply w-full min-w-0 truncate; }
+  .admin-users-table td[data-label="Acciones"] > div { @apply flex flex-wrap justify-end gap-1; }
+  .admin-users-table td[data-label="Asignación a cursos"] > div > button { @apply min-w-0 whitespace-normal px-2 text-left; }
+  @container (max-width: 1000px) {
+    .content-body .admin-users-table { @apply block; }
+    .admin-users-table thead { @apply sr-only; }
+    .admin-users-table tbody { @apply grid gap-4 bg-canvas p-3; }
+    .content-body .admin-users-table tbody tr { @apply grid grid-cols-2 gap-x-5 gap-y-4 rounded-2xl border border-line bg-surface p-4 shadow-sm; }
+    .content-body .admin-users-table tbody td { @apply block min-w-0 border-0 !p-0 text-left; }
+    .admin-users-table td::before { content: attr(data-label); @apply mb-2 block text-[9px] font-bold uppercase tracking-wider text-subtle; }
+    .admin-users-table td[data-label="Usuario"] { @apply col-span-2 border-b border-line !pb-3; }
+    .admin-users-table td[data-label="Usuario"] p { @apply text-sm; }
+    .admin-users-table td[data-label="Acciones"] > div { @apply justify-start; }
+  }
+  @container (max-width: 420px) {
+    .content-body .admin-users-table tbody tr { @apply grid-cols-1; }
+    .admin-users-table td[data-label="Usuario"] { @apply col-span-1; }
+  }
+}
+
+@layer components {
+  .admin-users-table th:nth-child(2) { width: 17%; }
+  .admin-users-table th:nth-child(6) { width: 19%; }
+  .admin-users-table th:nth-child(7) { width: 10%; }
+  .admin-users-table td[data-label="Acciones"] > div { @apply flex-nowrap gap-1; }
+  .admin-users-table td[data-label="Acciones"] button { @apply size-7 shrink-0 rounded-none border-0 bg-transparent shadow-none hover:bg-transparent; }
+}
+
+@layer components {
+  .admin-users-table td[data-label="Asignación a cursos"] > div > button:first-child:not(.btn) { @apply rounded-none border-0 bg-transparent px-0 shadow-none hover:border-transparent hover:bg-transparent; }
+  .admin-users-table td[data-label="Asignación a cursos"] > div > button:first-child:not(.btn) span.block { @apply font-bold; }
+  .admin-users-table td[data-label="Asignación a cursos"] > span { @apply rounded-none border-0 bg-transparent px-0 py-0 font-bold text-muted; }
+}
+
+@layer components {
+  .admin-users-table td[data-label="Acciones"] > div { @apply flex-wrap; }
+  .admin-users-table td[data-label="Acciones"] .admin-user-save { @apply h-auto min-h-8 w-full rounded-lg border border-brand bg-brand px-2 py-1.5 text-[10px] font-bold text-on-brand hover:bg-brand-hover; }
+  .admin-users-table td[data-label="Acciones"] .admin-user-cancel { @apply h-auto w-full py-1; }
+}

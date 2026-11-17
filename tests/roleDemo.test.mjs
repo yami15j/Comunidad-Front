@@ -162,13 +162,18 @@ test("trusted role badges and authenticated forum/chat interactions", async (t) 
         await click("Publicar Debate");
         assert.equal(document.querySelector('[role="dialog"]'), null);
         assert.match(container.textContent, /Pregunta real/);
+        const debateCard = container.querySelector('[aria-label="Debate: Pregunta real"]');
+        await React.act(async () => debateCard.click());
+        assert.ok(container.querySelector('[aria-label="Respuesta a Pregunta real"]'));
+        await React.act(async () => debateCard.dispatchEvent(new window.KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+        assert.equal(container.querySelector('[aria-label="Respuesta a Pregunta real"]'), null);
         await click("0 Respuestas");
         await enter("Respuesta a Pregunta real", "Respuesta real");
         await click("Publicar respuesta");
-        assert.match(container.textContent, /1 Respuestas/);
+        assert.match(container.textContent, /1 Respuesta/);
         assert.match(container.textContent, /Respuesta real/);
         await click("0 Aportes");
-        assert.match(container.textContent, /1 Aportes/);
+        assert.match(container.textContent, /1 Aporte/);
         await React.act(async () => root.render(null));
         await mount(CommunityView, { user: { id: "mentor", role: "mentor" } });
         assert.match(container.textContent, /Pregunta real/);
@@ -223,10 +228,7 @@ test("trusted role badges and authenticated forum/chat interactions", async (t) 
         await click("Enviar respuesta");
         const articles = container.querySelectorAll("article");
         assert.match(articles[articles.length - 1].textContent, /Gracias/);
-        assert.equal(
-          articles[articles.length - 1].querySelector('[aria-label^="Rol:"]'),
-          null,
-        );
+        assert.equal(articles[articles.length - 1].querySelector('[aria-label^="Rol:"]'), null);
         api.tickets.messages = async () => [
           {
             id: "two",

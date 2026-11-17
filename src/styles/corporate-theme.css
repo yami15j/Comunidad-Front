@@ -1,0 +1,171 @@
+@reference "../index.css";
+
+/* Reversible corporate theme: imported after the application's existing styles. */
+:root,
+[data-theme="light"] {
+  --canvas: #f5f6f8;
+  --surface: #ffffff;
+  --elevated: #f1f3f7;
+  --line: #e3e7ee;
+  --line-strong: #c9d0db;
+  --ink: #0e1a2b;
+  --muted: #3e4b5e;
+  --subtle: #5f6b7e;
+  --brand: #0b5fcc;
+  --brand-hover: #094fa8;
+  --brand-soft: #eaf1fc;
+  --brand-line: #bcd3f2;
+  --on-brand: #ffffff;
+  --success: #0f7b4f;
+  --success-soft: #e7f5ee;
+  --success-line: #b5dfc9;
+  --warning: #9a5a06;
+  --warning-soft: #fdf2e0;
+  --warning-line: #ead3a8;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --danger-line: #f3c1bb;
+  --corporate-panel-shadow: 0 1px 2px rgb(14 26 43 / 0.04);
+  --corporate-floating-shadow: 0 12px 32px -8px rgb(14 26 43 / 0.18), 0 2px 6px rgb(14 26 43 / 0.06);
+  --bg-feature: #12243d;
+  --feature-ink: #ffffff;
+  --feature-muted: #d2deee;
+  --feature-subtle: #abbdd5;
+  --feature-accent: #bdd5f7;
+}
+
+[data-theme="dark"] {
+  --canvas: #08101d;
+  --surface: #0f192b;
+  --elevated: #15213a;
+  --line: #213150;
+  --line-strong: #3d5278;
+  --ink: #eaf0f9;
+  --muted: #b2bdd0;
+  --subtle: #9aa9c1;
+  --brand: #3f83f0;
+  --brand-hover: #5a96f5;
+  --brand-soft: #12274a;
+  --brand-line: #254a85;
+  --on-brand: #ffffff;
+  --success: #46c08a;
+  --success-soft: #0f2a21;
+  --success-line: #1e5a42;
+  --warning: #e0a04a;
+  --warning-soft: #2c200c;
+  --warning-line: #705125;
+  --danger: #f08a80;
+  --danger-soft: #2f1512;
+  --danger-line: #6b2b25;
+  --corporate-panel-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  --corporate-floating-shadow: 0 16px 40px -8px rgb(0 0 0 / 0.6);
+  --bg-feature: #101d32;
+  --feature-ink: #eaf0f9;
+  --feature-muted: #b2bdd0;
+  --feature-subtle: #9aa9c1;
+  --feature-accent: #a6c6f8;
+}
+
+/* Bridge the supplied tokens to the variables used by current and older views. */
+:root,
+[data-theme="light"],
+[data-theme="dark"] {
+  --bg-deep: var(--canvas);
+  --bg-main: var(--canvas);
+  --bg-surface: var(--surface);
+  --bg-surface-elevated: var(--elevated);
+  --bg-surface-hover: var(--elevated);
+  --bg-glass: var(--surface);
+  --bg-glass-heavy: var(--surface);
+  --brand-celeste: var(--brand);
+  --brand-celeste-light: var(--brand);
+  --brand-celeste-hover: var(--brand-hover);
+  --brand-celeste-dark: var(--brand-hover);
+  --brand-celeste-deep: var(--brand-soft);
+  --brand-celeste-subtle: var(--brand-soft);
+  --brand-celeste-border: var(--brand-line);
+  --brand-celeste-pill: var(--brand);
+  --text-main: var(--ink);
+  --text-muted: var(--muted);
+  --text-dim: var(--subtle);
+  --text-inverse: var(--on-brand);
+  --border-subtle: var(--line);
+  --border-medium: var(--line-strong);
+  --border-active: var(--brand);
+  --control-bg: var(--surface);
+  --control-line: var(--line-strong);
+  --focus-ring: var(--brand);
+  --danger-text: var(--danger);
+  --danger-bg: var(--danger-soft);
+  --danger-border: var(--danger-line);
+  --warning-text: var(--warning);
+  --warning-bg: var(--warning-soft);
+  --warning-border: var(--warning-line);
+  --success-text: var(--success);
+  --success-bg: var(--success-soft);
+  --success-border: var(--success-line);
+  --btn-primary-bg: var(--brand);
+  --btn-primary-text: var(--on-brand);
+  --btn-primary-hover: var(--brand-hover);
+  --btn-secondary-bg: var(--surface);
+  --btn-secondary-border: var(--line-strong);
+  --btn-secondary-text: var(--ink);
+  --btn-secondary-hover: var(--elevated);
+  --panel-shadow: var(--corporate-panel-shadow);
+  --floating-shadow: var(--corporate-floating-shadow);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.625rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 0.875rem;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+@theme inline {
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: lining-nums tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; }
+.btn { border-radius: 0.5rem; font-size: 0.8125rem; font-weight: 600; letter-spacing: -0.005em; box-shadow: none; }
+.btn-primary { color: var(--on-brand); background: var(--brand); border-color: var(--brand); }
+.btn-primary:hover:not(:disabled) { background: var(--brand-hover); border-color: var(--brand-hover); }
+.btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.btn-secondary:hover:not(:disabled) { background: var(--elevated); border-color: var(--subtle); }
+.icon-button { border-radius: 0.5rem; }
+.card, .stat-card, .ticket-conversation, .messages-conversation { box-shadow: var(--corporate-panel-shadow); }
+.modal-backdrop { backdrop-filter: blur(2px); }
+.modal-dialog { border-radius: 0.75rem; box-shadow: var(--corporate-floating-shadow); }
+.progress-bar-container { height: 4px; }
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]), select, textarea {
+  border-radius: 0.5rem;
+  border-color: var(--line-strong);
+  font-family: inherit;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  border-color: var(--brand);
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Solid surfaces replace ornamental gradients; dark welcome panels keep contrast. */
+.app-container [class*="bg-gradient-"][class*="from-brand-soft"] { background-image: none; background-color: var(--brand-soft); }
+.app-container [class*="bg-gradient-"][class*="from-slate-900"] { background-image: none; background-color: var(--bg-feature); }
+.content-body section > [aria-hidden="true"].pointer-events-none { display: none; }
+
+/* Keep small controls readable without enlarging cards or changing their layout. */
+.text-\[8px\] { font-size: 0.625rem; }
+.text-\[9px\] { font-size: 0.6875rem; }
+.text-\[10px\] { font-size: 0.75rem; }
+.text-\[11px\] { font-size: 0.8125rem; }
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

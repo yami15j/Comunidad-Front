@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ArrowUpRight,
   Menu,
@@ -10,6 +10,9 @@ import { Brand, Avatar } from "./ui";
 import { navigationForRole, ROLE_LABELS } from "../services/navigation";
 import { homeViewForRole } from "../services/access";
 export function Sidebar({
+  supportFilter = "pending",
+  supportCounts = {},
+  onSupportFilterChange,
   currentView,
   onNavigate,
   currentRole,
@@ -19,6 +22,7 @@ export function Sidebar({
   isOpen = true,
   onToggleSidebar,
 }) {
+  const [supportMenuOpen, setSupportMenuOpen] = useState(true);
   const live = liveClasses.find((session) => session.isLiveNow);
   const next =
     live ||
@@ -64,13 +68,18 @@ export function Sidebar({
               {group.items.map((item) => {
                 const active =
                   currentView === item.id ||
-                  (currentView === "course-player" && item.id === "courses");
+                  (currentView === "course-player" && item.id === "courses") ||
+                  (currentRole === "admin" && currentView === "admin-curriculum" && item.id === "admin-courses");
                 const Icon = item.icon;
                 return (
+                  <React.Fragment key={item.id}>
                   <button
-                    key={item.id}
                     aria-current={active ? "page" : undefined}
-                    onClick={() => onNavigate(item.id)}
+                    aria-expanded={item.id === "admin-support" ? active && supportMenuOpen : undefined}
+                    onClick={() => {
+                      if (item.id === "admin-support") setSupportMenuOpen(active ? !supportMenuOpen : true);
+                      onNavigate(item.id);
+                    }}
                     className={
                       "group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-[12px] font-semibold transition " +
                       (active
@@ -89,15 +98,17 @@ export function Sidebar({
                     />
                     <span className="flex-1">{item.label}</span>
                     {item.id === "live" && live && (
-                      <span
-                        className="size-1.5 rounded-full bg-brand"
-                        aria-label="Clase en vivo"
-                      />
+                      <span aria-label="Clase en vivo" className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-red-50 px-2 py-1 text-[8px] font-bold uppercase tracking-wide text-red-600 dark:bg-red-950/40 dark:text-red-300"><span aria-hidden="true" className="size-1.5 animate-pulse rounded-full bg-red-500 motion-reduce:animate-none" />En vivo</span>
                     )}
                     {active && (
                       <span className="h-4 w-0.5 rounded-full bg-brand" />
                     )}
                   </button>
+                  {onSupportFilterChange && ((currentRole === "soporte" && item.id === "tickets") || (currentRole === "admin" && item.id === "admin-support" && active && supportMenuOpen)) && <div className="ml-5 mt-2 space-y-1 border-l border-line pl-3" aria-label="Estado del ticket">
+                    {[["all", "Todos"], ["pending", "Pendientes"], ["resolved", "Resueltos"]].map(([value, label]) => <button key={value} type="button" aria-pressed={active && supportFilter === value} onClick={() => { onSupportFilterChange(value); onNavigate(item.id); }} className={"flex min-h-10 w-full items-center justify-between gap-3 rounded-xl px-3 text-left text-xs font-semibold transition " + (active && supportFilter === value ? "bg-brand-soft text-brand" : "text-subtle hover:bg-elevated hover:text-ink")}><span>{label}</span><span className={"inline-flex min-w-7 items-center justify-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] " + (value === "pending" ? "border-amber-200 bg-amber-50 text-amber-700" : value === "resolved" ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-brand-line bg-brand-soft text-brand")}><span className="size-1.5 rounded-full bg-current" aria-hidden="true" />{supportCounts[value] || 0}</span></button>)}
+                    {currentRole === "soporte" && <button type="button" aria-pressed={active && supportFilter === "options"} onClick={() => { onSupportFilterChange("options"); onNavigate(item.id); }} className={"flex min-h-10 w-full items-center rounded-xl px-3 text-left text-xs font-semibold transition " + (active && supportFilter === "options" ? "bg-brand-soft text-brand" : "text-subtle hover:bg-elevated hover:text-ink")}>Mis etiquetas y estados</button>}
+                  </div>}
+                  </React.Fragment>
                 );
               })}
             </div>

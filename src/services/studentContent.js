@@ -14,7 +14,7 @@ export function zoomLink(value) {
 }
 export function libraryItems(courses, videos) {
   return [
-    ...courses.map((course) => ({
+    ...courses.filter(course => course.accessType !== "live").map((course) => ({
       ...course,
       key: "course-" + course.id,
       type: /masterclass/i.test(course.contentType || course.category)
@@ -32,7 +32,7 @@ export function libraryItems(courses, videos) {
         type: "Grabaciones",
         video,
       })),
-    ...courses.flatMap((course) =>
+    ...courses.filter(course => course.accessType !== "live").flatMap((course) =>
       (course.modules || []).flatMap((module) =>
         module.lessons.flatMap((lesson) =>
           (lesson.resources || []).map((resource) => ({

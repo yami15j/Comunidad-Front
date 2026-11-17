@@ -1,5 +1,7 @@
+import { studentAccessSnapshot } from "./services/studentAccess";
+import { AdminRecordings } from "./components/AdminRecordings";
 import { LoaderCircle } from "lucide-react";
-import { Brand, Dialog, EmptyState } from "./components/ui";
+import { Brand, EmptyState } from "./components/ui";
 import React, { useState, useEffect, useRef } from "react";
 import { MessagesView } from "./views/MessagesView";
 import { api, clearSession, hasSession, saveSession } from "./services/api";
@@ -42,10 +44,11 @@ import { MentorCoursesView } from "./views/MentorCoursesView";
 import { MentorLiveManager } from "./views/MentorLiveManager";
 import { RecordingUpload } from "./components/RecordingUpload";
 import { TicketsView } from "./views/TicketsView";
+import { PasswordRecoveryView, readPasswordRecovery } from "./views/PasswordRecoveryView";
 
 const VIEW_PATHS = {
   "admin-support": "/administrador/soporte",
-  "admin-curriculum": "/administrador/contenido",
+  "admin-curriculum": "/administrador/cursos/contenido",
   "admin-access": "/administrador/accesos",
   "admin-mentors": "/administrador/mentores",
   "admin-notifications": "/administrador/avisos",
@@ -69,6 +72,7 @@ const VIEW_PATHS = {
 };
 
 const viewFromPath = (pathname) => {
+  if (pathname === "/administrador/contenido") return "admin-curriculum";
   if (/^\/programas\/[^/]+$/.test(pathname)) return "course-player";
   return (
     Object.entries(VIEW_PATHS).find(([, path]) => path === pathname)?.[0] ||
@@ -132,16 +136,22 @@ function updateLessonDataInCourse(course, lessonId, updater) {
 }
 
 export function App() {
+  const [passwordRecovery, setPasswordRecovery] = useState(() => readPasswordRecovery(window.location));
+  useEffect(() => {
+    if (passwordRecovery) window.history.replaceState({}, '', '/recuperar-contrasena');
+  }, [passwordRecovery]);
   const { theme, toggleTheme } = useTheme();
 
   const authGeneration = useRef(0);
   const courseOpenGeneration = useRef(0);
   const resourceJob = useRef(null);
+  const mentorDataRevision = useRef(0);
 
   // Auth & Multi-Role State
   const [isAuthenticated, setIsAuthenticated] = useState(hasSession);
   const [isBootstrapping, setIsBootstrapping] = useState(hasSession);
   const [appError, setAppError] = useState("");
+  const [communicationTarget, setCommunicationTarget] = useState(null);
   const [notificationTicketId, setNotificationTicketId] = useState(null);
 
   const [currentRole, setCurrentRole] = useState(() => {
@@ -155,14 +165,16 @@ export function App() {
   const [liveClasses, setLiveClasses] = useState([]);
   const [users, setUsers] = useState([]);
   const [replays, setReplays] = useState([]);
+  const [isWatchingReplay, setIsWatchingReplay] = useState(false);
 
   const [mentors, setMentors] = useState([]);
-  const [curriculumCourse, setCurriculumCourse] = useState(null);
+
   const [adminCourseId, setAdminCourseId] = useState(
     () => new URLSearchParams(window.location.search).get("curso") || "",
   );
 
   const [announcements, setAnnouncements] = useState([]);
+  const studentDataRevision = useRef(0);
   const [adminDashboard, setAdminDashboard] = useState({
     stats: {},
     recentActivity: [],
@@ -173,6 +185,9 @@ export function App() {
     questions: [],
     recentActivity: [],
   });
+
+  const [supportFilter, setSupportFilter] = useState("pending");
+  const [supportCounts, setSupportCounts] = useState({ pending: 0, resolved: 0, all: 0 });
 
   // Navigation State
   const [requestedCurrentView, setCurrentView] = useState(() => {
@@ -193,6 +208,7 @@ export function App() {
   // Modals State
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [liveSessionModalData, setLiveSessionModalData] = useState(null);
+  const [notificationLiveTarget, setNotificationLiveTarget] = useState(null);
 
   // Sidebar Open / Collapsed State ("guardar y abrir / desplazar")
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -254,7 +270,8 @@ export function App() {
     const dashboardMentors = new Map(
       (dashboard?.mentors || []).map((mentor) => [String(mentor.id), mentor]),
     );
-    const courseRows = (dashboard?.courses || coursePayload).map((course) => {
+    const studentSnapshot = isStudent ? studentAccessSnapshot({ dashboard, videos: videoRows, sessions: sessionRows }) : null;
+    const courseRows = (studentSnapshot?.courses || dashboard?.courses || coursePayload).map((course) => {
       const mentor = isStudent ? dashboard?.mentors?.[0] : course.docenteId
         ? dashboardMentors.get(String(course.docenteId))
         : null;
@@ -280,7 +297,7 @@ export function App() {
         course.activeStudents || 0,
       ]),
     );
-    const adaptedSessions = sessionRows.map((session) => ({
+    const adaptedSessions = (studentSnapshot?.sessions || sessionRows).map((session) => ({
       ...adaptLiveSession(session, adaptedCourses),
       attendeesCount: courseStudentCounts.get(String(session.courseId)) || 0,
     }));
@@ -303,7 +320,7 @@ export function App() {
     setUser(adaptedUser);
     setCourses(adaptedCourses);
     setLiveClasses(adaptedSessions);
-    setReplays(videoRows.map((video) => adaptVideo(video, adaptedCourses)));
+    setReplays((studentSnapshot?.videos || videoRows).map((video) => adaptVideo(video, adaptedCourses)));
     setUsers(userRows);
     setAnnouncements(dashboard?.announcements || []);
     setAdminDashboard(isAdmin ? dashboard : { stats: {}, recentActivity: [] });
@@ -365,6 +382,56 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated || isBootstrapping || currentRole !== "student" || !user?.id) return;
+    const controller = new AbortController();
+    const generation = authGeneration.current;
+    let pending = false;
+    const refresh = async () => {
+      if (pending || document.visibilityState === "hidden") return;
+      pending = true;
+      try {
+        const options = { signal: controller.signal };
+        const revision = studentDataRevision.current;
+        const profile = await api.me(options);
+        if (controller.signal.aborted || generation !== authGeneration.current) return;
+        const account = adaptUser(profile);
+        if (account.role !== "student") {
+          await loadApplicationData(profile, generation, options);
+          if (controller.signal.aborted || generation !== authGeneration.current) return;
+          setCurrentRole(account.role); setCurrentView(homeViewForRole(account.role));
+          localStorage.setItem("traction_auth_role", account.role); return;
+        }
+        const [dashboard, videos, sessions] = await Promise.all([api.dashboard.student(options), api.videos.list(options), api.liveSessions.list(options)]);
+        if (controller.signal.aborted || generation !== authGeneration.current) return;
+        const snapshot = studentAccessSnapshot({ dashboard, videos, sessions });
+        if (revision !== studentDataRevision.current) return;
+        const mentor = dashboard.mentors?.[0];
+        const freshCourses = snapshot.courses.map(course => adaptCourse({ ...course, mentorName: mentor?.fullName || "Mentor por asignar", mentorTitle: mentor?.title || "Tu mentor asignado", mentorAvatar: mentor?.avatarUrl || "" }));
+        const preserve = (previous, next) => JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
+        setCourses(previous => preserve(previous, freshCourses));
+        setReplays(previous => preserve(previous, snapshot.videos.map(video => adaptVideo(video, freshCourses))));
+        setLiveClasses(previous => preserve(previous, snapshot.sessions.map(session => adaptLiveSession(session, freshCourses))));
+        setMentors(previous => preserve(previous, (dashboard.mentors || []).map(adaptMentor)));
+        setLiveSessionModalData(current => current ? preserve(current, snapshot.sessions.find(session => session.id === current.id) ? adaptLiveSession(snapshot.sessions.find(session => session.id === current.id), freshCourses) : null) : current);
+        setAnnouncements(previous => preserve(previous, dashboard.announcements || []));
+        setUser(previous => preserve(previous, { ...previous, ...account, stats: { ...previous?.stats, ...dashboard.stats, totalHoursWatched: Number(((dashboard.stats?.totalMinutesLearned || 0) / 60).toFixed(1)) } }));
+        setSelectedCourse(current => {
+          if (!current) return current;
+          const updated = freshCourses.find(course => course.id === current.id);
+          return updated && updated.accessType !== "live" ? preserve(current, updated) : null;
+        });
+      } catch (error) { if (!controller.signal.aborted) setAppError("No se pudieron actualizar tus accesos: " + error.message); }
+      finally { pending = false; }
+    };
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    refresh();
+    const timer = window.setInterval(refresh, 3000);
+    return () => { controller.abort(); clearInterval(timer); window.removeEventListener("focus", refresh); document.removeEventListener("visibilitychange", onVisible); };
+  }, [isAuthenticated, isBootstrapping, currentRole, user?.id]);
+
   // Mantener la lista administrativa sincronizada con nuevos registros.
   useEffect(() => {
     if (!isAuthenticated || currentRole !== "admin") return;
@@ -412,7 +479,7 @@ export function App() {
   }, [isAuthenticated, currentRole, courses]);
 
   useEffect(() => {
-    if (isBootstrapping) return;
+    if (isBootstrapping || passwordRecovery) return;
     if (!isAuthenticated) {
       if (window.location.pathname !== "/login")
         window.history.replaceState({}, "", "/login");
@@ -427,10 +494,11 @@ export function App() {
       setCurrentView(homeView);
       window.history.replaceState({}, "", pathForView(homeView));
     }
-  }, [isAuthenticated, isBootstrapping, currentRole]);
+  }, [isAuthenticated, isBootstrapping, currentRole, passwordRecovery]);
 
   useEffect(() => {
     const handlePopState = () => {
+      if (passwordRecovery) return;
       ++courseOpenGeneration.current;
       // A different course can share the same view; URL changes must reload it.
       setSelectedCourse(null);
@@ -451,7 +519,7 @@ export function App() {
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [isAuthenticated, currentRole]);
+  }, [isAuthenticated, currentRole, passwordRecovery]);
 
   useEffect(() => {
     const match = window.location.pathname.match(/^\/programas\/([^/]+)$/);
@@ -459,7 +527,7 @@ export function App() {
     const course = courses.find(
       (item) => encodeURIComponent(String(item.id)) === match[1],
     );
-    if (!course || selectedCourse?.id === course.id) return;
+    if (!course || course.accessType === "live" || selectedCourse?.id === course.id) return;
     let active = true;
     const generation = authGeneration.current;
     const load = async () => {
@@ -589,6 +657,7 @@ export function App() {
       payload.avatarUrl = updatedData.avatar;
     let saved = await api.profile.update(payload);
     if (avatarFile) saved = await api.profile.uploadAvatar(avatarFile);
+    studentDataRevision.current += 1;
     const adapted = adaptUser(saved);
     setUser((previous) => ({ ...previous, ...adapted, stats: previous.stats }));
     if (currentRole === "mentor") {
@@ -603,6 +672,7 @@ export function App() {
   const handleNavigate = (viewId) => {
     if (window.innerWidth < 1024) setIsSidebarOpen(false);
     if (!ROLE_VIEWS[currentRole]?.includes(viewId)) return;
+    setLiveSessionModalData(null);
     setCurrentView(viewId);
     const nextPath = pathForView(viewId, selectedCourse?.id);
     if (nextPath && window.location.pathname !== nextPath)
@@ -666,6 +736,7 @@ export function App() {
 
     const nextCompleted = !lesson.completed;
     const applyCompletion = (completed) => {
+      studentDataRevision.current += 1;
       setCourses((current) =>
         current.map((item) =>
           item.id === courseId
@@ -708,6 +779,7 @@ export function App() {
 
   const handleSaveLessonNote = async (courseId, lessonId, content) => {
     const saved = await api.dashboard.saveLessonNote(lessonId, content);
+    studentDataRevision.current += 1;
     const updateNote = (course) =>
       updateLessonDataInCourse(course, lessonId, (lesson) => ({
         ...lesson,
@@ -747,7 +819,9 @@ export function App() {
   };
 
   const handleAnswerMentorQuestion = async (questionId, reply) => {
+    ++mentorDataRevision.current;
     const updated = await api.dashboard.answerMentorQuestion(questionId, reply);
+    ++mentorDataRevision.current;
     setMentorDashboard((current) => ({
       ...current,
       stats: {
@@ -791,6 +865,32 @@ export function App() {
     markNotificationsRead,
   } = useNotifications(user?.id, currentRole, isAuthenticated);
 
+  useEffect(() => {
+    if (!isAuthenticated || isBootstrapping || currentRole !== 'mentor' || !user?.id) return;
+    const controller = new AbortController();
+    const generation = authGeneration.current;
+    let timer, pending = false;
+    const refresh = async () => {
+      if (pending || controller.signal.aborted) return;
+      clearTimeout(timer); pending = true;
+      const version = mentorDataRevision.current;
+      try {
+        if (document.visibilityState === 'hidden') return;
+        const data = await api.dashboard.mentor({ signal: controller.signal });
+        if (controller.signal.aborted || generation !== authGeneration.current || version !== mentorDataRevision.current) return;
+        const next = { ...data, questions: (data.questions || []).map(adaptMentorQuestion) };
+        const preserve = (before, after) => JSON.stringify(before) === JSON.stringify(after) ? before : after;
+        setMentorDashboard(before => preserve(before, next));
+        setUser(before => preserve(before, { ...before, stats: { ...before?.stats, ...data.stats } }));
+      } catch (error) { if (!controller.signal.aborted) setAppError('No se pudieron actualizar las dudas: ' + error.message); }
+      finally { pending = false; if (!controller.signal.aborted) timer = setTimeout(refresh, 3000); }
+    };
+    refresh();
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { controller.abort(); clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh); };
+  }, [isAuthenticated, isBootstrapping, currentRole, user?.id]);
+
   const refreshMentorDashboard = async () => {
     const generation = authGeneration.current;
     const data = await api.dashboard.mentor();
@@ -824,6 +924,22 @@ export function App() {
 
   const handleNotificationClick = (notif) => {
     markNotificationsRead([notif.id]);
+    if (notif.type === 'question' && currentRole === 'mentor') {
+      handleNavigate('mentor-dashboard'); setIsNotificationsOpen(false); return;
+    }
+    if (notif.type === 'answer' && currentRole === 'student') {
+      const course = courses.find(item => item.id === notif.courseId);
+      if (course) handleSelectCourse(course).then(() => setSelectedLessonId(notif.lessonId));
+      else handleNavigate('courses');
+      setIsNotificationsOpen(false); return;
+    }
+    if (notif.type === "forum" || notif.type === "chat") {
+      const [, first, second] = notif.id.split(":");
+      setCommunicationTarget({ id: notif.id, threadId: first, studentId: first, mentorId: second });
+      handleNavigate(notif.type === "forum" ? "community" : "messages");
+      setIsNotificationsOpen(false);
+      return;
+    }
     if (notif.type === "support" && ["student", "soporte"].includes(currentRole)) {
       setNotificationTicketId(notif.ticketId);
       handleNavigate("tickets");
@@ -855,6 +971,7 @@ export function App() {
       return;
     }
     if (notif.type === "live") {
+      setNotificationLiveTarget({ sessionId: notif.sessionId || notif.id.split(":")[1], revision: Date.now() });
       handleNavigate("live");
     } else if (notif.type === "resource") {
       handleNavigate("library");
@@ -867,11 +984,42 @@ export function App() {
     setIsNotificationsOpen(false);
   };
 
+  const handleEditCourse = async (id, input) => {
+    const generation = authGeneration.current;
+    const updated = await api.administration.updateCourse(id, { title: input.title, description: input.tagline || "", category: input.category, level: input.level, contentType: input.contentType, docenteId: input.docenteId || undefined });
+    if (generation !== authGeneration.current) return;
+    setCourses(current => current.map(course => course.id === id ? { ...course, title: updated.title, description: updated.description, tagline: updated.description, category: updated.category, level: updated.level, contentType: updated.content_type, docenteId: updated.docente_id } : course));
+    if (input.image) {
+      try { await handleCourseCover(id, input.image); }
+      catch (error) { throw new Error("Los datos del curso se guardaron, pero la imagen no: " + error.message); }
+    }
+    await refreshAdminDashboard();
+  };
+
+  const handleCourseCover = async (courseId, file) => {
+    const generation = authGeneration.current;
+    const updated = await api.courses.uploadCover(courseId, file);
+    if (generation !== authGeneration.current) return;
+    setCourses(current => current.map(course => course.id === courseId ? { ...course, thumbnail: updated.thumbnail } : course));
+  };
+
+  const handleDeleteCourse = async courseId => {
+    const generation = authGeneration.current;
+    await api.courses.remove(courseId);
+    if (generation !== authGeneration.current) return;
+    setCourses(current => current.filter(course => course.id !== courseId));
+    setLiveClasses(current => current.filter(session => session.courseId !== courseId));
+    setReplays(current => current.filter(replay => replay.courseId !== courseId));
+    setSelectedCourse(current => current?.id === courseId ? null : current);
+    await refreshAdminDashboard();
+  };
+
   // Admin add course
   const handleAddCourse = async (newCourse) => {
     const generation = authGeneration.current;
     const created = await api.courses.create({
       title: newCourse.title,
+      image: newCourse.image,
       description: newCourse.tagline || "",
       contentType: newCourse.contentType || "course",
       docenteId: newCourse.docenteId || undefined,
@@ -988,10 +1136,12 @@ export function App() {
   };
   const openCurriculum = (course) => {
     setAdminCourseId(course.id);
-    setCurriculumCourse(course);
+    handleNavigate("admin-curriculum");
+    window.history.replaceState({}, "", `/administrador/cursos/contenido?curso=${encodeURIComponent(course.id)}`);
   };
 
   const unreadNotificationsCount = notifications.filter((n) => !n.read).length;
+  if (passwordRecovery) return <PasswordRecoveryView recovery={passwordRecovery} onDone={() => { handleLogout(); setPasswordRecovery(null); window.history.replaceState({}, '', '/login'); }} />;
 
   if (isBootstrapping) {
     return (
@@ -1010,7 +1160,7 @@ export function App() {
 
   // Si no está autenticado, renderizar el portal corporativo de Login
   if (!isAuthenticated) {
-    return <LoginView onLogin={handleLogin} />;
+    return <LoginView onLogin={handleLogin} onRecover={api.recoverPassword} />;
   }
 
   return (
@@ -1034,6 +1184,9 @@ export function App() {
 
       {/* Sidebar Navigation */}
       <Sidebar
+        supportFilter={supportFilter}
+        supportCounts={supportCounts}
+        onSupportFilterChange={setSupportFilter}
         currentView={currentView}
         onNavigate={handleNavigate}
         currentRole={currentRole}
@@ -1046,7 +1199,7 @@ export function App() {
 
       {/* Main Content Area */}
       <div
-        className={`main-content-wrapper ${!isSidebarOpen ? "sidebar-collapsed" : ""} ${currentRole === "soporte" && currentView === "tickets" ? "support-fixed-workspace" : ""}`}
+        className={`main-content-wrapper ${!isSidebarOpen ? "sidebar-collapsed" : ""} ${currentRole === "soporte" && currentView === "tickets" ? "support-fixed-workspace" : ""} ${currentView === "messages" ? "messages-workspace" : ""}`}
       >
         <Header
           user={user}
@@ -1060,7 +1213,7 @@ export function App() {
                 ? handleNavigate("mentor-courses")
                 : handleSelectCourse(course)
           }
-          onOpenNotifications={() => setIsNotificationsOpen(true)}
+          onOpenNotifications={() => { reloadNotifications(); setIsNotificationsOpen(true); }}
           unreadCount={unreadNotificationsCount}
           notifications={notifications}
           theme={theme}
@@ -1073,26 +1226,13 @@ export function App() {
           onToggleSidebar={handleToggleSidebar}
         />
 
-        {currentRole === "admin" && <Dialog
-          open={Boolean(curriculumCourse)}
-          onClose={() => setCurriculumCourse(null)}
-          title={`Editor curricular${curriculumCourse ? ": " + curriculumCourse.title : ""}`}
-          className="!max-w-3xl !max-h-[80dvh]"
-        >
-          {curriculumCourse && <AdminCurriculumView
-            key={curriculumCourse.id}
-            courses={courses.filter(course => course.id === curriculumCourse.id)}
-            mentors={mentors}
-            initialCourseId={curriculumCourse.id}
-            onCourseUpdated={refreshAdminCourses}
-            embedded
-          />}
-        </Dialog>}
         <main
           className="content-body view-enter"
           id="main-content"
           key={currentView}
         >
+          {liveSessionModalData && <LiveSessionModal fullPage isOpen onClose={() => setLiveSessionModalData(null)} liveClass={liveSessionModalData} />}
+          <div hidden={Boolean(liveSessionModalData)}>
           {appError && (
             <div
               role="alert"
@@ -1109,7 +1249,7 @@ export function App() {
             </div>
           )}
           {((currentView === "tickets" && ["soporte", "student"].includes(currentRole)) || (currentView === "admin-support" && currentRole === "admin")) && (
-              <TicketsView key={`${user.id}:${notificationTicketId || ""}`} user={user} searchTerm={searchTerm} initialTicketId={notificationTicketId} />
+              <TicketsView onOptionsClose={() => setSupportFilter("pending")} sidebarFilter={supportFilter} onCountsChange={setSupportCounts} key={`${user.id}:${notificationTicketId || ""}`} user={user} searchTerm={searchTerm} initialTicketId={notificationTicketId} />
             )}
           {/* Vista: Dashboard de Estudiante */}
           {currentView === "dashboard" && (
@@ -1184,6 +1324,10 @@ export function App() {
           )}
           {currentView === "live" && (
             <LiveClassesView
+              initialTarget={notificationLiveTarget}
+              courses={courses}
+              replays={replays}
+              onPlay={video => api.videos.playback(video.id)}
               liveClasses={liveClasses}
               onOpenLiveSession={(live) => setLiveSessionModalData(live)}
               onNavigate={handleNavigate}
@@ -1191,7 +1335,7 @@ export function App() {
           )}
 
           {/* Vista: Videoteca de Replays (Grabaciones) */}
-          {currentRole === "mentor" && currentView === "replays" && (
+          {currentRole === "mentor" && currentView === "replays" && !isWatchingReplay && (
               <RecordingUpload allowExternal={user?.role === "admin"}
                 showLinkEditor={false}
                 courses={courses}
@@ -1215,6 +1359,8 @@ export function App() {
           )}
           {currentView === "replays" && (
             <ReplaysView
+              onViewingChange={setIsWatchingReplay}
+              compact={currentRole === "mentor"}
               replays={replays}
               onNavigate={handleNavigate}
               onPlay={(video) => api.videos.playback(video.id)}
@@ -1242,9 +1388,9 @@ export function App() {
           )}
 
           {/* Vista: Comunidad & Debates */}
-          {currentView === "messages" && <MessagesView key={user.id} user={user} />}
+          {currentView === "messages" && <MessagesView key={`${user.id}:${communicationTarget?.id || ""}`} user={user} initialContact={communicationTarget} />}
           {currentView === "community" && (
-            <CommunityView key={user.id} user={user} />
+            <CommunityView key={`${user.id}:${communicationTarget?.id || ""}`} user={user} initialThreadId={communicationTarget?.threadId} />
           )}
 
           {/* Vista: Mi Perfil & Datos */}
@@ -1260,6 +1406,12 @@ export function App() {
 
           {currentView === "admin-mentors" && (
             <MentorsView
+              fullPageProfile
+              onSaveProfile={async (id, input) => {
+                const updated = await api.administration.updateMentorProfile(id, input);
+                setUsers(current => current.map(account => account.id === id ? { ...account, ...updated } : account));
+                return adaptMentor(updated);
+              }}
               mentors={users
                 .filter((account) => account.role === "mentor")
                 .map(adaptMentor)}
@@ -1293,6 +1445,7 @@ export function App() {
               courses={courses}
               mentors={mentors}
               initialCourseId={adminCourseId}
+              onBack={() => handleNavigate("admin-courses")}
               onCourseUpdated={refreshAdminCourses}
             />
           )}
@@ -1309,8 +1462,10 @@ export function App() {
             currentView === "admin-live" ||
             currentView === "admin-users") && (
             <AdminView
+              recordingsLibrary={<AdminRecordings recordings={replays} courses={courses} onPlay={video => api.videos.playback(video.id)} onRefresh={async () => { const generation = authGeneration.current; const videos = await api.videos.list(); if (generation === authGeneration.current) setReplays(videos.map(video => adaptVideo(video, courses))); }} />}
               recordingPanel={currentRole === "admin" && currentView === "admin-live" ? (
                 <RecordingUpload
+                  showLinkEditor={false}
                   allowExternal
                   courses={courses}
                   liveClasses={liveClasses}
@@ -1326,6 +1481,9 @@ export function App() {
               liveClasses={liveClasses}
               onEditCurriculum={openCurriculum}
               onAddCourse={handleAddCourse}
+              onEditCourse={handleEditCourse}
+              onDeleteCourse={handleDeleteCourse}
+              onUploadCourseCover={handleCourseCover}
               onAddLiveClass={handleAddLiveClass}
               onDeleteLiveClass={async (id) => {
                 const generation = authGeneration.current;
@@ -1370,6 +1528,7 @@ export function App() {
               onNavigate={handleNavigate}
             />
           )}
+          </div>
         </main>
       </div>
 
@@ -1384,12 +1543,7 @@ export function App() {
         onNotificationClick={handleNotificationClick}
       />
 
-      {/* Modal de Sala de Clase en Vivo */}
-      <LiveSessionModal
-        isOpen={!!liveSessionModalData}
-        onClose={() => setLiveSessionModalData(null)}
-        liveClass={liveSessionModalData}
-      />
+
     </div>
   );
 }

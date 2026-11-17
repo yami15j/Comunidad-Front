@@ -12,8 +12,13 @@ import {
   LoaderCircle,
   ArrowUpRight,
 } from "lucide-react";
-import { Brand } from "../components/ui";
-export function LoginView({ onLogin }) {
+import { Brand, Dialog } from "../components/ui";
+export function LoginView({ onLogin, onRecover }) {
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [recoveryError, setRecoveryError] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -201,6 +206,7 @@ export function LoginView({ onLogin }) {
               )}
             </button>
           </form>
+          {onRecover && <button type="button" className="mt-4 self-end text-xs font-semibold text-brand hover:underline" onClick={() => { setRecoveryEmail(email); setRecoveryError(""); setRecoveryMessage(""); setRecoveryOpen(true); }}>¿Olvidaste tu contraseña?</button>}
           <div className="mt-9 flex items-center gap-3 text-[10px] text-subtle/70">
             <span className="h-px flex-1 bg-line" />
             <LockKeyhole size={11} />
@@ -212,6 +218,21 @@ export function LoginView({ onLogin }) {
           Comunidad del Intercambio · Formación que conecta
         </p>
       </main>
+      <Dialog open={recoveryOpen} onClose={() => { if (!recoveryBusy) setRecoveryOpen(false); }} title="Recuperar contraseña" className="max-w-sm">
+        <form className="grid gap-4" onSubmit={async event => {
+          event.preventDefault(); if (recoveryBusy) return;
+          setRecoveryBusy(true); setRecoveryError("");
+          try { const result = await onRecover(recoveryEmail.trim()); setRecoveryMessage(result.message); }
+          catch (failure) { setRecoveryError(failure.message); }
+          finally { setRecoveryBusy(false); }
+        }}>
+          <p className="text-xs leading-6 text-subtle">Escribe el correo de tu cuenta. Te enviaremos un enlace para crear una contraseña nueva.</p>
+          <label className="grid gap-2 text-xs font-semibold">Correo electrónico<input type="email" autoComplete="email" required value={recoveryEmail} onChange={event => { setRecoveryEmail(event.target.value); setRecoveryMessage(""); }} disabled={recoveryBusy} /></label>
+          {recoveryError && <p role="alert" className="text-xs text-danger">{recoveryError}</p>}
+          {recoveryMessage && <p role="status" className="rounded-xl border border-brand-line bg-brand-soft p-3 text-xs leading-6 text-brand">{recoveryMessage} Revisa también la carpeta de spam.</p>}
+          <button className="btn btn-primary" disabled={recoveryBusy || Boolean(recoveryMessage)}>{recoveryBusy ? "Enviando…" : "Enviar enlace de recuperación"}</button>
+        </form>
+      </Dialog>
     </div>
   );
 }

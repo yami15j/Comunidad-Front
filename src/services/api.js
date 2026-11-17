@@ -111,6 +111,7 @@ export const api = {
     send: (id,body,mentorId,options={}) => request('/mentor-chat/'+encodeURIComponent(id)+'/messages',{...options,method:'POST',body:JSON.stringify({body,mentorId})}),
   },
   administration: {
+    updateMentorProfile: (id, input) => request("/admin/mentors/" + id + "/profile", { method: "PATCH", body: JSON.stringify(input) }),
     curriculum: (id, options) =>
       request("/admin/courses/" + id + "/curriculum", options),
     updateCourse: (id, input) =>
@@ -179,6 +180,11 @@ export const api = {
       }),
   },
   tickets: {
+    options: options => request('/tickets/options', options),
+    createOption: (input, options) => request('/tickets/options', { ...options, method: 'POST', body: JSON.stringify(input) }),
+    editOption: (id, input, options) => request(`/tickets/options/${id}`, { ...options, method: 'POST', body: JSON.stringify(input) }),
+    customStatus: (id, optionId, options) => request(`/tickets/${id}/custom-status`, { ...options, method: 'POST', body: JSON.stringify({ optionId }) }),
+    setStatus: (id, status, options) => request(`/tickets/${id}/status`, { ...options, method: "POST", body: JSON.stringify({ status }) }),
     resolve: (id, options) => request(`/tickets/${id}/resolve`, { ...options, method: "POST" }),
     labels: (id, labels, options) => request(`/tickets/${id}/labels`, { ...options, method: "POST", body: JSON.stringify({ labels }) }),
     remove: (id, options) => request(`/tickets/${id}`, { ...options, method: "DELETE" }),
@@ -202,12 +208,14 @@ export const api = {
       request(`/tickets/${id}/close`, { ...options, method: "POST" }),
   },
   health: () => request("/health/db"),
+  recoverPassword: (email) => request('/auth/recover-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (accessToken, password, challenge) => request('/auth/reset-password', { method: 'POST', body: JSON.stringify({ accessToken, password, challenge }) }),
   login: (email, password) =>
     request("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
-  me: () => request("/auth/me"),
+  me: (options) => request("/auth/me", options),
   profile: {
     update: (input) =>
       request("/auth/me", { method: "PATCH", body: JSON.stringify(input) }),
@@ -218,6 +226,9 @@ export const api = {
     },
   },
   courses: {
+    removeCover: (id) => request(`/courses/${id}/cover`, { method: "DELETE" }),
+    uploadCover: (id, file) => { const body = new FormData(); body.append("image", file); return request(`/courses/${id}/cover`, { method: "POST", body }); },
+    remove: (id) => request(`/courses/${id}`, { method: "DELETE" }),
     enrollmentCandidates: (id, page = 0, options) => request(`/courses/${id}/enrollment-candidates?page=${page}`, options),
     enrollByEmail: (courseId, email) =>
       request("/courses/" + courseId + "/enrollments/by-email", {
@@ -225,8 +236,12 @@ export const api = {
         body: JSON.stringify({ email }),
       }),
     list: (options) => request("/courses", options),
-    create: (input) =>
-      request("/courses", { method: "POST", body: JSON.stringify(input) }),
+    create: (input) => {
+      if (!input.image) return request("/courses", { method: "POST", body: JSON.stringify(input) });
+      const body = new FormData();
+      for (const [key, value] of Object.entries(input)) { if (value !== undefined && value !== null) body.append(key, value); }
+      return request("/courses", { method: "POST", body });
+    },
     assignTeacher: (courseId, docenteId) =>
       request(`/courses/${courseId}/docente`, {
         method: "PATCH",
@@ -239,6 +254,7 @@ export const api = {
       }),
   },
   liveSessions: {
+    zoomJoin: (id, options = {}) => request("/live-sessions/" + id + "/zoom-join", { ...options, method: "POST" }),
     remove: (id) => request(`/live-sessions/${id}`, { method: "DELETE" }),
     update: (id, input) => request('/live-sessions/' + id, { method: 'PATCH', body: JSON.stringify(input) }),
     updateLink: (id, joinUrl, details = {}) =>
@@ -255,6 +271,7 @@ export const api = {
     end: (id) => request(`/live-sessions/${id}/end`, { method: "POST" }),
   },
   videos: {
+    discussion: (id, options) => request("/videos/" + id + "/discussion", options),
     create: (input) =>
       request("/videos", { method: "POST", body: JSON.stringify(input) }),
     complete: (id, input) =>

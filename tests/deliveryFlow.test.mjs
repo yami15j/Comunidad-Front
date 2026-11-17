@@ -53,6 +53,9 @@ test('delivery: login, dashboard, course, lesson, history, library, live and adm
     await React.act(async () => window.document.body.querySelector('form').dispatchEvent(
       new window.Event('submit', { bubbles: true, cancelable: true })));
     assert.equal(window.location.pathname, '/panel');
+    await navigate('/administrador/usuarios');
+    assert.equal(window.location.pathname, '/panel', 'student cannot open administrator URL');
+    assert.equal(host.querySelector('table'), null);
     await click('Mis programas');
     assert.match(host.textContent, /Mentor único del estudiante/);
     assert.doesNotMatch(host.textContent, /Docente distinto del programa|Mentor por asignar/);
@@ -90,6 +93,8 @@ test('delivery: login, dashboard, course, lesson, history, library, live and adm
     let edited;
     api.liveSessions.update = async (id, input) => { edited = { id, ...input, status: 'scheduled' }; return edited; };
     await React.act(async () => root.render(React.createElement(App)));
+    await navigate('/administrador/usuarios');
+    assert.equal(window.location.pathname, '/mentor', 'mentor cannot open administrator URL');
     await click('Cursos y estudiantes');
     assert.match(host.textContent, /Matricular en este curso/);
     const candidateSelect = window.document.body.querySelector('select[aria-label="Seleccionar estudiante registrado"]');
@@ -125,12 +130,12 @@ test('delivery: login, dashboard, course, lesson, history, library, live and adm
     assert.deepEqual(savedModule, { courseId: 'uno', title: 'Contenido del mentor', position: 0 });
     assert.match(editor.textContent, /Modulo guardado/);
     assert.equal(editor.querySelector('form'), null);
-    await click('Agregar lección a este módulo');
+    await click('+ Agregar lección');
     assert.match(editor.textContent, /Crear lección/);
     assert.equal(editor.querySelectorAll('form').length, 1);
-    await click('Volver al contenido del curso');
+    await click('Volver a módulos y lecciones');
     await click('Materiales');
-    assert.match(editor.textContent, /Materiales de la lección/);
+    assert.match(editor.textContent, /Materiales de las lecciones/);
     await React.act(async () => editor.querySelector('button[aria-label="Cerrar"]').click());
     await click('Clases en vivo');
     assert.match(host.textContent, /Gestionar mis clases en vivo/);

@@ -28,20 +28,27 @@ export function useNotifications(userId, role, enabled) {
   useEffect(() => {
     if (!enabled || !userId) return;
     const controller = new AbortController();
-    // Remote subscription: state updates occur only after the awaited API response.
-    // eslint-disable-next-line react/set-state-in-effect
-    reload(controller.signal);
-    const timer = setInterval(() => {
-      if (!document.hidden) reload(controller.signal);
-    }, 3000);
-    const focus = () => reload(controller.signal);
+    let timer;
+    let fetching = false;
+    const refresh = async () => {
+      if (fetching || controller.signal.aborted) return;
+      clearTimeout(timer);
+      fetching = true;
+      try { if (!document.hidden) await reload(controller.signal); }
+      finally {
+        fetching = false;
+        if (!controller.signal.aborted) timer = setTimeout(refresh, 3000);
+      }
+    };
+    refresh();
+    const focus = () => refresh();
     window.addEventListener("focus", focus);
-    const visible = () => { if (!document.hidden) reload(controller.signal); };
+    const visible = () => { if (!document.hidden) refresh(); };
     document.addEventListener("visibilitychange", visible);
     return () => {
       invalidate();
       controller.abort();
-      clearInterval(timer);
+      clearTimeout(timer);
       window.removeEventListener("focus", focus);
       document.removeEventListener("visibilitychange", visible);
     };

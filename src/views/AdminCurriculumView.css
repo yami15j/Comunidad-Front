@@ -1,0 +1,52 @@
+﻿@reference "../index.css";
+@layer components {
+  .curriculum-fullpage { @apply w-full max-w-none; }
+  .curriculum-fullpage > div:has(> label > select) { @apply rounded-none border-0 bg-transparent px-0 py-1; }
+  .curriculum-fullpage nav[aria-label="Secciones del editor"] { @apply gap-4 rounded-none border-0 border-b border-line bg-transparent p-0; }
+  .curriculum-fullpage nav[aria-label="Secciones del editor"] button { @apply rounded-none border-b-2 border-transparent px-1 py-3 shadow-none; }
+  .curriculum-fullpage nav[aria-label="Secciones del editor"] button[aria-current=page] { @apply border-brand bg-transparent text-brand shadow-none; }
+  .curriculum-fullpage .curriculum-outline { @apply space-y-6 rounded-none border-0 bg-transparent p-0 shadow-none; }
+  .curriculum-fullpage .curriculum-module { @apply overflow-hidden rounded-xl border border-line bg-surface p-0; }
+  .curriculum-fullpage .curriculum-module > div:first-child { @apply gap-3 border-b border-line bg-elevated/30 px-4 py-3; }
+  .curriculum-fullpage .curriculum-module > p { @apply mx-4 my-2; }
+  .curriculum-fullpage .curriculum-module > button:last-child { @apply m-3 rounded-lg border-0 bg-brand-soft px-3 py-2 text-brand hover:bg-brand/15; }
+  .curriculum-fullpage .curriculum-lesson { @apply m-0 rounded-none border-0 border-b border-line px-4 py-3; }
+  .curriculum-fullpage .curriculum-lesson > strong { @apply block text-xs; }
+  .curriculum-fullpage .lesson-editor-card { @apply max-w-none; }
+  .curriculum-fullpage .card:not(.curriculum-outline) { @apply rounded-xl shadow-none; }
+  @media (min-width: 768px) {
+    .curriculum-fullpage .curriculum-lesson { @apply grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-4; }
+    .curriculum-fullpage .curriculum-lesson > strong { @apply col-start-1 row-start-1; }
+    .curriculum-fullpage .curriculum-lesson > p { @apply col-start-1 row-start-2 mb-0 mt-1; }
+    .curriculum-fullpage .curriculum-lesson > button { @apply col-start-2 row-span-2 row-start-1; }
+    .curriculum-fullpage .curriculum-lesson > button:last-child { @apply col-start-3 ml-0; }
+  }
+}
+
+@layer components {
+  .curriculum-fullpage nav.curriculum-sections { @apply grid gap-2 border-0; }
+  .curriculum-fullpage nav.curriculum-sections button { @apply items-start rounded-xl border border-line bg-transparent px-4 py-3; }
+  .curriculum-fullpage nav.curriculum-sections button[aria-current=page] { @apply border-brand-line bg-brand-soft text-brand; }
+}
+
+@layer components {
+  .curriculum-fullpage .curriculum-module { @apply rounded-xl border border-line bg-transparent !p-0; }
+  .curriculum-fullpage .curriculum-module > div:first-child { @apply bg-brand-soft/25 px-4 py-4; }
+  .curriculum-fullpage .curriculum-lesson-columns { @apply gap-4 border-b border-line px-4 py-2 text-[9px] font-semibold uppercase tracking-wide text-subtle sm:grid-cols-[minmax(0,1fr)_160px_230px]; }
+  .curriculum-fullpage .curriculum-lesson { @apply flex flex-wrap items-center gap-3 !rounded-none !border-0 !border-b !border-line !bg-transparent !px-4 !py-3; }
+  .curriculum-fullpage .curriculum-lesson > div:first-child { @apply flex-1; }
+  .curriculum-fullpage .curriculum-lesson-actions { @apply w-full sm:w-auto; }
+  @media (min-width: 640px) {
+    .curriculum-fullpage .curriculum-lesson { @apply grid grid-cols-[minmax(0,1fr)_160px_230px] gap-4; }
+  }
+  @media (max-width: 800px) {
+    .curriculum-fullpage .curriculum-lesson-columns { @apply hidden; }
+    .curriculum-fullpage .curriculum-lesson { @apply flex; }
+    .curriculum-fullpage .curriculum-lesson-actions { @apply w-full justify-start; }
+  }
+}
+
+@layer components {
+  .curriculum-fullpage .curriculum-lesson > .saved-lesson-details { @apply col-span-full w-full; }
+  .curriculum-fullpage .saved-lesson-details > div { @apply !mt-0; }
+}

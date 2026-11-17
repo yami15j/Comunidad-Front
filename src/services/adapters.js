@@ -219,6 +219,7 @@ export function adaptMentor(profile) {
     id: profile.id,
     name: profile.fullName || profile.name || profile.email || "Mentor",
     role: profile.title || profile.role || "Mentor",
+    title: profile.title || "",
     company: profile.company || "",
     avatar: profile.avatarUrl || profile.avatar || "",
     bio: profile.bio || "",

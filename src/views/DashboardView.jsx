@@ -1,12 +1,10 @@
+import { MiniClassCalendar } from "../components/MiniClassCalendar";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
   BookOpen,
   CalendarDays,
-  CheckCircle2,
-  Clock3,
-  GraduationCap,
   Megaphone,
   Play,
   Radio,
@@ -15,7 +13,6 @@ import {
   Avatar,
   CourseCard,
   EmptyState,
-  Metric,
   Progress,
 } from "../components/ui";
 function date(value, options) {
@@ -60,19 +57,6 @@ export function DashboardView({
   const nextLesson = activeCourse?.modules
     ?.flatMap((module) => module.lessons)
     .find((lesson) => !lesson.completed);
-  const learning = courses.filter((course) => course.accessType !== "live");
-  const completed = courses.reduce(
-    (total, course) => total + (course.completedLessonsCount || 0),
-    0,
-  );
-  const average = learning.length
-    ? Math.round(
-        learning.reduce(
-          (total, course) => total + (course.progressPercent || 0),
-          0,
-        ) / learning.length,
-      )
-    : 0;
   const remaining = nextClass
     ? Math.max(0, new Date(nextClass.scheduledAt).getTime() - now)
     : 0;
@@ -81,87 +65,33 @@ export function DashboardView({
     minutes = Math.floor(remaining / 60000) % 60;
   const firstName = user?.name?.trim().split(/\s+/)[0] || "estudiante";
   return (
-    <div className="space-y-8">
-      <section className="relative isolate overflow-hidden rounded-2xl border border-sky-900/30 bg-gradient-to-br from-slate-900 via-slate-900 to-sky-950 px-5 py-6 text-white shadow-panel sm:px-7 sm:py-7">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -top-24 -right-16 size-80 rounded-full border-[45px] border-sky-400/5"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-24 right-24 size-64 rounded-full bg-sky-500/5 blur-2xl"
-        />
-        <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
+    <div className="space-y-5">
+
+
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 space-y-7">
+      <section className="relative isolate overflow-hidden rounded-2xl border border-sky-900/30 bg-gradient-to-br from-slate-900 via-slate-900 to-sky-950 px-4 py-4 text-white shadow-panel sm:px-6 sm:py-5">
+        <div aria-hidden="true" className="pointer-events-none absolute -top-24 -right-16 size-80 rounded-full border-[45px] border-sky-400/5" />
+        <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 right-24 size-64 rounded-full bg-sky-500/5 blur-2xl" />
+        <div className="relative flex flex-col justify-between gap-3 md:flex-row md:items-center">
           <div className="max-w-xl">
-            <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-sky-300/15 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-sky-200">
-              <span className="size-1.5 rounded-full bg-sky-400" />
-              TU ESPACIO DE APRENDIZAJE
-            </p>
-            <h1 className="text-2xl leading-tight font-extrabold tracking-tight text-white sm:text-[30px]">
-              Hola, {firstName}.<br />
-              <span className="font-medium text-sky-200">
-                Sigamos avanzando.
-              </span>
-            </h1>
-            <p className="mt-3 max-w-md text-xs leading-6 text-slate-300">
-              Cada lección es un paso más. Aquí encontrarás tus programas, tu
-              progreso y lo próximo en tu agenda.
-            </p>
+            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-sky-300/15 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.14em] text-sky-200"><span className="size-1.5 rounded-full bg-sky-400" />TU ESPACIO DE APRENDIZAJE</p>
+            <h1 className="text-xl leading-tight font-extrabold tracking-tight text-white sm:text-2xl">Hola, {firstName}.<br /><span className="font-medium text-sky-200">Sigamos avanzando.</span></h1>
+            <p className="mt-2 max-w-xl text-[11px] leading-5 text-slate-300">Cada lección es un paso más. Aquí encontrarás tus programas, tu progreso y lo próximo en tu agenda.</p>
           </div>
-          <button
-            className="btn self-start shrink-0 !min-h-10 !rounded-xl !border-sky-400/30 !bg-sky-500 !px-4 !py-2.5 !text-xs !text-white shadow-lg shadow-sky-950/20 transition hover:!bg-sky-400 md:self-center"
-            onClick={() => onNavigate("courses")}
-          >
-            Explorar mis programas
-            <ArrowUpRight size={16} />
-          </button>
+          <button className="btn self-start shrink-0 !min-h-9 !rounded-lg !border-sky-400/30 !bg-sky-500 !px-3 !py-2 !text-[11px] !text-white shadow-lg shadow-sky-950/20 transition hover:!bg-sky-400 md:self-center" onClick={() => onNavigate("courses")}>Explorar mis programas<ArrowUpRight size={16} /></button>
         </div>
       </section>
-      <section
-        aria-label="Resumen del estudiante"
-        className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4"
-      >
-        <Metric
-          icon={BookOpen}
-          label="Mis programas"
-          value={courses.length}
-          detail="Tu formación disponible"
-        />
-        <Metric
-          icon={CheckCircle2}
-          label="Lecciones completadas"
-          value={completed}
-          detail="Pasos que ya has dado"
-        />
-        <Metric
-          icon={GraduationCap}
-          label="Progreso promedio"
-          value={average + "%"}
-          detail="En tus cursos de contenido"
-        />
-        <Metric
-          icon={Clock3}
-          label="Tiempo completado"
-          value={
-            Number(user?.stats?.totalHoursWatched || 0).toLocaleString(
-              "es-EC",
-            ) + " h"
-          }
-          detail="De las lecciones finalizadas"
-        />
-      </section>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-7">
           {activeCourse && (
-            <section className="overflow-hidden rounded-2xl border border-brand-line/70 bg-gradient-to-br from-surface to-brand-soft/20 p-4 shadow-panel sm:p-5">
+            <section className="overflow-hidden rounded-xl border border-line bg-surface p-4 sm:p-5">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-brand">
                   CONTINUAR APRENDIENDO
                 </p>
-                <span className="rounded-full border border-line bg-surface px-2 py-1 text-[9px] font-semibold text-subtle">A tu ritmo</span>
+                <span className="text-[10px] font-medium text-subtle">A tu ritmo</span>
               </div>
               <div className="flex items-start gap-4">
-                <div className="hidden size-20 shrink-0 overflow-hidden rounded-xl border border-line sm:block sm:size-24">
+                <div className="hidden h-20 w-28 shrink-0 overflow-hidden rounded-lg border border-line sm:block">
                   <img
                     src={activeCourse.thumbnail}
                     alt=""
@@ -221,7 +151,7 @@ export function DashboardView({
               </button>
             </div>
             {courses.length ? (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),320px))] items-stretch gap-4 [&_article>div:first-child]:!h-32 [&_article>div:last-child]:!p-4 [&_article_h3]:!text-sm [&_article_h3]:!leading-5 [&_article_.btn]:!text-[11px]">
+              <div className="grid grid-cols-1 items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-3 [&>article]:min-w-0 [&>article]:max-w-none [&_article>div:first-child]:!h-24 [&_article>div:last-child]:!p-3 [&_article_h3]:!text-sm [&_article_h3]:!leading-5 [&_article_.btn]:!min-h-8 [&_article_.btn]:!py-1.5 [&_article_.btn]:!text-[10px] [&_article_.my-4]:!my-2 [&_article_.mb-3]:!mb-2 [&_article_.mt-3]:!mt-2 [&_article_p.leading-5]:!leading-4 [&_article_.space-y-3]:!space-y-2 [&_article_.pt-3]:!pt-2">
                 {courses.slice(0, 4).map((course) => (
                   <CourseCard
                     key={course.id}
@@ -238,15 +168,16 @@ export function DashboardView({
             )}
           </section>
         </div>
-        <aside className="min-w-0 space-y-6">
-          <section className="rounded-[22px] border border-line bg-surface p-5 shadow-panel">
-            <div className="mb-5 flex items-center justify-between">
+        <aside className="min-w-0 space-y-5">
+          <MiniClassCalendar sessions={liveClasses} onOpenSession={onOpenLiveSession} />
+          <section className="overflow-hidden rounded-xl border border-line bg-surface p-4">
+            <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
               <h2 className="text-sm">Tu próxima clase</h2>
               <CalendarDays size={17} className="text-subtle" />
             </div>
             {nextClass ? (
               <>
-                <span className="badge badge-emerald mb-4">
+                <span className="mb-3 inline-flex items-center gap-1.5 rounded-md bg-brand-soft px-2 py-1 text-[9px] font-semibold text-brand">
                   {nextClass.effectiveStatus === "live" ? (
                     <Radio size={11} />
                   ) : (
@@ -256,14 +187,14 @@ export function DashboardView({
                     ? "En vivo ahora"
                     : "En tu agenda"}
                 </span>
-                <h3 className="text-base leading-6">{nextClass.title}</h3>
-                <p className="mt-2 text-xs text-subtle">{nextClass.subtitle}</p>
-                <div className="mt-5 flex items-center gap-3 rounded-xl border border-line bg-elevated/60 p-3">
-                  <div className="min-w-10 border-r border-line pr-3 text-center">
-                    <p className="text-xl leading-none font-extrabold text-brand">
+                <h3 className="break-words text-base font-bold leading-6 tracking-tight text-ink">{nextClass.title}</h3>
+                <p className="mt-1 text-[11px] leading-5 text-subtle">{nextClass.subtitle}</p>
+                <div className="mt-3 flex items-center gap-3 overflow-hidden rounded-lg border border-brand-line/50 bg-brand-soft/30">
+                  <div className="flex w-14 shrink-0 flex-col items-center justify-center self-stretch border-r border-brand-line/50 bg-brand-soft py-3 text-center">
+                    <p className="text-2xl font-bold leading-none tracking-tight text-brand">
                       {date(nextClass.scheduledAt, { day: "2-digit" })}
                     </p>
-                    <p className="mt-1 text-[9px] font-bold uppercase text-subtle">
+                    <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-brand">
                       {date(nextClass.scheduledAt, { month: "short" })}
                     </p>
                   </div>
@@ -274,18 +205,18 @@ export function DashboardView({
                     </p>
                   </div>
                 </div>
-                <div className="my-4 flex items-center gap-2.5">
+                <div className="my-3 flex items-center gap-2.5">
                   <Avatar
                     src={nextClass.mentorAvatar}
                     name={nextClass.mentorName}
                     className="size-7"
                   />
-                  <p className="text-[11px] text-subtle">
+                  <div className="min-w-0"><p className="text-[9px] text-subtle">Tu mentor</p><p className="mt-0.5 break-words text-[11px] font-medium leading-4 text-muted">
                     {nextClass.mentorName}
-                  </p>
+                  </p></div>
                 </div>
                 {nextClass.effectiveStatus !== "live" && remaining > 0 && (
-                  <p className="mb-4 text-[10px] text-subtle">
+                  <p className="mb-3 border-t border-line pt-3 text-[10px] text-subtle">
                     Comienza en{" "}
                     <span className="font-bold text-ink">
                       {days > 0 ? days + " d " : ""}
@@ -294,7 +225,7 @@ export function DashboardView({
                   </p>
                 )}
                 <button
-                  className="btn btn-primary w-full"
+                  className="inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg bg-brand px-3 py-2 text-[11px] font-bold text-white transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                   onClick={() => onOpenLiveSession(nextClass)}
                 >
                   {nextClass.effectiveStatus === "live"
@@ -311,15 +242,15 @@ export function DashboardView({
               />
             )}
             <button
-              className="mt-4 flex w-full items-center justify-center gap-2 text-[11px] font-semibold text-subtle hover:text-brand"
+              className="mt-2 flex min-h-8 w-full items-center justify-center gap-2 rounded-lg text-[10px] font-semibold text-subtle transition hover:bg-elevated hover:text-brand"
               onClick={() => onNavigate("live")}
             >
               Ver calendario completo
               <ArrowRight size={12} />
             </button>
           </section>
-          <section className="rounded-[22px] border border-line bg-surface p-5 shadow-panel">
-            <div className="mb-5 flex items-center justify-between">
+          <section className="rounded-xl border border-line bg-surface p-4">
+            <div className="mb-4 flex items-center justify-between border-b border-line pb-3">
               <h2 className="text-sm">Novedades</h2>
               <Megaphone size={17} className="text-subtle" />
             </div>

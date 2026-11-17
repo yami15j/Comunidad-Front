@@ -183,3 +183,91 @@
     .support-fixed-workspace .support-toolbar > input { @apply min-w-0 w-32; }
   }
 }
+
+@layer components {
+  .tickets-page { @apply max-w-none gap-6; }
+  .tickets-heading { @apply border-b border-line pb-5; }
+  .tickets-heading > div { @apply border-l-0 py-0 pl-0; }
+  .tickets-heading h1 { @apply gap-3 text-[25px]; }
+  .tickets-heading h1 svg { @apply block text-brand; }
+  .tickets-heading p { @apply mt-1 text-xs; }
+  .support-toolbar { @apply gap-3 border-0 bg-transparent p-0; }
+  .support-toolbar > input { @apply min-w-48 bg-elevated/40 lg:max-w-sm; }
+  .support-toolbar > select { @apply ml-auto; }
+  .support-tabs { @apply border-0 bg-elevated p-1; }
+  .support-tabs button[aria-pressed=true] { @apply bg-surface text-brand shadow-sm; }
+  .support-tabs button span { @apply bg-brand-soft text-brand; }
+  .tickets-layout { @apply flex min-h-0 w-full flex-col items-stretch gap-5; }
+  .support-table-card { @apply min-h-0 min-w-0 w-full overflow-hidden rounded-2xl border border-line bg-surface shadow-sm; }
+  .support-table-scroll { @apply w-full overflow-auto; }
+  .content-body .support-table { @apply min-w-[880px]; }
+  .content-body .support-table th { @apply bg-elevated/60 px-4 py-3.5 text-[10px] font-semibold normal-case tracking-normal; }
+  .content-body .support-table td { @apply px-4 py-4; }
+  .ticket-subject { @apply block max-w-80 truncate text-left text-xs font-semibold text-ink transition hover:text-brand; }
+  .support-person-avatar { @apply flex size-7 shrink-0 items-center justify-center rounded-full border border-brand-line bg-brand-soft text-[10px] font-bold text-brand; }
+  .support-status { @apply inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border border-line bg-elevated px-2 py-1 text-[10px] font-semibold text-muted; }
+  .support-status[data-status=open] { @apply border-amber-200 bg-amber-50 text-amber-700; }
+  .support-status[data-status=in_progress] { @apply border-brand-line bg-brand-soft text-brand; }
+  .support-status[data-status=resolved] { @apply border-emerald-200 bg-emerald-50 text-emerald-700; }
+  .support-row-selected { @apply bg-brand-soft/50; }
+  .support-row-action { @apply inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-line text-subtle transition hover:border-brand-line hover:bg-brand-soft hover:text-brand disabled:opacity-30; }
+  .support-table-footer { @apply flex flex-wrap items-center justify-between gap-4 border-t border-line px-4 py-3 text-[11px] text-subtle; }
+  .tickets-page .support-table-footer label { @apply flex items-center gap-2 font-normal; }
+  .support-table-footer select { @apply min-h-8 rounded-lg py-1 pl-2 text-xs; }
+  .support-table-empty { @apply flex min-h-64 flex-col items-center justify-center gap-3 p-8 text-center text-xs text-subtle; }
+  .support-table-empty svg { @apply text-brand; }
+  .ticket-conversation[hidden] { display: none; }
+  .support-fixed-workspace .tickets-page { @apply gap-5 overflow-y-auto; }
+  .support-fixed-workspace .tickets-layout { @apply flex-none overflow-visible; }
+  .support-fixed-workspace .ticket-conversation { @apply h-auto max-h-none overflow-visible; }
+  .support-fixed-workspace .ticket-messages { @apply max-h-[45dvh] flex-none; }
+  @media (max-width: 639px) {
+    .support-toolbar > select { @apply ml-0 w-full; }
+    .support-toolbar > input { @apply w-full; }
+    .support-table-footer { @apply justify-center; }
+  }
+}
+
+@layer components {
+  .tickets-heading { @apply border-b-0 pb-0; }
+  .tickets-heading > .support-heading-search { @apply w-full min-w-0 sm:max-w-md sm:flex-1; }
+  .support-heading-search input { @apply w-full bg-surface; }
+}
+
+@layer components {
+  .support-toolbar[hidden] { display: none; }
+  .support-fixed-workspace .tickets-page[data-chat-open=true] { @apply overflow-hidden; }
+  .support-fixed-workspace .tickets-page[data-chat-open=true] .tickets-layout { @apply min-h-0 flex-1; }
+  .support-fixed-workspace .tickets-page[data-chat-open=true] .ticket-conversation { @apply h-full min-h-0 overflow-y-auto; }
+  .support-fixed-workspace .tickets-page[data-chat-open=true] .ticket-messages { @apply min-h-20 max-h-none flex-1; }
+}
+
+@layer components {
+  .support-status[data-status=closed] { @apply border-slate-300 bg-slate-100 text-slate-600; }
+}
+
+@layer components {
+  .tickets-page .support-status-select { @apply min-h-8 w-auto rounded-lg border-brand-line bg-brand-soft py-1 pl-2 pr-7 text-[11px] font-semibold text-brand; }
+  .tickets-page .support-status-select[data-status=open] { @apply border-amber-200 bg-amber-50 text-amber-700; }
+}
+
+@layer components {
+  .support-chat-action { @apply border-sky-300 bg-sky-100 text-sky-700 shadow-sm shadow-sky-500/10 hover:border-sky-600 hover:bg-sky-600 hover:text-white focus-visible:outline-sky-600; }
+  .support-delete-action { @apply border-rose-300 bg-rose-100 text-rose-600 shadow-sm shadow-rose-500/10 hover:border-rose-600 hover:bg-rose-600 hover:text-white focus-visible:outline-rose-600; }
+}
+
+@layer components {
+  .tickets-page .support-status-select { @apply cursor-pointer rounded-full border px-3 py-1.5 pr-8 shadow-sm transition hover:brightness-95 focus:ring-4; }
+  .tickets-page .support-status-select[data-status=resolved] { @apply border-emerald-300 bg-emerald-100 text-emerald-800 focus:ring-emerald-100; }
+  .tickets-page .support-status-select[data-status=closed] { @apply border-slate-300 bg-slate-100 text-slate-700 focus:ring-slate-100; }
+}
+
+@layer components {
+  .support-chat-action { @apply rounded-md border-0 bg-transparent text-sky-600 shadow-none hover:border-transparent hover:bg-transparent hover:text-sky-800; }
+  .support-delete-action { @apply rounded-md border-0 bg-transparent text-rose-600 shadow-none hover:border-transparent hover:bg-transparent hover:text-rose-800; }
+}
+
+@layer components {
+  .support-ticket-row { @apply cursor-pointer; }
+  .content-body .support-ticket-row:hover { @apply bg-brand-soft/60; }
+}

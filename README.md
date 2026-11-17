@@ -4,6 +4,12 @@ Run this React application against the community API. Authentication uses real A
 
 ## Run locally
 
+## Recuperación de contraseña
+
+El login incluye **¿Olvidaste tu contraseña?**. El usuario introduce su correo, abre el enlace enviado por Supabase y crea su nueva contraseña en `/recuperar-contrasena`. Después inicia sesión normalmente. El cambio solo se aplica a la identidad verificada por Supabase; no se solicita ni se acepta un identificador de otro usuario.
+
+En el backend, `FRONTEND_URL` indica el origen del frontend (por defecto `http://localhost:5174`). En Supabase Auth → URL Configuration, permitir `${FRONTEND_URL}/recuperar-contrasena` como Redirect URL. En producción usar el dominio HTTPS real y configurar el correo de Supabase para la entrega. Los enlaces vencidos requieren solicitar uno nuevo; la confirmación de envío no revela si un correo existe.
+
 1. Use Node.js 22 or newer and run `npm install` in this directory.
 2. Set `VITE_API_URL=http://localhost:3000` in a local `.env.local` if needed. The same address is the default. Never put server credentials or service keys in Vite variables.
 3. Start the backend, then run `npm run dev` and open the address Vite prints.
